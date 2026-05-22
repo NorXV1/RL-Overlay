@@ -3,6 +3,20 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog } = require('electron');
 const path = require('path');
 
+// ── Instance unique : si une 2ème instance se lance, focus la 1ère ──
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 let mainWindow = null;
 let tray       = null;
 
@@ -73,6 +87,7 @@ function createTray() {
   ]);
 
   tray.setContextMenu(menu);
+  tray.on('click',        () => { mainWindow.show(); mainWindow.focus(); });
   tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); });
 }
 
