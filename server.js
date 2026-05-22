@@ -594,6 +594,13 @@ app.post('/api/goal', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/version', (req, res) => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    res.json({ version: pkg.version });
+  } catch { res.json({ version: '?' }); }
+});
+
 /* ── Auto-update ── */
 let _restartCallback = null;
 exports.onRestartRequest = (cb) => { _restartCallback = cb; };
