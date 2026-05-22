@@ -170,10 +170,10 @@ body {
 #dot.on { background:#22c55e; }
 #conn-txt { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
 
-#header-bar { display:flex; align-items:center; justify-content:space-between; padding:5px 18px; background:rgba(0,0,0,.3); }
+#header-bar { position:relative; display:flex; align-items:center; justify-content:space-between; padding:5px 18px; background:rgba(0,0,0,.3); }
 #header-bar h1 { font-size:9px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
 #hdr-fb { font-size:11px; letter-spacing:1px; color:#22c55e; min-width:120px; text-align:right; opacity:0; transition:opacity .3s; }
-#version-wrap { display:flex; align-items:center; gap:8px; }
+#version-wrap { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:8px; }
 #version-badge { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:4px; padding:2px 7px; }
 #update-banner {
   display: none; position:sticky; top:0; z-index:999;
