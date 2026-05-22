@@ -598,13 +598,71 @@ app.post('/api/goal', (req, res) => {
 let _restartCallback = null;
 exports.onRestartRequest = (cb) => { _restartCallback = cb; };
 
-app.post('/api/update', (req, res) => {
-  const { execFile } = require('child_process');
-  execFile('git', ['pull', 'origin', 'main'], { cwd: __dirname }, (err, stdout, stderr) => {
-    if (err) return res.json({ ok: false, error: err.message, detail: stderr });
-    res.json({ ok: true, output: stdout.trim() || 'Déjà à jour.' });
+app.post('/api/update', async (req, res) => {
+  const https  = require('https');
+  const os     = require('os');
+  const { execFileSync } = require('child_process');
+
+  const ZIP_URL    = 'https://codeload.github.com/NorXV1/RL-Overlay/zip/refs/heads/main';
+  const tmpZip     = path.join(os.tmpdir(), 'rl-overlay-update.zip');
+  const tmpDir     = path.join(os.tmpdir(), 'rl-overlay-update');
+  const REPO_SUB   = 'RL-Overlay-main';
+
+  function skipPath(rel) {
+    const p = rel.split(path.sep);
+    if (['node_modules','dist','.git','.claude','.vs'].includes(p[0])) return true;
+    if (p[0] === 'settings.json') return true;
+    if (p[0] === 'public' && p[1] === 'logos' && p[2]) return true;
+    if (p[0] === 'public' && p[1] === 'utils') return true;
+    return false;
+  }
+
+  function copyDir(src, dst) {
+    const rel = path.relative(path.join(tmpDir, REPO_SUB), src);
+    if (rel && skipPath(rel)) return;
+    const stat = fs.statSync(src);
+    if (stat.isDirectory()) {
+      fs.mkdirSync(dst, { recursive: true });
+      for (const f of fs.readdirSync(src)) copyDir(path.join(src, f), path.join(dst, f));
+    } else {
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      fs.copyFileSync(src, dst);
+    }
+  }
+
+  try {
+    // 1. Télécharger le zip
+    await new Promise((resolve, reject) => {
+      function get(url) {
+        https.get(url, r => {
+          if (r.statusCode === 301 || r.statusCode === 302) return get(r.headers.location);
+          const file = fs.createWriteStream(tmpZip);
+          r.pipe(file);
+          file.on('finish', resolve);
+          r.on('error', reject);
+        }).on('error', reject);
+      }
+      get(ZIP_URL);
+    });
+
+    // 2. Extraire avec PowerShell
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    execFileSync('powershell', ['-NoProfile', '-Command',
+      `Expand-Archive -LiteralPath '${tmpZip}' -DestinationPath '${tmpDir}' -Force`
+    ]);
+
+    // 3. Copier les fichiers (sans écraser les données utilisateur)
+    copyDir(path.join(tmpDir, REPO_SUB), __dirname);
+
+    // 4. Nettoyer
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(tmpZip, { force: true });
+
+    res.json({ ok: true, output: 'Mise à jour installée. Redémarrage…' });
     if (_restartCallback) setTimeout(_restartCallback, 1500);
-  });
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
 server.listen(PORT, () => {
