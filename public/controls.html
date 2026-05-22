@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RL Overlay — Contrôles</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+/* ══════════ THÈMES ══════════════════════════════════ */
+:root {
+  --blue:      #1a5fff;
+  --orange:    #d96000;
+  --bg:        #06060e;
+  --header-bg: #08081a;
+  --center-bg: #0c0c14;
+  --card:      #0d0d1a;
+  --border:    rgba(255,255,255,.07);
+  --text:      #e0e0e0;
+  --muted:     rgba(255,255,255,.28);
+  --subtle:    rgba(255,255,255,.03);
+  --input-bg:  rgba(255,255,255,.05);
+  --input-bdr: rgba(255,255,255,.09);
+  --togbg:     rgba(255,255,255,.1);
+  --btnbg:     rgba(255,255,255,.08);
+  --card-glow: none;
+}
+
+/* — Neon — */
+[data-theme="neon"] {
+  --bg:        #020209;
+  --header-bg: #04041a;
+  --center-bg: #070720;
+  --card:      #07071e;
+  --border:    rgba(26,95,255,.18);
+  --text:      #dde8ff;
+  --muted:     rgba(180,200,255,.3);
+  --subtle:    rgba(26,95,255,.04);
+  --input-bg:  rgba(26,95,255,.06);
+  --input-bdr: rgba(26,95,255,.18);
+  --togbg:     rgba(26,95,255,.12);
+  --btnbg:     rgba(26,95,255,.1);
+  --card-glow: 0 0 0 1px rgba(26,95,255,.12), 0 4px 24px rgba(26,95,255,.06);
+}
+[data-theme="neon"] .card { box-shadow: var(--card-glow); }
+[data-theme="neon"] #header { box-shadow: 0 2px 30px rgba(26,95,255,.15); }
+[data-theme="neon"] .sl-score.blue { box-shadow: 0 0 20px rgba(26,95,255,.5); }
+[data-theme="neon"] .sl-score.orange { box-shadow: 0 0 20px rgba(217,96,0,.5); }
+
+/* — Onyx — */
+[data-theme="onyx"] {
+  --bg:        #000000;
+  --header-bg: #080808;
+  --center-bg: #111111;
+  --card:      #0e0e0e;
+  --border:    rgba(255,255,255,.05);
+  --text:      #cccccc;
+  --muted:     rgba(255,255,255,.25);
+  --subtle:    rgba(255,255,255,.02);
+  --input-bg:  rgba(255,255,255,.04);
+  --input-bdr: rgba(255,255,255,.07);
+  --togbg:     rgba(255,255,255,.08);
+  --btnbg:     rgba(255,255,255,.07);
+}
+
+/* — Nord — */
+[data-theme="nord"] {
+  --bg:        #1e2228;
+  --header-bg: #1a1e26;
+  --center-bg: #161a20;
+  --card:      #252c38;
+  --border:    rgba(255,255,255,.07);
+  --text:      #d8dee9;
+  --muted:     rgba(216,222,233,.35);
+  --subtle:    rgba(255,255,255,.04);
+  --input-bg:  rgba(255,255,255,.06);
+  --input-bdr: rgba(255,255,255,.09);
+  --togbg:     rgba(255,255,255,.1);
+  --btnbg:     rgba(255,255,255,.08);
+}
+
+/* — RLCS 2026 — */
+[data-theme="rlcs2026"] {
+  --blue:      #1FAFDA;
+  --orange:    #FD5B00;
+  --bg:        #060e0e;
+  --header-bg: #040a0c;
+  --center-bg: #081212;
+  --card:      #0c1616;
+  --border:    rgba(31,175,218,.1);
+  --text:      #dff0f8;
+  --muted:     rgba(180,225,240,.3);
+  --subtle:    rgba(31,175,218,.04);
+  --input-bg:  rgba(31,175,218,.05);
+  --input-bdr: rgba(31,175,218,.12);
+  --togbg:     rgba(31,175,218,.1);
+  --btnbg:     rgba(31,175,218,.08);
+  --card-glow: 0 0 0 1px rgba(31,175,218,.08), 0 4px 20px rgba(31,175,218,.04);
+}
+[data-theme="rlcs2026"] .card { box-shadow: var(--card-glow); }
+[data-theme="rlcs2026"] #header { box-shadow: 0 2px 30px rgba(31,175,218,.12); }
+[data-theme="rlcs2026"] .sl-team.blue   { background: linear-gradient(90deg, rgba(1,17,18,.9) 0%, transparent 80%); }
+[data-theme="rlcs2026"] .sl-team.orange { background: linear-gradient(270deg, rgba(23,8,0,.9) 0%, transparent 80%); }
+
+/* — Amber — */
+[data-theme="amber"] {
+  --blue:      #f59e0b;
+  --orange:    #ef4444;
+  --bg:        #0a0600;
+  --header-bg: #120900;
+  --center-bg: #0f0700;
+  --card:      #160e04;
+  --border:    rgba(245,158,11,.1);
+  --text:      #fde8c0;
+  --muted:     rgba(253,232,192,.3);
+  --subtle:    rgba(245,158,11,.04);
+  --input-bg:  rgba(245,158,11,.05);
+  --input-bdr: rgba(245,158,11,.12);
+  --togbg:     rgba(245,158,11,.1);
+  --btnbg:     rgba(245,158,11,.08);
+}
+
+/* ══════════ BASE ════════════════════════════════════ */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background .35s, color .35s;
+}
+
+/* ─── HEADER ─────────────────────────────────────── */
+#header {
+  flex-shrink: 0;
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--border);
+  transition: background .35s;
+}
+#scoreline { display: flex; align-items: stretch; height: 64px; }
+
+.sl-team { display: flex; align-items: center; flex: 1; padding: 0 18px; gap: 12px; }
+.sl-team.blue   { background: linear-gradient(90deg, rgba(26,95,255,.18) 0%, transparent 80%);  border-top: 3px solid var(--blue);   }
+.sl-team.orange { background: linear-gradient(270deg, rgba(217,96,0,.18)  0%, transparent 80%); border-top: 3px solid var(--orange); justify-content: flex-end; }
+
+.sl-logo { width:38px; height:38px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; overflow:hidden; flex-shrink:0; }
+.sl-logo.blue   { background: rgba(26,95,255,.2);  border: 2px solid var(--blue);   color: var(--blue);   }
+.sl-logo.orange { background: rgba(217,96,0,.2);   border: 2px solid var(--orange); color: var(--orange); }
+.sl-logo img { width:100%; height:100%; object-fit:contain; display:none; }
+.sl-logo img.show { display:block; }
+.sl-name { font-size:22px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:#fff; }
+
+#sl-center { display:flex; align-items:stretch; background: var(--center-bg); flex-shrink:0; transition: background .35s; }
+.sl-score { display:flex; align-items:center; justify-content:center; width:60px; font-size:38px; font-weight:900; color:#fff; transition: box-shadow .35s; }
+.sl-score.blue   { background: var(--blue);   }
+.sl-score.orange { background: var(--orange); }
+
+#sl-mid { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 14px; gap:3px; border-left:1px solid var(--border); border-right:1px solid var(--border); }
+.sl-goal-btns { display:flex; gap:2px; }
+.sl-goal-btn { padding:3px 10px; border:none; border-radius:3px; font-family:inherit; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:filter .15s; }
+.sl-goal-btn:hover { filter:brightness(1.25); }
+.sl-goal-btn.blue   { background:var(--blue);   color:#fff; border-radius:3px 0 0 3px; }
+.sl-goal-btn.orange { background:var(--orange); color:#fff; border-radius:0 3px 3px 0; }
+.sl-sub { display:flex; align-items:center; gap:8px; }
+.sl-minus { background:none; border:none; color:var(--muted); font-size:13px; font-weight:700; cursor:pointer; transition:color .15s; font-family:inherit; padding:0 3px; }
+.sl-minus:hover { color:var(--text); }
+#dot { width:7px; height:7px; border-radius:50%; background:#f00; transition:background .3s; }
+#dot.on { background:#22c55e; }
+#conn-txt { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+
+#header-bar { display:flex; align-items:center; justify-content:space-between; padding:5px 18px; background:rgba(0,0,0,.3); }
+#header-bar h1 { font-size:9px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
+#hdr-fb { font-size:11px; letter-spacing:1px; color:#22c55e; min-width:120px; text-align:right; opacity:0; transition:opacity .3s; }
+#version-wrap { display:flex; align-items:center; gap:8px; }
+#version-badge { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:4px; padding:2px 7px; }
+#update-banner {
+  display: none; position:sticky; top:0; z-index:999;
+  align-items:center; justify-content:center; gap:12px;
+  padding: 10px 20px;
+  background: linear-gradient(90deg, #b45309, #f59e0b, #b45309);
+  background-size: 200% 100%;
+  animation: updateSlide .4s ease both, updateShimmer 3s ease infinite;
+  border-bottom: 2px solid #fbbf24;
+  box-shadow: 0 4px 24px rgba(245,158,11,.45);
+}
+#update-banner.visible { display:flex; }
+#update-banner-icon { font-size:18px; }
+#update-banner-text { font-size:13px; font-weight:800; letter-spacing:3px; text-transform:uppercase; color:#000; }
+#update-banner-ver  { font-size:11px; font-weight:700; letter-spacing:1px; color:rgba(0,0,0,.6); background:rgba(0,0,0,.15); border-radius:3px; padding:2px 8px; }
+#update-btn { margin-left:16px; padding:5px 18px; background:#000; color:#f59e0b; border:none; border-radius:5px; font-family:inherit; font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:opacity .2s; }
+#update-btn:hover { opacity:.75; }
+#update-btn:disabled { opacity:.4; cursor:default; }
+@keyframes updateSlide   { from{transform:translateY(-100%);opacity:0} to{transform:none;opacity:1} }
+@keyframes updateShimmer { 0%,100%{background-position:0% 0} 50%{background-position:100% 0} }
+
+/* ─── MAIN LAYOUT ────────────────────────────────── */
+#main { display:flex; flex:1; overflow:hidden; }
+#left  { width:310px; flex-shrink:0; border-right:1px solid var(--border); overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+#right { flex:1; overflow-y:auto; padding:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px; align-content:start; }
+
+/* ─── CARD ───────────────────────────────────────── */
+.card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:13px 15px; transition:background .35s, border-color .35s, box-shadow .35s; }
+.card.span2 { grid-column:span 2; }
+.card-title { font-size:8px; font-weight:800; letter-spacing:4px; text-transform:uppercase; color:var(--muted); padding-bottom:9px; margin-bottom:11px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:7px; }
+.card-title::before { content:''; display:block; width:3px; height:12px; border-radius:2px; flex-shrink:0; }
+.card-title.blue::before   { background:var(--blue); }
+.card-title.orange::before { background:var(--orange); }
+.card-title.white::before  { background:rgba(255,255,255,.25); }
+.card-title.green::before  { background:#22c55e; }
+
+/* ─── PLAYER GRID ────────────────────────────────── */
+#player-grid { display:flex; flex-direction:column; gap:5px; }
+.p-btn { display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px; background:var(--subtle); border:1px solid var(--border); border-radius:6px; cursor:pointer; color:var(--text); font-family:inherit; transition:border-color .15s, background .15s; text-align:left; }
+.p-badge { min-width:22px; height:22px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; flex-shrink:0; }
+.p-info { flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
+.p-name { font-size:14px; font-weight:800; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.boost-bar { height:3px; background:var(--btnbg); border-radius:2px; overflow:hidden; }
+.boost-fill { height:100%; border-radius:2px; transition:width .3s; }
+.p-boost { font-size:12px; font-weight:700; color:var(--muted); flex-shrink:0; }
+
+/* ─── FORM ───────────────────────────────────────── */
+label { display:block; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+input[type=text], input[type=number], select { width:100%; background:var(--input-bg); border:1px solid var(--input-bdr); border-radius:5px; color:var(--text); font-family:inherit; font-size:14px; font-weight:600; padding:7px 10px; margin-bottom:8px; outline:none; transition:border-color .2s, background .35s; }
+input:focus, select:focus { border-color:rgba(26,95,255,.55); }
+select option { background:#1a1a28; }
+input[type=file] { width:100%; font-size:11px; font-family:inherit; color:var(--muted); background:var(--input-bg); border:1px solid var(--input-bdr); border-radius:5px; padding:5px 10px; cursor:pointer; margin-bottom:6px; }
+input[type=file]::file-selector-button { background:var(--blue); color:#fff; border:none; border-radius:3px; padding:3px 9px; font-family:inherit; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; cursor:pointer; margin-right:8px; }
+.row { display:flex; gap:8px; }
+.row > * { flex:1; }
+
+/* ─── BUTTONS ────────────────────────────────────── */
+.btn { width:100%; padding:8px 14px; border:none; border-radius:5px; font-family:inherit; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1.5px; cursor:pointer; transition:filter .15s, transform .1s; margin-top:4px; }
+.btn:hover { filter:brightness(1.2); }
+.btn:active { transform:scale(.97); }
+.btn-blue   { background:var(--blue);   color:#fff; }
+.btn-orange { background:var(--orange); color:#fff; }
+.btn-danger { background:#6b1414; color:#fff; }
+.btn-gray   { background:var(--btnbg); color:var(--text); }
+.btn-sm     { width:auto; padding:5px 12px; font-size:11px; margin-top:0; }
+.fb { font-size:10px; letter-spacing:1px; color:#22c55e; height:13px; margin-top:5px; transition:opacity .3s; }
+
+/* ─── TOGGLE ─────────────────────────────────────── */
+.toggle-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.toggle-row:last-of-type { border-bottom:none; padding-bottom:2px; }
+.toggle-label { font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+.toggle-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+.switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; inset:0; background:var(--togbg); border-radius:22px; cursor:pointer; transition:.3s; }
+.slider:before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; }
+input:checked + .slider { background:var(--blue); }
+input:checked + .slider:before { transform:translateX(18px); }
+
+/* ─── LOGO PREVIEW ───────────────────────────────── */
+.logo-preview { width:100%; height:80px; background:var(--subtle); border:1px dashed var(--border); border-radius:5px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:6px; }
+.logo-preview img { max-width:100%; max-height:100%; object-fit:contain; display:none; }
+.logo-preview img.loaded { display:block; }
+.logo-preview span { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+
+/* ─── SERIES DOTS ────────────────────────────────── */
+#series-dots { display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 0 12px; }
+.sdot { height:7px; border-radius:4px; background:var(--btnbg); transition:background .3s, box-shadow .3s; }
+.sdot.won.blue   { background:var(--blue);   box-shadow:0 0 8px rgba(26,95,255,.45); }
+.sdot.won.orange { background:var(--orange); box-shadow:0 0 8px rgba(217,96,0,.45); }
+.sdot.sep { width:1px !important; height:16px; background:var(--border); }
+
+/* ─── UTILS LIST ─────────────────────────────────── */
+.utils-item { display:flex; align-items:center; gap:8px; background:var(--subtle); border:1px solid var(--border); border-radius:5px; padding:5px 9px; margin-bottom:4px; }
+.utils-item span { font-size:11px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:.5px; }
+.utils-del { background:#7f1d1d; color:#fff; border:none; border-radius:3px; padding:2px 7px; font-size:9px; font-weight:800; font-family:inherit; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+
+/* ─── URL LINKS ──────────────────────────────────── */
+.url-link { display:flex; align-items:center; padding:7px 9px; background:var(--subtle); border:1px solid var(--border); border-radius:5px; margin-bottom:5px; gap:8px; }
+.url-link .lbl { font-size:8px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+.url-link span { font-size:11px; color:#4d8fff; word-break:break-all; flex:1; }
+.copy-btn { font-size:8px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; background:var(--btnbg); border:1px solid var(--border); border-radius:3px; color:var(--muted); cursor:pointer; font-family:inherit; }
+.copy-btn:hover { color:var(--text); }
+#swap-btn { width:38px; height:38px; border-radius:50%; background:var(--btnbg); border:1px solid var(--border); color:var(--text); font-size:18px; cursor:pointer; transition:background .15s, transform .25s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+#swap-btn:hover { filter:brightness(1.3); }
+
+/* ─── THEME PICKER ───────────────────────────────── */
+#themes-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+.tc {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; padding:6px; border-radius:7px;
+  border:2px solid transparent;
+  transition:border-color .2s, transform .15s;
+}
+.tc:hover { transform:translateY(-2px); }
+.tc.active { border-color:var(--blue); }
+.tc-preview {
+  width:100%; aspect-ratio:16/9; border-radius:5px; overflow:hidden;
+  position:relative; border:1px solid rgba(255,255,255,.06);
+}
+.tc-bg { width:100%; height:100%; display:flex; flex-direction:column; }
+.tc-header { height:35%; display:flex; }
+.tc-h-blue  { flex:1; }
+.tc-h-score { width:30%; display:flex; }
+.tc-h-sb { flex:1; }
+.tc-h-so { flex:1; }
+.tc-h-orange { flex:1; }
+.tc-body { flex:1; display:flex; gap:2px; padding:3px; }
+.tc-card-left  { flex:1; border-radius:3px; }
+.tc-card-right { flex:1; border-radius:3px; }
+.tc-name { font-size:9px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:center; }
+.tc.active .tc-name { color:var(--blue); }
+.tc-check { display:none; width:14px; height:14px; border-radius:50%; background:var(--blue); align-items:center; justify-content:center; font-size:9px; color:#fff; }
+.tc.active .tc-check { display:flex; }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.2); }
+</style>
+</head>
+<body>
+
+<!-- ══════════ BANNIÈRE MISE À JOUR ══════════ -->
+<div id="update-banner">
+  <span id="update-banner-icon">⚡</span>
+  <span id="update-banner-text">Mise à jour disponible !</span>
+  <span id="update-banner-ver"></span>
+  <button id="update-btn" onclick="doUpdate()">Mettre à jour</button>
+</div>
+
+<!-- ══════════ HEADER ══════════ -->
+<div id="header">
+  <div id="scoreline">
+    <div class="sl-team blue">
+      <div class="sl-logo blue" id="sl-logo-blue">
+        <img id="sl-img-blue" alt=""><span id="sl-ltr-blue">B</span>
+      </div>
+      <span class="sl-name" id="lp-blue">BLUE</span>
+    </div>
+    <div id="sl-center">
+      <div class="sl-score blue" id="lp-sb">0</div>
+      <div id="sl-mid">
+        <div class="sl-goal-btns">
+          <button class="sl-goal-btn blue"   onclick="trigGoal(0)">+1 B</button>
+          <button class="sl-goal-btn orange" onclick="trigGoal(1)">+1 O</button>
+        </div>
+        <div class="sl-sub">
+          <button class="sl-minus" onclick="adjScore(0,-1)">−B</button>
+          <div id="dot"></div>
+          <button class="sl-minus" onclick="adjScore(1,-1)">−O</button>
+        </div>
+        <span id="conn-txt">OFFLINE</span>
+      </div>
+      <div class="sl-score orange" id="lp-so">0</div>
+    </div>
+    <div class="sl-team orange">
+      <span class="sl-name" id="lp-orange">ORANGE</span>
+      <div class="sl-logo orange" id="sl-logo-orange">
+        <img id="sl-img-orange" alt=""><span id="sl-ltr-orange">O</span>
+      </div>
+    </div>
+  </div>
+  <div id="header-bar">
+    <h1>RL Overlay — Panneau de contrôle</h1>
+    <div id="version-wrap">
+      <span id="version-badge">v—</span>
+      <span id="update-badge" title="Une mise à jour est disponible">↑ MISE À JOUR DISPONIBLE</span>
+    </div>
+    <span id="hdr-fb"></span>
+  </div>
+</div>
+
+<!-- ══════════ MAIN ══════════ -->
+<div id="main">
+
+  <!-- ── LEFT ── -->
+  <div id="left">
+
+    <div class="card">
+      <div class="card-title white">Joueur spectateur</div>
+      <p style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Touches <strong style="color:var(--text);">1–9</strong> ou clic pour sélectionner le joueur affiché dans la stat bar &amp; boost.</p>
+      <div id="player-grid"><span style="font-size:11px;color:var(--muted);">En attente de joueurs…</span></div>
+      <button class="btn btn-danger" style="margin-top:10px;width:auto;padding:6px 14px;" onclick="clearSpec()">✕ Masquer stat bar</button>
+      <div class="fb" id="fb-player"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title green">Visibilité</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Overlay</div><div class="toggle-sub">Scoreboard, sidebar, replays, fin de match</div></div>
+        <label class="switch"><input type="checkbox" id="overlay-vis-toggle" checked onchange="setOverlayVisible(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Boost Meter</div><div class="toggle-sub">Jauge indépendante en bas à droite</div></div>
+        <label class="switch"><input type="checkbox" id="boost-vis-toggle" checked onchange="setBoostVisible(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="fb" id="fb-visible"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title white">URLs OBS — 1920×1080 transparent</div>
+      <div class="url-link"><span class="lbl">Overlay</span><span id="u-overlay"></span><button class="copy-btn" onclick="copy('u-overlay')">Copier</button></div>
+      <div class="url-link"><span class="lbl">Série</span><span id="u-series"></span><button class="copy-btn" onclick="copy('u-series')">Copier</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title white">Actions</div>
+      <button class="btn btn-danger" onclick="resetAll()">Réinitialiser tout</button>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div id="right">
+
+    <!-- Thèmes -->
+    <div class="card span2">
+      <div class="card-title white">Thème</div>
+      <div id="themes-grid">
+
+        <!-- RLCS -->
+        <div class="tc active" data-t="rlcs" onclick="setTheme('rlcs')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#06060e;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(26,95,255,.25),transparent);border-top:2px solid #1a5fff;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1a5fff;"></div>
+                  <div class="tc-h-so" style="background:#d96000;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(217,96,0,.25),transparent);border-top:2px solid #d96000;"></div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#0d0d1a;border:1px solid rgba(255,255,255,.07);"></div>
+                <div class="tc-card-right" style="background:#0d0d1a;border:1px solid rgba(255,255,255,.07);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">RLCS</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+        <!-- Neon -->
+        <div class="tc" data-t="neon" onclick="setTheme('neon')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#020209;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(26,95,255,.3),transparent);border-top:2px solid #1a5fff;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1a5fff;box-shadow:0 0 8px rgba(26,95,255,.8);"></div>
+                  <div class="tc-h-so" style="background:#d96000;box-shadow:0 0 8px rgba(217,96,0,.8);"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(217,96,0,.3),transparent);border-top:2px solid #d96000;"></div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#07071e;border:1px solid rgba(26,95,255,.2);box-shadow:0 0 6px rgba(26,95,255,.08);"></div>
+                <div class="tc-card-right" style="background:#07071e;border:1px solid rgba(26,95,255,.2);box-shadow:0 0 6px rgba(26,95,255,.08);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">Neon</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+        <!-- Onyx -->
+        <div class="tc" data-t="onyx" onclick="setTheme('onyx')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#000000;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(26,95,255,.2),transparent);border-top:2px solid #1a5fff;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1a5fff;"></div>
+                  <div class="tc-h-so" style="background:#d96000;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(217,96,0,.2),transparent);border-top:2px solid #d96000;"></div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#0e0e0e;border:1px solid rgba(255,255,255,.05);"></div>
+                <div class="tc-card-right" style="background:#0e0e0e;border:1px solid rgba(255,255,255,.05);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">Onyx</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+        <!-- Nord -->
+        <div class="tc" data-t="nord" onclick="setTheme('nord')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#1e2228;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(26,95,255,.2),transparent);border-top:2px solid #1a5fff;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1a5fff;"></div>
+                  <div class="tc-h-so" style="background:#d96000;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(217,96,0,.2),transparent);border-top:2px solid #d96000;"></div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#252c38;border:1px solid rgba(255,255,255,.07);"></div>
+                <div class="tc-card-right" style="background:#252c38;border:1px solid rgba(255,255,255,.07);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">Nord</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+        <!-- RLCS 2026 -->
+        <div class="tc" data-t="rlcs2026" onclick="setTheme('rlcs2026')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#060e0e;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(1,17,18,.95),transparent);border-top:2px solid #1FAFDA;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1FAFDA;"></div>
+                  <div style="background:#fefefe;flex:0.6;display:flex;align-items:center;justify-content:center;"><div style="width:6px;height:8px;background:#1FAFDA;"></div></div>
+                  <div class="tc-h-so" style="background:#FD5B00;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(23,8,0,.95),transparent);border-top:2px solid #FD5B00;"></div>
+              </div>
+              <div style="height:2px;background:linear-gradient(to right,#011112,#1FAFDA,#0C0C09,#FD5B00,#170800);margin:1px 4px;border-radius:1px;opacity:.8;"></div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#0c1616;border:1px solid rgba(31,175,218,.12);"></div>
+                <div class="tc-card-right" style="background:#0c1616;border:1px solid rgba(31,175,218,.12);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">2026</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+        <!-- Amber -->
+        <div class="tc" data-t="amber" onclick="setTheme('amber')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#0a0600;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,rgba(245,158,11,.25),transparent);border-top:2px solid #f59e0b;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#f59e0b;"></div>
+                  <div class="tc-h-so" style="background:#ef4444;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,rgba(239,68,68,.25),transparent);border-top:2px solid #ef4444;"></div>
+              </div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#160e04;border:1px solid rgba(245,158,11,.12);"></div>
+                <div class="tc-card-right" style="background:#160e04;border:1px solid rgba(245,158,11,.12);"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">Amber</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Équipes & Ligue -->
+    <div class="card">
+      <div class="card-title white">Équipes &amp; Ligue</div>
+      <label>Label ligue</label>
+      <input type="text" id="league-input" placeholder="SEMAINE 1 // LIGUE 1" maxlength="40">
+      <div class="row">
+        <div><label>Bleue</label><input type="text" id="blue-name" placeholder="BLUE" maxlength="20"></div>
+        <div><label>Orange</label><input type="text" id="orange-name" placeholder="ORANGE" maxlength="20"></div>
+      </div>
+      <button class="btn btn-blue" onclick="applyTeams()">Appliquer &amp; Sauvegarder</button>
+      <div class="fb" id="fb-teams"></div>
+    </div>
+
+    <!-- Série -->
+    <div class="card">
+      <div class="card-title white">Score de la Série</div>
+      <div id="series-dots"></div>
+      <div class="row">
+        <div><label>Blue</label><input type="number" id="s-blue" value="0" min="0" max="7" oninput="renderSeriesDots()"></div>
+        <div><label>Orange</label><input type="number" id="s-orange" value="0" min="0" max="7" oninput="renderSeriesDots()"></div>
+        <div><label>Format</label>
+          <select id="s-bo" onchange="renderSeriesDots()">
+            <option value="1">BO1</option><option value="3">BO3</option>
+            <option value="5">BO5</option><option value="7" selected>BO7</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-blue" style="flex:1;" onclick="applySeries()">Mettre à jour</button>
+        <button class="btn btn-danger btn-sm" style="flex-shrink:0;" onclick="resetSeries()">Reset</button>
+      </div>
+      <div class="fb" id="fb-series"></div>
+    </div>
+
+    <!-- Logos -->
+    <div class="card span2">
+      <div class="card-title white">Logos Équipes</div>
+      <div style="display:flex;gap:14px;align-items:center;">
+        <div style="flex:1;">
+          <label>Logo Bleu</label>
+          <div class="logo-preview" id="prev-bleu"><span>Aucun logo</span></div>
+          <input type="file" id="file-bleu" accept=".png,.jpg,.jpeg,.webp,.svg,.gif">
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-blue btn-sm" style="flex:1;" onclick="uploadLogo('bleu')">Upload</button>
+            <button class="btn btn-danger btn-sm" style="flex:1;" onclick="deleteLogo('bleu')">Suppr.</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+          <button onclick="swapTeams()" id="swap-btn" title="Inverser">⇄</button>
+          <span style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Swap</span>
+        </div>
+        <div style="flex:1;">
+          <label>Logo Orange</label>
+          <div class="logo-preview" id="prev-orange"><span>Aucun logo</span></div>
+          <input type="file" id="file-orange" accept=".png,.jpg,.jpeg,.webp,.svg,.gif">
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-orange btn-sm" style="flex:1;" onclick="uploadLogo('orange')">Upload</button>
+            <button class="btn btn-danger btn-sm" style="flex:1;" onclick="deleteLogo('orange')">Suppr.</button>
+          </div>
+        </div>
+      </div>
+      <div class="fb" id="fb-logo"></div>
+    </div>
+
+    <!-- Bandeau Médias -->
+    <div class="card">
+      <div class="card-title white">Bandeau Médias</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Activer</div><div class="toggle-sub">Vidéo / logo — sidebar bleue</div></div>
+        <label class="switch"><input type="checkbox" id="media-toggle" onchange="setMediaBanner(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="fb" id="fb-media"></div>
+    </div>
+
+    <!-- Fichiers Médias -->
+    <div class="card">
+      <div class="card-title white">Fichiers Médias</div>
+      <div id="utils-list" style="margin-bottom:8px;min-height:24px;"><span style="font-size:11px;color:var(--muted);">Chargement…</span></div>
+      <label>Ajouter (image ou vidéo)</label>
+      <input type="file" id="file-utils" accept=".png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm">
+      <button class="btn btn-gray" onclick="uploadUtilsFile()">Upload</button>
+      <div class="fb" id="fb-utils"></div>
+    </div>
+
+    <!-- Simuler joueur -->
+    <div class="card">
+      <div class="card-title white">Simuler — Joueur spectateur</div>
+      <div class="row">
+        <div><label>Nom</label><input type="text" id="spec-name" placeholder="PLAYER1"></div>
+        <div><label>Équipe</label><select id="spec-team"><option value="0">Bleu</option><option value="1">Orange</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Buts</label><input type="number" id="sp-g" value="0" min="0"></div>
+        <div><label>Passes D.</label><input type="number" id="sp-a" value="0" min="0"></div>
+        <div><label>Tirs</label><input type="number" id="sp-sh" value="0" min="0"></div>
+        <div><label>Arrêts</label><input type="number" id="sp-sv" value="0" min="0"></div>
+        <div><label>Démos</label><input type="number" id="sp-d" value="0" min="0"></div>
+      </div>
+      <div class="row">
+        <div><label>Boost %</label><input type="number" id="sp-boost" value="60" min="0" max="100"></div>
+        <div><label>Vitesse km/h</label><input type="number" id="sp-speed" value="0" min="0"></div>
+      </div>
+      <button class="btn btn-gray" onclick="applySpec()">Envoyer</button>
+      <div class="fb" id="fb-spec"></div>
+    </div>
+
+    <!-- Timer -->
+    <div class="card">
+      <div class="card-title white">Minuteur (Simulation)</div>
+      <div class="row">
+        <div><label>Secondes</label><input type="number" id="t-sec" value="300" min="0" max="600"></div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--muted);">
+            <input type="checkbox" id="t-ot"> Prolongations
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-gray" onclick="applyTime()">Définir</button>
+      <div class="fb" id="fb-time"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ══════════ THEME ══════════════════════════════════ */
+const THEMES = ['rlcs','neon','onyx','nord','amber','rlcs2026'];
+
+function setTheme(t) {
+  if (!THEMES.includes(t)) t = 'rlcs';
+  document.body.setAttribute('data-theme', t === 'rlcs' ? '' : t);
+  document.querySelectorAll('.tc').forEach(el => {
+    el.classList.toggle('active', el.dataset.t === t);
+  });
+  localStorage.setItem('rl-theme', t);
+  fetch('/api/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme: t }) }).catch(() => {});
+}
+
+(function initTheme() {
+  fetch('/api/settings').then(r => r.json()).then(s => {
+    setTheme(s.theme || localStorage.getItem('rl-theme') || 'rlcs');
+  }).catch(() => { setTheme(localStorage.getItem('rl-theme') || 'rlcs'); });
+})();
+
+/* ══════════ WS ═════════════════════════════════════ */
+const BASE = location.origin;
+const ws   = new WebSocket(`ws://${location.host}`);
+
+['overlay','series'].forEach(k => {
+  const el = document.getElementById(`u-${k}`);
+  if (el) el.textContent = `${BASE}/${k}.html`;
+});
+
+ws.onopen  = () => { document.getElementById('dot').classList.add('on');    document.getElementById('conn-txt').textContent = 'CONNECTÉ';    };
+ws.onclose = () => { document.getElementById('dot').classList.remove('on'); document.getElementById('conn-txt').textContent = 'HORS LIGNE'; };
+
+ws.onmessage = e => {
+  const { type, data } = JSON.parse(e.data);
+  if (type === 'init' || type === 'update_state') {
+    document.getElementById('lp-sb').textContent     = data.game.teams[0].score;
+    document.getElementById('lp-so').textContent     = data.game.teams[1].score;
+    document.getElementById('lp-blue').textContent   = data.game.teams[0].name;
+    document.getElementById('lp-orange').textContent = data.game.teams[1].name;
+    document.getElementById('sl-ltr-blue').textContent   = (data.game.teams[0].name||'B')[0];
+    document.getElementById('sl-ltr-orange').textContent = (data.game.teams[1].name||'O')[0];
+    renderPlayerGrid(data.game.players);
+    setLogoPreview('bleu',   data.game.teams[0].logo_url);
+    setLogoPreview('orange', data.game.teams[1].logo_url);
+    if (type === 'init') {
+      const set = (id,val) => { if (val!=null&&val!=='') { const el=document.getElementById(id); if(!el.value) el.value=val; } };
+      set('league-input', data.meta?.league);
+      set('blue-name',    data.game.teams[0].name!=='BLUE'   ? data.game.teams[0].name : '');
+      set('orange-name',  data.game.teams[1].name!=='ORANGE' ? data.game.teams[1].name : '');
+      document.getElementById('s-blue').value   = data.series?.blue   ?? 0;
+      document.getElementById('s-orange').value = data.series?.orange ?? 0;
+      document.getElementById('s-bo').value     = data.series?.bestOf ?? 7;
+      renderSeriesDots();
+    }
+  }
+  if (type === 'series_update') {
+    document.getElementById('s-blue').value   = data.blue;
+    document.getElementById('s-orange').value = data.orange;
+    renderSeriesDots();
+  }
+  if (type === 'utils_updated')   renderUtilsList(data.files);
+  if (type === 'overlay_visible') document.getElementById('overlay-vis-toggle').checked = data.visible;
+  if (type === 'boost_visible')   document.getElementById('boost-vis-toggle').checked   = data.visible;
+  if (type === 'logo_updated') { const img=document.querySelector(`#prev-${data.side} img`); if(img) img.dataset.url=''; setLogoPreview(data.side, data.url); }
+};
+
+/* ── Settings ── */
+async function loadSettings() {
+  try {
+    const s = await fetch('/api/settings').then(r=>r.json());
+    const set = (id,val) => { if(val!=null&&val!=='') { const el=document.getElementById(id); if(!el.value) el.value=val; } };
+    set('league-input',s.league); set('blue-name',s.blue?.name); set('orange-name',s.orange?.name);
+    if(s.series?.blue!==undefined)   document.getElementById('s-blue').value   = s.series.blue;
+    if(s.series?.orange!==undefined) document.getElementById('s-orange').value = s.series.orange;
+    if(s.bestOf)                     document.getElementById('s-bo').value     = s.bestOf;
+    document.getElementById('media-toggle').checked = s.mediaBanner?.enabled ?? false;
+    renderSeriesDots();
+  } catch {}
+}
+loadSettings();
+
+/* ── Series dots ── */
+function renderSeriesDots() {
+  const bo=parseInt(document.getElementById('s-bo').value)||7;
+  const blue=parseInt(document.getElementById('s-blue').value)||0;
+  const orange=parseInt(document.getElementById('s-orange').value)||0;
+  const wins=Math.ceil(bo/2);
+  const el=document.getElementById('series-dots'); el.innerHTML='';
+  for(let i=0;i<wins;i++) { const d=document.createElement('div'); d.className='sdot'+(i<blue?' won blue':''); d.style.width='26px'; el.appendChild(d); }
+  const sep=document.createElement('div'); sep.className='sdot sep'; el.appendChild(sep);
+  for(let i=0;i<wins;i++) { const d=document.createElement('div'); d.className='sdot'+(i<orange?' won orange':''); d.style.width='26px'; el.appendChild(d); }
+}
+renderSeriesDots();
+
+/* ── Player grid ── */
+function renderPlayerGrid(players) {
+  const grid=document.getElementById('player-grid');
+  const list=Object.values(players);
+  if(!list.length) { grid.innerHTML='<span style="font-size:11px;color:var(--muted);">Aucun joueur en jeu</span>'; return; }
+  const sorted=[...list].sort((a,b)=>(a.shortcut??99)-(b.shortcut??99));
+  grid.innerHTML='';
+  sorted.forEach(p => {
+    const c=p.team===0?'#1a5fff':'#d96000';
+    const active=p.isPrimary;
+    const boost=Math.floor(p.boost??0);
+    const btn=document.createElement('button');
+    btn.className='p-btn'+(active?' active':'');
+    if(active) { btn.style.borderColor=c; btn.style.background=c+'18'; }
+    btn.innerHTML=`<div class="p-badge" style="background:${c}28;border:1px solid ${c}55;color:${c};">${p.shortcut??'?'}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="boost-bar"><div class="boost-fill" style="width:${boost}%;background:${c};"></div></div></div><div class="p-boost">${boost}%</div>`;
+    btn.onmouseover=()=>{ if(!active) btn.style.borderColor=c+'55'; };
+    btn.onmouseout =()=>{ if(!active) btn.style.borderColor=''; };
+    btn.onclick=()=>selectPlayer(p.name);
+    grid.appendChild(btn);
+  });
+}
+
+/* ── Logo preview ── */
+function setLogoPreview(side, url) {
+  const el=document.getElementById(`prev-${side}`); if(!el) return;
+  let img=el.querySelector('img'), span=el.querySelector('span');
+  if(url) {
+    if(!img) { el.innerHTML='<img alt=""><span style="display:none;"></span>'; img=el.querySelector('img'); span=el.querySelector('span'); }
+    if(img.dataset.url!==url) { img.dataset.url=url; img.src=url+'?t='+Date.now(); img.onload=()=>img.classList.add('loaded'); img.classList.remove('loaded'); }
+    img.style.display=''; if(span) span.style.display='none';
+  } else {
+    if(img) { img.style.display='none'; img.classList.remove('loaded'); img.dataset.url=''; }
+    if(!span) { const s=document.createElement('span'); s.textContent='Aucun logo'; el.appendChild(s); span=s; }
+    span.style.display='';
+  }
+  const hSide=side==='bleu'?'blue':'orange';
+  const hImg=document.getElementById(`sl-img-${hSide}`), hLtr=document.getElementById(`sl-ltr-${hSide}`);
+  if(hImg&&hLtr) {
+    if(url) { hImg.src=url+'?t='+Date.now(); hImg.onload=()=>{ hImg.classList.add('show'); hLtr.style.display='none'; }; }
+    else    { hImg.classList.remove('show'); hLtr.style.display=''; }
+  }
+}
+
+/* ── Logo upload / delete ── */
+async function uploadLogo(side) {
+  const input=document.getElementById(`file-${side}`);
+  if(!input.files.length) { fb('fb-logo','⚠ Sélectionne un fichier'); return; }
+  const fd=new FormData(); fd.append('logo',input.files[0]);
+  try {
+    const res=await fetch(`/api/upload-logo/${side}`,{method:'POST',body:fd}).then(r=>r.json());
+    if(res.ok) { const img=document.querySelector(`#prev-${side} img`); if(img) img.dataset.url=''; setLogoPreview(side,res.url); fb('fb-logo',`✓ Logo ${side} uploadé`); input.value=''; }
+    else fb('fb-logo','✗ '+(res.error||'Erreur'));
+  } catch { fb('fb-logo','✗ Erreur réseau'); }
+}
+async function deleteLogo(side) { const res=await post(`/api/delete-logo/${side}`,{}); if(res.ok) { setLogoPreview(side,''); fb('fb-logo',`✓ Logo supprimé`); } }
+async function swapTeams() {
+  const btn=document.getElementById('swap-btn');
+  btn.style.transform='rotate(180deg)'; setTimeout(()=>btn.style.transform='',300);
+  const res=await post('/api/swap-teams',{});
+  if(res.ok) {
+    const bn=document.getElementById('blue-name'), on=document.getElementById('orange-name');
+    [bn.value,on.value]=[on.value,bn.value];
+    ['bleu','orange'].forEach(s=>{ const img=document.querySelector(`#prev-${s} img`); if(img) img.dataset.url=''; });
+    setLogoPreview('bleu',res.teams[0].logo_url); setLogoPreview('orange',res.teams[1].logo_url);
+    fb('fb-logo','⇄ Équipes inversées');
+  }
+}
+
+/* ── Utils ── */
+async function loadUtilsFiles() { try { renderUtilsList(await fetch('/api/utils').then(r=>r.json())); } catch { renderUtilsList([]); } }
+function renderUtilsList(files) {
+  const el=document.getElementById('utils-list');
+  if(!files?.length) { el.innerHTML='<span style="font-size:11px;color:var(--muted);">Aucun fichier</span>'; return; }
+  el.innerHTML='';
+  files.forEach(f=>{ const item=document.createElement('div'); item.className='utils-item'; item.innerHTML=`<span>${f.type==='video'?'🎬':'🖼'} ${f.name}</span><button class="utils-del" onclick="deleteUtilsFile('${f.name.replace(/'/g,"\\'")}')">✕</button>`; el.appendChild(item); });
+}
+async function uploadUtilsFile() {
+  const input=document.getElementById('file-utils');
+  if(!input.files.length) { fb('fb-utils','⚠ Sélectionne un fichier'); return; }
+  const fd=new FormData(); fd.append('file',input.files[0]);
+  try { const res=await fetch('/api/upload-utils',{method:'POST',body:fd}).then(r=>r.json()); if(res.ok){renderUtilsList(res.files);fb('fb-utils','✓ Uploadé');input.value='';} else fb('fb-utils','✗ '+(res.error||'Erreur')); } catch { fb('fb-utils','✗ Erreur réseau'); }
+}
+async function deleteUtilsFile(name) { const res=await post('/api/delete-utils',{name}); if(res.ok){renderUtilsList(res.files);fb('fb-utils','✓ Supprimé');} }
+loadUtilsFiles();
+
+/* ── Actions ── */
+async function setMediaBanner(e) { await post('/api/media-banner',{enabled:e}); fb('fb-media',e?'✓ Bandeau activé':'✓ Désactivé'); }
+async function selectPlayer(name) { await post('/api/spectate-player',{name}); fb('fb-player',`✓ ${name} affiché`); }
+async function clearSpec() { await post('/api/spectate-clear',{}); fb('fb-player','✓ Stat bar masquée'); }
+document.addEventListener('keydown',async e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; const n=parseInt(e.key); if(n>=1&&n<=9){const res=await post('/api/spectate-shortcut',{shortcut:n});if(res.ok) fb('fb-player',`✓ [${n}] ${res.name}`);}});
+async function applyTeams() { const league=document.getElementById('league-input').value.trim(),blue=document.getElementById('blue-name').value.trim(),orange=document.getElementById('orange-name').value.trim(); await post('/api/teams',{blue:blue?{name:blue}:undefined,orange:orange?{name:orange}:undefined,league:league||undefined}); fb('fb-teams','✓ Mis à jour & sauvegardé'); }
+async function applySeries() { await post('/api/series',{blue:parseInt(document.getElementById('s-blue').value),orange:parseInt(document.getElementById('s-orange').value),bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Série mise à jour'); }
+async function resetSeries() { document.getElementById('s-blue').value=document.getElementById('s-orange').value=0; renderSeriesDots(); await post('/api/series',{blue:0,orange:0,bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Reset'); }
+function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling; btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1800); }); }
+async function trigGoal(team) { await post('/api/goal',{team}); hFb('⚽ But !'); }
+async function adjScore(team,delta) { const id=team===0?'lp-sb':'lp-so'; const val=Math.max(0,parseInt(document.getElementById(id).textContent)+delta); await post('/api/score',team===0?{blue:val}:{orange:val}); hFb('Score mis à jour'); }
+async function applySpec() { await post('/api/spectate',{name:document.getElementById('spec-name').value||'PLAYER',team:parseInt(document.getElementById('spec-team').value),goals:parseInt(document.getElementById('sp-g').value),assists:parseInt(document.getElementById('sp-a').value),shots:parseInt(document.getElementById('sp-sh').value),saves:parseInt(document.getElementById('sp-sv').value),demos:parseInt(document.getElementById('sp-d').value),boost:parseInt(document.getElementById('sp-boost').value),speed:parseInt(document.getElementById('sp-speed').value)}); fb('fb-spec','✓ Joueur simulé'); }
+async function applyTime() { await post('/api/time',{time:parseInt(document.getElementById('t-sec').value),isOT:document.getElementById('t-ot').checked}); fb('fb-time','✓ Temps mis à jour'); }
+async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await post('/api/reset',{}); }
+async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
+async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
+
+function fb(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
+function hFb(msg) { const el=document.getElementById('hdr-fb'); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
+async function post(path,body) { return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()); }
+
+/* ── Auto-update ── */
+async function doUpdate() {
+  const btn = document.getElementById('update-btn');
+  const txt = document.getElementById('update-banner-text');
+  btn.disabled = true;
+  btn.textContent = '...';
+  txt.textContent = 'Mise à jour en cours…';
+  try {
+    const r = await post('/api/update', {});
+    if (r.ok) {
+      txt.textContent = '✓ Mise à jour OK — Redémarrage…';
+      btn.textContent = '✓';
+    } else {
+      txt.textContent = `Erreur : ${r.error || r.detail}`;
+      btn.disabled = false;
+      btn.textContent = 'Réessayer';
+    }
+  } catch {
+    txt.textContent = 'Erreur réseau.';
+    btn.disabled = false;
+    btn.textContent = 'Réessayer';
+  }
+}
+
+/* ── Version check ── */
+const CURRENT_VERSION = '1.0.0';
+const VERSION_URL = 'https://raw.githubusercontent.com/NorXV1/version/refs/heads/main/RL%20Overlay%20Version';
+document.getElementById('version-badge').textContent = `v${CURRENT_VERSION}`;
+(async () => {
+  try {
+    const remote = (await fetch(VERSION_URL, { cache: 'no-store' }).then(r => r.text())).trim();
+    if (remote && remote !== CURRENT_VERSION) {
+      document.getElementById('update-banner-ver').textContent = `v${CURRENT_VERSION} → v${remote}`;
+      document.getElementById('update-banner').classList.add('visible');
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>

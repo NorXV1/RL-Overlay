@@ -1,0 +1,9 @@
+node_modules/
+dist/
+settings.json
+public/logos/bleu/
+public/logos/orange/
+public/utils/
+*.log
+.DS_Store
+Thumbs.db

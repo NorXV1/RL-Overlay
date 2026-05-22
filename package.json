@@ -1,0 +1,51 @@
+{
+  "name": "rl-overlay",
+  "version": "1.0.0",
+  "description": "Rocket League RLCS-style broadcast overlay",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "electron": "electron .",
+    "package": "electron-builder --win",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^2.1.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "electron": "^36.9.5",
+    "electron-builder": "^26.8.1",
+    "fs-extra": "^11.3.4",
+    "javascript-obfuscator": "^5.4.2",
+    "nodemon": "^3.0.3"
+  },
+  "build": {
+    "appId": "com.rloverlay.controls",
+    "productName": "RL Overlay",
+    "asar": false,
+    "toolsets": {
+      "winCodeSign": "1.1.0"
+    },
+    "directories": {
+      "output": "dist/app"
+    },
+    "files": [
+      "electron/**/*",
+      "server.js",
+      "public/**/*",
+      "settings.json",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/logos/logo.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

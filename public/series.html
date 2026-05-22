@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RL Overlay — Série</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    overflow: hidden;
+    width: 1920px;
+    height: 1080px;
+  }
+
+  /* ─── SERIES WIDGET ───────────────────────────────────────── */
+  #series-widget {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,.5));
+  }
+
+  .series-team {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(10,10,14,.9);
+    padding: 10px 20px;
+    min-width: 160px;
+  }
+
+  .series-team.blue {
+    flex-direction: row-reverse;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+    padding-right: 30px;
+  }
+
+  .series-team.orange {
+    clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+    padding-left: 30px;
+  }
+
+  .series-name {
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,.7);
+  }
+
+  /* Dots */
+  .series-dots {
+    display: flex;
+    gap: 5px;
+  }
+
+  .series-team.orange .series-dots { flex-direction: row-reverse; }
+
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    border: 1.5px solid rgba(255,255,255,.2);
+    transition: background .4s, border-color .4s, transform .3s;
+  }
+
+  .dot.won {
+    transform: scale(1.1);
+  }
+
+  .dot.won.blue {
+    background: #3a8eff;
+    border-color: #3a8eff;
+    box-shadow: 0 0 8px #3a8eff;
+  }
+
+  .dot.won.orange {
+    background: #ff8c1a;
+    border-color: #ff8c1a;
+    box-shadow: 0 0 8px #ff8c1a;
+  }
+
+  /* Center divider */
+  #series-center {
+    background: rgba(6,6,10,.97);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+    min-width: 70px;
+  }
+
+  #best-of-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,.3);
+    text-transform: uppercase;
+  }
+
+  #series-score {
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+    line-height: 1.1;
+  }
+
+  /* ─── WIN SCREEN ──────────────────────────────────────────── */
+  #win-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .6s;
+  }
+
+  #win-screen.show { opacity: 1; }
+
+  #win-banner {
+    background: rgba(10,10,14,.92);
+    padding: 30px 80px;
+    border-top: 3px solid rgba(255,255,255,.2);
+    border-bottom: 3px solid rgba(255,255,255,.2);
+    text-align: center;
+  }
+
+  #win-team-name {
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  #win-subtitle {
+    font-size: 18px;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,.5);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  #win-series-score {
+    font-size: 36px;
+    font-weight: 900;
+    color: rgba(255,255,255,.7);
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ── SERIES WIDGET ── -->
+<div id="series-widget">
+  <div class="series-team blue">
+    <span class="series-name" id="series-blue-name">BLUE</span>
+    <div class="series-dots" id="blue-dots"></div>
+  </div>
+
+  <div id="series-center">
+    <div id="best-of-label">BO<span id="bo-num">7</span></div>
+    <div id="series-score"><span id="s-blue">0</span>–<span id="s-orange">0</span></div>
+  </div>
+
+  <div class="series-team orange">
+    <div class="series-dots" id="orange-dots"></div>
+    <span class="series-name" id="series-orange-name">ORANGE</span>
+  </div>
+</div>
+
+<!-- ── WIN SCREEN ── -->
+<div id="win-screen">
+  <div id="win-banner">
+    <div id="win-team-name">BLUE</div>
+    <div id="win-subtitle">REMPORTE LA SÉRIE</div>
+  </div>
+  <div id="win-series-score"></div>
+</div>
+
+<script>
+const WS_URL = `ws://${location.host}`;
+let ws, reconnectT;
+let series = { blue: 0, orange: 0, bestOf: 7 };
+let teamNames = ['BLUE', 'ORANGE'];
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    switch (msg.type) {
+      case 'init':
+        series = msg.data.series;
+        teamNames[0] = msg.data.game.teams[0].name;
+        teamNames[1] = msg.data.game.teams[1].name;
+        renderSeries();
+        break;
+      case 'update_state':
+        teamNames[0] = msg.data.game.teams[0].name;
+        teamNames[1] = msg.data.game.teams[1].name;
+        renderTeamNames();
+        break;
+      case 'series_update':
+        series = msg.data;
+        renderSeries();
+        checkSeriesWin();
+        break;
+    }
+  };
+  ws.onclose = () => { reconnectT = setTimeout(connect, 3000); };
+}
+
+function renderTeamNames() {
+  document.getElementById('series-blue-name').textContent = teamNames[0];
+  document.getElementById('series-orange-name').textContent = teamNames[1];
+}
+
+function renderSeries() {
+  renderTeamNames();
+  document.getElementById('bo-num').textContent = series.bestOf;
+  document.getElementById('s-blue').textContent = series.blue;
+  document.getElementById('s-orange').textContent = series.orange;
+
+  const winsNeeded = Math.ceil(series.bestOf / 2);
+  renderDots('blue-dots', series.blue, winsNeeded, 'blue');
+  renderDots('orange-dots', series.orange, winsNeeded, 'orange');
+}
+
+function renderDots(containerId, wins, total, side) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    if (i < wins) dot.classList.add('won', side);
+    el.appendChild(dot);
+  }
+}
+
+function checkSeriesWin() {
+  const winsNeeded = Math.ceil(series.bestOf / 2);
+  const screen = document.getElementById('win-screen');
+
+  if (series.blue >= winsNeeded || series.orange >= winsNeeded) {
+    const winner = series.blue >= winsNeeded ? 0 : 1;
+    document.getElementById('win-team-name').textContent = teamNames[winner];
+    document.getElementById('win-team-name').style.color = winner === 0 ? '#4da6ff' : '#ff9c33';
+    document.getElementById('win-series-score').textContent = `${series.blue} – ${series.orange}`;
+    screen.classList.add('show');
+  } else {
+    screen.classList.remove('show');
+  }
+}
+
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RL Overlay — Boost</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    overflow: hidden;
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+  }
+
+  /* ─── BOOST PANELS ─────────────────────────────────────────── */
+  #boost-left {
+    position: absolute;
+    left: 20px;
+    bottom: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #boost-right {
+    position: absolute;
+    right: 20px;
+    bottom: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .player-boost {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity .4s;
+  }
+
+  .player-boost.visible { opacity: 1; }
+  .player-boost.right { flex-direction: row-reverse; }
+
+  .pb-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .player-boost.right .pb-name { text-align: left; }
+
+  .pb-bar-wrap {
+    width: 140px;
+    height: 10px;
+    background: rgba(255,255,255,.1);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .pb-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width .25s ease;
+    background: linear-gradient(90deg, #ffd700, #ff9c33);
+  }
+
+  .pb-bar.low { background: linear-gradient(90deg, #ff4444, #ff6666); }
+  .pb-bar.full { background: linear-gradient(90deg, #00e5ff, #0088ff); }
+
+  .pb-value {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffd700;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .player-boost.right .pb-value { text-align: left; }
+
+  /* ─── SPEED INDICATOR ─────────────────────────────────────── */
+  #speed-indicator {
+    position: absolute;
+    bottom: 88px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,10,14,.8);
+    padding: 6px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: rgba(255,255,255,.5);
+    letter-spacing: 1px;
+  }
+
+  #speed-value {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="boost-left"></div>
+<div id="boost-right"></div>
+
+<script>
+const WS_URL = `ws://${location.host}`;
+let ws, reconnectT;
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'init' || msg.type === 'update_state') {
+      renderBoost(msg.data.game.players);
+    }
+  };
+  ws.onclose = () => { reconnectT = setTimeout(connect, 3000); };
+}
+
+function renderBoost(players) {
+  const leftEl = document.getElementById('boost-left');
+  const rightEl = document.getElementById('boost-right');
+  leftEl.innerHTML = '';
+  rightEl.innerHTML = '';
+
+  const bluePlayers = Object.values(players).filter(p => p.team === 0);
+  const orangePlayers = Object.values(players).filter(p => p.team === 1);
+
+  bluePlayers.forEach(p => leftEl.appendChild(makeBoostRow(p, 'left')));
+  orangePlayers.forEach(p => rightEl.appendChild(makeBoostRow(p, 'right')));
+
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.player-boost').forEach(el => el.classList.add('visible'));
+  });
+}
+
+function makeBoostRow(player, side) {
+  const boost = Math.round(player.boost ?? 0);
+  const div = document.createElement('div');
+  div.className = `player-boost ${side === 'right' ? 'right' : ''}`;
+
+  const name = document.createElement('div');
+  name.className = 'pb-name';
+  name.textContent = player.name;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pb-bar-wrap';
+
+  const bar = document.createElement('div');
+  bar.className = 'pb-bar';
+  if (boost <= 20) bar.classList.add('low');
+  else if (boost >= 95) bar.classList.add('full');
+  bar.style.width = `${boost}%`;
+
+  wrap.appendChild(bar);
+
+  const val = document.createElement('div');
+  val.className = 'pb-value';
+  val.textContent = boost;
+
+  if (side === 'right') {
+    div.append(name, wrap, val);
+  } else {
+    div.append(val, wrap, name);
+  }
+
+  return div;
+}
+
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "theme": "rlcs2026",
+  "league": "MY LEAGUE",
+  "blue":   { "name": "BLUE TEAM" },
+  "orange": { "name": "ORANGE TEAM" },
+  "series": { "blue": 0, "orange": 0 },
+  "bestOf": 5,
+  "mediaBanner": { "enabled": false }
+}

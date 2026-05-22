@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RL Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: transparent;
+  font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ════════════════════════════════════════════════════════
+   TOP BAR
+════════════════════════════════════════════════════════ */
+#top-bar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* League label */
+#league-label {
+  background: rgba(12,12,20,.9);
+  padding: 4px 28px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.75);
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 100%, 0 100%);
+  margin-bottom: -1px;
+}
+
+/* Main scoreboard row */
+#scoreboard {
+  display: flex;
+  align-items: stretch;
+  height: 68px;
+  filter: drop-shadow(0 6px 20px rgba(0,0,0,.7));
+}
+
+/* ── Team panels ── */
+.team-panel {
+  display: flex;
+  align-items: center;
+  background: rgba(12,12,20,.92);
+  padding: 0 16px;
+  gap: 10px;
+  min-width: 230px;
+  position: relative;
+}
+
+.team-panel.blue {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+  padding-right: 32px;
+  flex-direction: row-reverse;
+  border-top: 3px solid #1a5fff;
+}
+
+.team-panel.orange {
+  clip-path: polygon(18px 0, 100% 0, 100% 100%, 0 100%);
+  padding-left: 32px;
+  border-top: 3px solid #e06a00;
+}
+
+.team-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,.6));
+  flex-shrink: 0;
+}
+
+.team-logo-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.team-logo-placeholder.blue { background: rgba(26,95,255,.3); color: #4d8fff; }
+.team-logo-placeholder.orange { background: rgba(224,106,0,.3); color: #ff8c1a; }
+
+.team-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Series dots under team name */
+.series-dots-small {
+  display: flex;
+  gap: 4px;
+  height: 6px;
+}
+.team-panel.blue .series-dots-small { justify-content: flex-end; }
+
+.sdot {
+  width: 22px;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.15);
+  transition: background .3s, box-shadow .3s;
+}
+.sdot.won.blue { background: #1a5fff; box-shadow: 0 0 6px #1a5fff; }
+.sdot.won.orange { background: #e06a00; box-shadow: 0 0 6px #e06a00; }
+
+/* ── Score + timer center ── */
+#center-block {
+  display: flex;
+  align-items: stretch;
+  background: rgba(6,6,12,.97);
+  position: relative;
+}
+
+.score-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 66px;
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform .15s;
+}
+.score-box.blue { color: #4d8fff; }
+.score-box.orange { color: #ff8c1a; }
+.score-box.bump { transform: scale(1.35); }
+
+#timer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-left: 1px solid rgba(255,255,255,.07);
+  border-right: 1px solid rgba(255,255,255,.07);
+  min-width: 120px;
+}
+
+#timer {
+  font-size: 34px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+#timer.warn { color: #ff3d3d; animation: blink .8s infinite; }
+#timer.ot   { color: #ffd700; }
+
+@keyframes blink { 50% { opacity:.5 } }
+
+#timer-sub {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,.3);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* ════════════════════════════════════════════════════════
+   LEFT / RIGHT SIDEBARS  (player boost panels)
+════════════════════════════════════════════════════════ */
+.sidebar {
+  position: absolute;
+  top: 80px;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+#sidebar-blue  { left: 0; }
+#sidebar-orange{ right: 0; }
+
+.player-row {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  background: rgba(8,8,16,.82);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-16px);
+  transition: opacity .4s, transform .4s;
+  position: relative;
+}
+#sidebar-orange .player-row { transform: translateX(16px); }
+.player-row.visible { opacity: 1; transform: none; }
+
+/* Blue: accent | name | spacer | value */
+/* Orange: value | spacer | name | accent */
+
+.pr-accent {
+  width: 4px;
+  height: 100%;
+  flex-shrink: 0;
+}
+.player-row.blue .pr-accent { background: #1a5fff; }
+.player-row.orange .pr-accent { background: #e06a00; order: 99; }
+
+.pr-name {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #fff;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+#sidebar-orange .pr-name { text-align: right; }
+
+/* Boost bar column */
+.pr-boost-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 8px 0 0;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 68px;
+}
+#sidebar-orange .pr-boost-col {
+  align-items: flex-end;
+  padding: 0 0 0 8px;
+  order: -1;
+}
+
+.pr-boost-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffd700;
+  line-height: 1;
+}
+
+.pr-boost-bar {
+  width: 58px;
+  height: 4px;
+  background: rgba(255,255,255,.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pr-boost-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ffd700, #ffaa00);
+  transition: width .25s ease;
+}
+.pr-boost-fill.low  { background: linear-gradient(90deg, #ff4444, #ff7777); }
+.pr-boost-fill.full { background: linear-gradient(90deg, #00d4ff, #0088ff); }
+
+/* Spectating indicator */
+.player-row.spectating::after {
+  content: '';
+  position: absolute;
+  left: 4px; right: 0; top: 0; bottom: 0;
+  border: 1px solid rgba(255,255,255,.2);
+  pointer-events: none;
+}
+.player-row.spectating .pr-name { color: #ffd700; }
+
+/* ════════════════════════════════════════════════════════
+   BOTTOM STAT BAR  (spectated player)
+════════════════════════════════════════════════════════ */
+#stat-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 68px;
+  display: flex;
+  align-items: stretch;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity .4s, transform .4s;
+}
+#stat-bar.show { opacity: 1; transform: none; }
+
+#stat-team-tag {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(8,8,16,.9);
+  padding: 0 20px 0 16px;
+  min-width: 260px;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%);
+  position: relative;
+}
+
+#stat-team-accent {
+  width: 5px;
+  height: 100%;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+#stat-arrows {
+  display: flex;
+  gap: 2px;
+  margin-right: 12px;
+}
+.arrow-block {
+  width: 0; height: 0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 10px solid rgba(255,255,255,.9);
+}
+
+#stat-player-name {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+}
+
+#stat-values {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  background: rgba(4,4,10,.92);
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.stat-item:last-child { border-right: none; }
+
+.stat-val {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,.35);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ════════════════════════════════════════════════════════
+   BOOST METER  (spectated player — bottom right)
+════════════════════════════════════════════════════════ */
+#boost-meter {
+  position: absolute;
+  bottom: 80px;
+  right: 22px;
+  width: 108px;
+  height: 108px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s;
+}
+#boost-meter.show { opacity: 1; }
+
+#boost-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+#boost-track {
+  fill: none;
+  stroke: rgba(255,255,255,.1);
+  stroke-width: 7;
+}
+#boost-arc {
+  fill: none;
+  stroke: #ff9c00;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset .25s ease, stroke .2s;
+}
+
+#boost-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#boost-big {
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+#speed-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,.5);
+  letter-spacing: 1px;
+}
+#speed-unit {
+  font-size: 9px;
+  color: rgba(255,255,255,.3);
+  letter-spacing: 1px;
+}
+
+/* ════════════════════════════════════════════════════════
+   GOAL NOTIFICATION
+════════════════════════════════════════════════════════ */
+#goal-notif {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(.85);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  z-index: 10;
+}
+#goal-notif.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+#goal-inner {
+  background: rgba(6,6,12,.93);
+  padding: 20px 70px;
+  position: relative;
+  overflow: hidden;
+}
+#goal-inner::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; right: -100%; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+  animation: sweep 1.8s linear infinite;
+}
+@keyframes sweep { to { transform: translateX(200%); } }
+
+#goal-word {
+  font-size: 80px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 50px currentColor;
+  line-height: 1;
+}
+#goal-sub {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,.65);
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div id="top-bar">
+  <div id="league-label">SEMAINE 1 // LIGUE 1</div>
+  <div id="scoreboard">
+
+    <!-- Blue team -->
+    <div class="team-panel blue" id="blue-panel">
+      <div class="team-logo-placeholder blue" id="blue-logo">B</div>
+      <div class="team-name-wrap">
+        <div class="team-name" id="blue-name">BLUE TEAM</div>
+        <div class="series-dots-small" id="blue-sdots"></div>
+      </div>
+    </div>
+
+    <!-- Center: score + timer -->
+    <div id="center-block">
+      <div class="score-box blue" id="score-blue">0</div>
+      <div id="timer-wrap">
+        <div id="timer">5:00</div>
+        <div id="timer-sub">TEMPS</div>
+      </div>
+      <div class="score-box orange" id="score-orange">0</div>
+    </div>
+
+    <!-- Orange team -->
+    <div class="team-panel orange" id="orange-panel">
+      <div class="team-name-wrap">
+        <div class="team-name" id="orange-name">ORANGE TEAM</div>
+        <div class="series-dots-small" id="orange-sdots"></div>
+      </div>
+      <div class="team-logo-placeholder orange" id="orange-logo">O</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ BLUE SIDEBAR ══ -->
+<div class="sidebar" id="sidebar-blue"></div>
+
+<!-- ══ ORANGE SIDEBAR ══ -->
+<div class="sidebar" id="sidebar-orange"></div>
+
+<!-- ══ BOTTOM STAT BAR ══ -->
+<div id="stat-bar">
+  <div id="stat-team-tag">
+    <div id="stat-team-accent"></div>
+    <div id="stat-arrows">
+      <div class="arrow-block"></div>
+      <div class="arrow-block"></div>
+    </div>
+    <div id="stat-player-name">—</div>
+  </div>
+  <div id="stat-values">
+    <div class="stat-item"><div class="stat-val" id="st-goals">0</div><div class="stat-lbl">GOALS</div></div>
+    <div class="stat-item"><div class="stat-val" id="st-assists">0</div><div class="stat-lbl">ASSISTS</div></div>
+    <div class="stat-item"><div class="stat-val" id="st-shots">0</div><div class="stat-lbl">SHOTS</div></div>
+    <div class="stat-item"><div class="stat-val" id="st-saves">0</div><div class="stat-lbl">SAVES</div></div>
+    <div class="stat-item"><div class="stat-val" id="st-demos">0</div><div class="stat-lbl">DEMOS</div></div>
+  </div>
+</div>
+
+<!-- ══ BOOST METER ══ -->
+<div id="boost-meter">
+  <svg id="boost-svg" viewBox="0 0 108 108">
+    <circle id="boost-track" cx="54" cy="54" r="46"/>
+    <circle id="boost-arc"   cx="54" cy="54" r="46"/>
+  </svg>
+  <div id="boost-center">
+    <div id="boost-big">0</div>
+    <div id="speed-val">0</div>
+    <div id="speed-unit">KM/H</div>
+  </div>
+</div>
+
+<!-- ══ GOAL NOTIFICATION ══ -->
+<div id="goal-notif">
+  <div id="goal-inner">
+    <div id="goal-word">GOAL!</div>
+    <div id="goal-sub"></div>
+  </div>
+</div>
+
+<script>
+// SVG arc setup
+const ARC_R = 46;
+const ARC_CIRC = 2 * Math.PI * ARC_R;
+const boostArc = document.getElementById('boost-arc');
+boostArc.style.strokeDasharray = ARC_CIRC;
+setBoostArc(0);
+
+function setBoostArc(pct) {
+  const offset = ARC_CIRC - (ARC_CIRC * Math.min(pct, 100) / 100);
+  boostArc.style.strokeDashoffset = offset;
+  boostArc.style.stroke = pct <= 20 ? '#ff4444' : pct >= 95 ? '#00d4ff' : '#ff9c00';
+}
+
+// WebSocket
+const WS_URL = `ws://${location.host}`;
+let ws, reconT;
+let state = null;
+let goalT = null;
+let spectatedId = null;
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => {};
+  ws.onmessage = e => {
+    const { type, data } = JSON.parse(e.data);
+    switch (type) {
+      case 'init':        state = data; render(data); break;
+      case 'update_state': state = data; render(data); break;
+      case 'goal_scored':  onGoal(data); break;
+      case 'series_update': if (state) { state.series = data; renderSeriesDots(); } break;
+    }
+  };
+  ws.onclose = () => { reconT = setTimeout(connect, 3000); };
+}
+
+function render(data) {
+  const g = data.game;
+
+  // Names
+  document.getElementById('blue-name').textContent   = g.teams[0].name;
+  document.getElementById('orange-name').textContent = g.teams[1].name;
+  document.getElementById('blue-logo').textContent   = g.teams[0].name.charAt(0);
+  document.getElementById('orange-logo').textContent = g.teams[1].name.charAt(0);
+
+  // Scores
+  document.getElementById('score-blue').textContent   = g.teams[0].score;
+  document.getElementById('score-orange').textContent = g.teams[1].score;
+
+  // Timer
+  renderTimer(g.time, g.isOT);
+
+  // League label
+  if (data.meta?.league) document.getElementById('league-label').textContent = data.meta.league;
+
+  // Series dots
+  renderSeriesDots();
+
+  // Sidebars
+  renderSidebar(g.players, g.teams);
+
+  // Find spectated player
+  const spec = findSpectated(g.players);
+  renderStatBar(spec);
+  renderBoostMeter(spec);
+}
+
+function renderTimer(s, isOT) {
+  const el = document.getElementById('timer');
+  const sub = document.getElementById('timer-sub');
+  if (isOT) {
+    el.textContent = '+' + fmt(s);
+    el.className = 'ot';
+    sub.textContent = 'PROLONGATIONS';
+  } else {
+    el.textContent = fmt(s);
+    el.className = s <= 30 && s > 0 ? 'warn' : '';
+    sub.textContent = 'TEMPS';
+  }
+}
+
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function renderSeriesDots() {
+  if (!state) return;
+  const ser = state.series;
+  const wins = Math.ceil(ser.bestOf / 2);
+  buildDots('blue-sdots',   ser.blue,   wins, 'blue');
+  buildDots('orange-sdots', ser.orange, wins, 'orange');
+}
+
+function buildDots(id, won, total, side) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'sdot' + (i < won ? ` won ${side}` : '');
+    el.appendChild(d);
+  }
+}
+
+function renderSidebar(players, teams) {
+  const blueEl   = document.getElementById('sidebar-blue');
+  const orangeEl = document.getElementById('sidebar-orange');
+  blueEl.innerHTML = '';
+  orangeEl.innerHTML = '';
+
+  const blue   = Object.values(players).filter(p => p.team === 0);
+  const orange = Object.values(players).filter(p => p.team === 1);
+
+  blue.forEach((p, i)   => blueEl.appendChild(makeRow(p, 'blue', i)));
+  orange.forEach((p, i) => orangeEl.appendChild(makeRow(p, 'orange', i)));
+
+  // Reveal with stagger
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.player-row').forEach((el, i) => {
+      setTimeout(() => el.classList.add('visible'), i * 60);
+    });
+  });
+}
+
+function makeRow(p, side, idx) {
+  const boost = Math.round(p.boost ?? 0);
+  const isSpec = p.isPrimary || p.id === spectatedId;
+
+  const row = document.createElement('div');
+  row.className = `player-row ${side}${isSpec ? ' spectating' : ''}`;
+  row.dataset.id = p.id;
+
+  // Accent bar
+  const accent = document.createElement('div');
+  accent.className = 'pr-accent';
+
+  // Name
+  const name = document.createElement('div');
+  name.className = 'pr-name';
+  name.textContent = p.name;
+
+  // Boost column
+  const boostCol = document.createElement('div');
+  boostCol.className = 'pr-boost-col';
+
+  const val = document.createElement('div');
+  val.className = 'pr-boost-val';
+  val.textContent = boost;
+
+  const bar = document.createElement('div');
+  bar.className = 'pr-boost-bar';
+  const fill = document.createElement('div');
+  fill.className = 'pr-boost-fill' + (boost <= 20 ? ' low' : boost >= 95 ? ' full' : '');
+  fill.style.width = boost + '%';
+  bar.appendChild(fill);
+
+  boostCol.appendChild(val);
+  boostCol.appendChild(bar);
+
+  row.appendChild(accent);
+  row.appendChild(name);
+  row.appendChild(boostCol);
+
+  return row;
+}
+
+function findSpectated(players) {
+  const list = Object.values(players);
+  return list.find(p => p.isPrimary) || list[0] || null;
+}
+
+function renderStatBar(p) {
+  const bar = document.getElementById('stat-bar');
+  if (!p) { bar.classList.remove('show'); return; }
+
+  bar.classList.add('show');
+  document.getElementById('stat-player-name').textContent = p.name;
+
+  // Team color accent
+  const accent = document.getElementById('stat-team-accent');
+  accent.style.background = p.team === 0 ? '#1a5fff' : '#e06a00';
+
+  // Arrow color
+  document.querySelectorAll('.arrow-block').forEach(a => {
+    a.style.borderLeftColor = p.team === 0 ? '#fff' : '#fff';
+  });
+
+  // Team tag background tint
+  document.getElementById('stat-team-tag').style.borderTop =
+    `3px solid ${p.team === 0 ? '#1a5fff' : '#e06a00'}`;
+
+  document.getElementById('st-goals').textContent   = p.goals   ?? 0;
+  document.getElementById('st-assists').textContent = p.assists ?? 0;
+  document.getElementById('st-shots').textContent   = p.shots   ?? 0;
+  document.getElementById('st-saves').textContent   = p.saves   ?? 0;
+  document.getElementById('st-demos').textContent   = p.demos   ?? 0;
+}
+
+function renderBoostMeter(p) {
+  const meter = document.getElementById('boost-meter');
+  if (!p) { meter.classList.remove('show'); return; }
+  meter.classList.add('show');
+
+  const boost = Math.round(p.boost ?? 0);
+  const speed = Math.round(p.speed ?? 0);
+
+  setBoostArc(boost);
+  document.getElementById('boost-big').textContent = boost;
+  document.getElementById('speed-val').textContent = speed;
+}
+
+function onGoal(data) {
+  clearTimeout(goalT);
+  const notif = document.getElementById('goal-notif');
+  const word  = document.getElementById('goal-word');
+  const sub   = document.getElementById('goal-sub');
+
+  const team = data.scorer?.team_num ?? -1;
+  word.style.color = team === 0 ? '#4d8fff' : team === 1 ? '#ff8c1a' : '#fff';
+  sub.textContent = data.scorer?.name ? `⚽  ${data.scorer.name}` : '';
+
+  // Score bump
+  const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
+  if (scoreEl) {
+    scoreEl.classList.add('bump');
+    setTimeout(() => scoreEl.classList.remove('bump'), 300);
+  }
+
+  notif.classList.add('show');
+  goalT = setTimeout(() => notif.classList.remove('show'), 5000);
+}
+
+connect();
+</script>
+</body>
+</html>
