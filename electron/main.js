@@ -6,6 +6,43 @@ const path = require('path');
 let mainWindow = null;
 let tray       = null;
 
+// ── Discord Rich Presence ──────────────────────────────────
+const DISCORD_CLIENT_ID = '1507792608079118607';
+let rpc = null;
+
+function initDiscordRPC() {
+  try {
+    const DiscordRPC = require('discord-rpc');
+    DiscordRPC.register(DISCORD_CLIENT_ID);
+    rpc = new DiscordRPC.Client({ transport: 'ipc' });
+
+    const startTimestamp = new Date();
+
+    rpc.on('ready', () => {
+      rpc.setActivity({
+        details: 'Overlay actif',
+        startTimestamp,
+        largeImageKey:  'logo',
+        largeImageText: 'RL Overlay',
+        instance: false,
+      }).catch(() => {});
+    });
+
+    rpc.login({ clientId: DISCORD_CLIENT_ID }).catch(() => {
+      // Discord non disponible ou non connecté — on ignore silencieusement
+    });
+  } catch (e) {
+    // Package absent ou erreur inattendue — on ignore
+  }
+}
+
+function destroyDiscordRPC() {
+  if (rpc) {
+    try { rpc.destroy(); } catch (_) {}
+    rpc = null;
+  }
+}
+
 // ── Instance unique ────────────────────────────────────────
 // Si une 2ème instance tente de démarrer : focus la 1ère et stoppe net.
 const gotLock = app.requestSingleInstanceLock();
@@ -79,8 +116,9 @@ if (!gotLock) {
   }
 
   // ── Cycle de vie ─────────────────────────────────────────
-  app.whenReady().then(() => { createWindow(); createTray(); });
+  app.whenReady().then(() => { createWindow(); createTray(); initDiscordRPC(); });
   app.on('window-all-closed', e => e.preventDefault());
   app.on('activate', () => { if (mainWindow) mainWindow.show(); });
+  app.on('before-quit', () => { destroyDiscordRPC(); });
 
 }
