@@ -1,0 +1,13 @@
+[data-theme="onyx"] {
+  --panel-bg:    rgba(10,10,10,.97);
+  --panel-text:  #cccccc;
+  --dot-bg:      rgba(255,255,255,.06);
+  --center-bg:   #000000;
+  --row-bg:      rgba(8,8,8,.94);
+  --stat-vals-bg:rgba(0,0,0,.96);
+  --replay-bg:   rgba(12,12,12,.97);
+  --replay-text: #cccccc;
+  --end-bg:      #050505;
+  --end-mid-bg:  #000000;
+  --end-tbl-bg:  #050505;
+}

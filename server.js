@@ -225,17 +225,17 @@ function handleStatsApiMessage(msg) {
     case 'StatfeedEvent': {
       const mt   = data.MainTarget;
       const st   = data.SecondaryTarget;
-      const type = (data.Type || data.EventName || '').toLowerCase();
+      const rawType = (data.Type || data.EventName || '').toLowerCase();
+      // Normalise les types français envoyés par l'API officielle RL
+      const TYPE_FR = {
+        'but': 'goal', 'tir cadré': 'shot on goal', 'tir': 'shot on goal',
+        'arrêt': 'save', 'arrêt miraculeux': 'epic save', 'arrêt épique': 'epic save',
+        'passe décisive': 'assist', 'démolition': 'demolition',
+      };
+      const type = TYPE_FR[rawType] || rawType;
       if (mt?.Name) {
         const player = Object.values(gameState.game.players).find(p => p.name === mt.Name);
-        if (player) {
-          if (type === 'goal')         player.goals   = (player.goals   ?? 0) + 1;
-          if (type === 'assist')       player.assists = (player.assists ?? 0) + 1;
-          if (type === 'save')         player.saves   = (player.saves   ?? 0) + 1;
-          if (type === 'epic save')    player.saves   = (player.saves   ?? 0) + 1;
-          if (type === 'shot on goal') player.shots   = (player.shots   ?? 0) + 1;
-          if (type === 'demolition')   player.demos   = (player.demos   ?? 0) + 1;
-        }
+        // Ne pas incrémenter ici — UpdateState de l'API fournit les vrais chiffres
         if (type === 'assist') {
           if (pendingGoalBroadcast && Date.now() - pendingGoalBroadcast.ts < 4000) {
             clearTimeout(pendingGoalTimer);
@@ -244,11 +244,13 @@ function handleStatsApiMessage(msg) {
           }
         }
         const playerId = player?.id || mt.Name;
+        const stName = st?.Name || st?.name || '';
+        const victimPlayer = stName ? Object.values(gameState.game.players).find(p => p.name === stName) : null;
         broadcast('stat_event', {
           playerId, playerName: mt.Name || '', type,
-          secondaryId: st?.Name || '', secondaryName: st?.Name || ''
+          secondaryId: victimPlayer?.id || stName,
+          secondaryName: stName
         });
-        broadcast('update_state', gameState);
       }
       break;
     }
@@ -567,14 +569,53 @@ app.post('/api/overlay-visible', (req, res) => {
   res.json({ ok: true });
 });
 
+const THEMES_DIR = path.join(__dirname, 'public', 'themes');
+fs.mkdirSync(THEMES_DIR, { recursive: true });
+
+function listThemes() {
+  const builtin = ['rlcs'];
+  try {
+    const dirs = fs.readdirSync(THEMES_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory() && fs.existsSync(path.join(THEMES_DIR, d.name, 'theme.css')))
+      .map(d => d.name);
+    return [...new Set([...builtin, ...dirs])];
+  } catch { return builtin; }
+}
+
+app.get('/api/themes', (req, res) => {
+  res.json({ themes: listThemes(), current: currentTheme });
+});
+
 app.post('/api/theme', (req, res) => {
-  const valid = ['rlcs','neon','onyx','nord','amber','rlcs2026'];
   const theme = req.body.theme;
-  if (!valid.includes(theme)) return res.status(400).json({ error: 'invalid theme' });
+  if (!listThemes().includes(theme)) return res.status(400).json({ error: 'invalid theme' });
   currentTheme = theme;
   settings.theme = theme;
   saveSettings();
   broadcast('theme_change', { theme });
+  res.json({ ok: true });
+});
+
+app.post('/api/themes/import', upload.single('css'), (req, res) => {
+  const file = req.file;
+  const name = (req.body.name || '').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+  if (!file || !name) return res.status(400).json({ error: 'name et fichier CSS requis' });
+  const themeDir = path.join(THEMES_DIR, name);
+  fs.mkdirSync(themeDir, { recursive: true });
+  fs.writeFileSync(path.join(themeDir, 'theme.css'), file.buffer);
+  res.json({ ok: true, name });
+});
+
+app.delete('/api/themes/:name', (req, res) => {
+  const name = req.params.name.replace(/[^a-zA-Z0-9_-]/g, '');
+  const builtinProtected = ['rlcs'];
+  if (builtinProtected.includes(name)) return res.status(403).json({ error: 'thème protégé' });
+  const themeDir = path.join(THEMES_DIR, name);
+  if (fs.existsSync(themeDir)) fs.rmSync(themeDir, { recursive: true });
+  if (currentTheme === name) {
+    currentTheme = 'rlcs'; settings.theme = 'rlcs'; saveSettings();
+    broadcast('theme_change', { theme: 'rlcs' });
+  }
   res.json({ ok: true });
 });
 

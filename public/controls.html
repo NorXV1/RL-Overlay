@@ -536,6 +536,32 @@ input:checked + .slider:before { transform:translateX(18px); }
           </div>
         </div>
 
+        <!-- RLCS 2023 -->
+        <div class="tc" data-t="rlcs2023" onclick="setTheme('rlcs2023')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#0d0e13;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(180deg,#027dd1 0%,#027dd1 3px,#1d1e23 4px,#2c5874 100%);border-top:1px solid #6fb5ed;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#027dd1;border-top:1px solid #6fb5ed;"></div>
+                  <div style="background:#1a1c22;flex:0.7;display:flex;align-items:center;justify-content:center;"><div style="width:4px;height:6px;background:rgba(255,255,255,.3);"></div></div>
+                  <div class="tc-h-so" style="background:#fc6b21;border-top:1px solid #ff8921;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(180deg,#fc6b21 0%,#fc6b21 3px,#1d1e23 4px,#7e4b35 100%);border-top:1px solid #ff8921;"></div>
+              </div>
+              <div style="height:3px;background:linear-gradient(to right,#1a1c22,#027dd1 30%,#13131a 50%,#fc6b21 70%,#1a1c22);margin:0 4px;opacity:.9;"></div>
+              <div class="tc-body">
+                <div class="tc-card-left"  style="background:#1e1e23;border-left:2px solid #027dd1;border-radius:0;"></div>
+                <div class="tc-card-right" style="background:#1e1e23;border-right:2px solid #fc6b21;border-radius:0;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">2023</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
         <!-- Amber -->
         <div class="tc" data-t="amber" onclick="setTheme('amber')">
           <div class="tc-preview">
@@ -561,6 +587,30 @@ input:checked + .slider:before { transform:translateX(18px); }
         </div>
 
       </div>
+
+      <!-- Thèmes importés -->
+      <div id="imported-themes-row" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08);">
+        <div style="font-size:10px;letter-spacing:1px;color:var(--text-dim);margin-bottom:6px;">THÈMES IMPORTÉS</div>
+        <div id="imported-themes-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
+      <!-- Import -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
+        <div style="font-size:10px;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px;">IMPORTER UN THÈME</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:1;min-width:100px;">
+            <label style="font-size:10px;color:var(--text-dim);">NOM</label>
+            <input type="text" id="import-theme-name" placeholder="mon-theme" maxlength="30" style="width:100%;">
+          </div>
+          <div style="flex:2;min-width:140px;">
+            <label style="font-size:10px;color:var(--text-dim);">FICHIER CSS</label>
+            <input type="file" id="import-theme-file" accept=".css" style="width:100%;color:var(--text);font-size:11px;">
+          </div>
+          <button class="btn btn-blue" onclick="importTheme()" style="white-space:nowrap;">Importer</button>
+        </div>
+        <div class="fb" id="fb-import"></div>
+      </div>
+
     </div>
 
     <!-- Équipes & Ligue -->
@@ -689,22 +739,75 @@ input:checked + .slider:before { transform:translateX(18px); }
 
 <script>
 /* ══════════ THEME ══════════════════════════════════ */
-const THEMES = ['rlcs','neon','onyx','nord','amber','rlcs2026'];
+let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023'];
+const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023']);
 
 function setTheme(t) {
-  if (!THEMES.includes(t)) t = 'rlcs';
+  if (!_allThemes.includes(t)) t = 'rlcs';
   document.body.setAttribute('data-theme', t === 'rlcs' ? '' : t);
-  document.querySelectorAll('.tc').forEach(el => {
-    el.classList.toggle('active', el.dataset.t === t);
-  });
+  document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === t));
   localStorage.setItem('rl-theme', t);
   fetch('/api/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme: t }) }).catch(() => {});
+}
+
+function loadImportedThemes() {
+  fetch('/api/themes').then(r => r.json()).then(({ themes, current }) => {
+    _allThemes = themes;
+    const imported = themes.filter(t => !BUILTIN.has(t));
+    const row  = document.getElementById('imported-themes-row');
+    const grid = document.getElementById('imported-themes-grid');
+    row.style.display  = imported.length ? '' : 'none';
+    grid.innerHTML = '';
+    imported.forEach(t => {
+      const wrap = document.createElement('div');
+      wrap.className = 'tc' + (t === current ? ' active' : '');
+      wrap.dataset.t = t;
+      wrap.style.cssText = 'position:relative;min-width:80px;';
+      wrap.innerHTML = `
+        <div class="tc-preview" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">CSS</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="tc-name">${t.toUpperCase()}</div>
+          <div class="tc-check">✓</div>
+        </div>
+        <button onclick="event.stopPropagation();deleteTheme('${t}')" title="Supprimer" style="position:absolute;top:2px;right:2px;background:rgba(200,50,50,.7);border:none;color:#fff;border-radius:3px;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1;padding:0;">✕</button>`;
+      wrap.addEventListener('click', () => setTheme(t));
+      grid.appendChild(wrap);
+    });
+    // Mettre à jour active sur les cartes built-in aussi
+    document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === current));
+  }).catch(() => {});
+}
+
+async function importTheme() {
+  const name = document.getElementById('import-theme-name').value.trim().replace(/[^a-zA-Z0-9_-]/g,'').toLowerCase();
+  const file = document.getElementById('import-theme-file').files[0];
+  const fb   = document.getElementById('fb-import');
+  if (!name || !file) { fb.textContent = 'Nom et fichier CSS requis.'; fb.style.color = '#e05'; return; }
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('css', file);
+  const r = await fetch('/api/themes/import', { method:'POST', body: fd }).then(r => r.json());
+  if (r.ok) {
+    fb.textContent = `Thème "${name}" importé !`; fb.style.color = '#3c9';
+    document.getElementById('import-theme-name').value = '';
+    document.getElementById('import-theme-file').value = '';
+    loadImportedThemes();
+  } else { fb.textContent = r.error || 'Erreur'; fb.style.color = '#e05'; }
+}
+
+async function deleteTheme(name) {
+  if (!confirm(`Supprimer le thème "${name}" ?`)) return;
+  await fetch(`/api/themes/${name}`, { method:'DELETE' });
+  loadImportedThemes();
 }
 
 (function initTheme() {
   fetch('/api/settings').then(r => r.json()).then(s => {
     setTheme(s.theme || localStorage.getItem('rl-theme') || 'rlcs');
   }).catch(() => { setTheme(localStorage.getItem('rl-theme') || 'rlcs'); });
+  loadImportedThemes();
 })();
 
 /* ══════════ WS ═════════════════════════════════════ */

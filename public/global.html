@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>RL Overlay — Global</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<link id="theme-stylesheet" rel="stylesheet" href="">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -24,286 +25,35 @@
   --end-bg:      #0b1524;
   --end-mid-bg:  #060e19;
   --end-tbl-bg:  #060e18;
+
+  /* ── Replay bar ── */
+  --replay-bar-h:          76px;
+  --replay-label-size:     30px;
+  --replay-scorer-size:    28px;
+  --replay-spd-size:       32px;
+
+  /* ── Notif GOAL ── */
+  --goal-bg:               rgba(6,6,12,.94);
+  --goal-word-size:        80px;
+  --goal-sub-size:         22px;
+
+  /* ── Wipe LIVE / REPLAY ── */
+  --wipe-bg:               #060e1a;
+  --wipe-box-bg:           rgba(10,20,45,.85);
+  --wipe-word-size:        155px;
+  --wipe-duration:         3.2s;
+  --wipe-fadein-dur:       .5s;
+  --wipe-fadeout-dur:      1.4s;
+
+  /* ── Win screen ── */
+  --win-bg:                rgba(0,0,0,.94);
+  --win-bar-h:             4px;
+  --win-logo-sz:           150px;
+  --win-team-size:         78px;
 }
 
-/* — Neon — */
-[data-theme="neon"] {
-  --panel-bg:    rgba(4,4,26,.97);
-  --panel-text:  #dde8ff;
-  --dot-bg:      rgba(255,255,255,.08);
-  --center-bg:   #020214;
-  --row-bg:      rgba(4,4,24,.92);
-  --stat-vals-bg:rgba(2,2,16,.96);
-  --replay-bg:   rgba(4,4,26,.97);
-  --replay-text: #dde8ff;
-  --end-bg:      #02020e;
-  --end-mid-bg:  #04041a;
-  --end-tbl-bg:  #030310;
-}
-[data-theme="neon"] .score-box.blue   { box-shadow: 0 0 18px rgba(26,95,255,.55); }
-[data-theme="neon"] .score-box.orange { box-shadow: 0 0 18px rgba(217,96,0,.55); }
-[data-theme="neon"] #replay-label { box-shadow: inset 0 0 20px rgba(26,95,255,.08); }
-
-/* — Onyx — */
-[data-theme="onyx"] {
-  --panel-bg:    rgba(10,10,10,.97);
-  --panel-text:  #cccccc;
-  --dot-bg:      rgba(255,255,255,.06);
-  --center-bg:   #000000;
-  --row-bg:      rgba(8,8,8,.94);
-  --stat-vals-bg:rgba(0,0,0,.96);
-  --replay-bg:   rgba(12,12,12,.97);
-  --replay-text: #cccccc;
-  --end-bg:      #050505;
-  --end-mid-bg:  #000000;
-  --end-tbl-bg:  #050505;
-}
-
-/* — Nord — */
-[data-theme="nord"] {
-  --blue:        #5e81ac;
-  --blue-light:  #88c0d0;
-  --orange:      #d08770;
-  --orange-light:#ebcb8b;
-  --panel-bg:    rgba(46,52,64,.97);
-  --panel-text:  #eceff4;
-  --dot-bg:      rgba(255,255,255,.1);
-  --center-bg:   #2e3440;
-  --row-bg:      rgba(36,40,52,.9);
-  --stat-vals-bg:rgba(30,34,44,.96);
-  --replay-bg:   rgba(46,52,64,.97);
-  --replay-text: #eceff4;
-  --end-bg:      #242c38;
-  --end-mid-bg:  #1e2430;
-  --end-tbl-bg:  #1e2430;
-}
-
-/* — RLCS 2026 — */
-[data-theme="rlcs2026"] {
-  --blue:        #1FAFDA;
-  --blue-light:  #23AEDE;
-  --orange:      #FD5B00;
-  --orange-light:#FE5901;
-  --panel-bg:    rgba(10,10,10,.95);
-  --panel-text:  #ffffff;
-  --dot-bg:      rgba(193,193,194,.2);
-  --center-bg:   #fefefe;
-  --row-bg:      #181A1A;
-  --stat-vals-bg:#0d0d0d;
-  --replay-bg:   #fefefe;
-  --replay-text: #0a0a0a;
-  --end-bg:      #080c0c;
-  --end-mid-bg:  #040808;
-  --end-tbl-bg:  #060a0a;
-}
-[data-theme="rlcs2026"] .team-panel.blue   { background: rgba(1,17,18,.97); }
-[data-theme="rlcs2026"] .team-panel.orange { background: rgba(23,8,0,.97); }
-[data-theme="rlcs2026"] .team-logo-outer.blue   { background: rgba(1,17,18,1); }
-[data-theme="rlcs2026"] .team-logo-outer.orange { background: rgba(23,8,0,1); }
-[data-theme="rlcs2026"] .score-box { font-style: italic; }
-[data-theme="rlcs2026"] #center-block { border-top: none; }
-[data-theme="rlcs2026"] #timer-wrap { border-left-color: rgba(0,0,0,.1); border-right-color: rgba(0,0,0,.1); }
-[data-theme="rlcs2026"] #timer { color: #0a0a0a; font-style: italic; }
-[data-theme="rlcs2026"] #timer.warn { color: #cc1111; }
-[data-theme="rlcs2026"] #timer.ot   { color: #b86000; }
-[data-theme="rlcs2026"] #timer-sub  { color: rgba(0,0,0,.38); }
-[data-theme="rlcs2026"] .sdot { outline: 1px solid rgba(193,193,194,.55); }
-[data-theme="rlcs2026"] #scoreboard { position: relative; }
-[data-theme="rlcs2026"] #scoreboard::after { content: none; }
-[data-theme="rlcs2026"] .player-row.blue   .pr-boost-fill { background: linear-gradient(90deg, #258cc7, #23AEDE); }
-[data-theme="rlcs2026"] .player-row.orange .pr-boost-fill { background: linear-gradient(90deg, #ee5613, #FD5B00); }
-[data-theme="rlcs2026"] #stat-team-tag { border-left: 5px solid var(--blue); }
-
-/* ── RLCS 2026 : layout BARL ── */
-
-/* Label ligue pleine largeur */
-[data-theme="rlcs2026"] #top-bar { position: absolute; align-items: stretch; }
-[data-theme="rlcs2026"] #top-bar::after { content: none; }
-[data-theme="rlcs2026"] #league-label {
-  background: #1A1A1A; border-radius: 0; text-align: center;
-  font-style: italic; color: #B8BBB8; font-size: 11px;
-  padding: 4px 22px; letter-spacing: 2px;
-}
-
-/* Scoreboard compact par défaut */
-[data-theme="rlcs2026"] #scoreboard { height: 74px; gap: 0; }
-[data-theme="rlcs2026"] #score-main { border-radius: 0; }
-[data-theme="rlcs2026"] .team-logo-outer {
-  width: 74px; height: 74px; border-radius: 0; border-top: none !important;
-}
-[data-theme="rlcs2026"] .team-logo-outer.blue   { border-bottom: 3px solid #1FAFDA; }
-[data-theme="rlcs2026"] .team-logo-outer.orange { border-bottom: 3px solid #FD5B00; }
-[data-theme="rlcs2026"] .team-logo-img { width: 54px; height: 54px; }
-[data-theme="rlcs2026"] .team-logo-letter { font-size: 24px; }
-[data-theme="rlcs2026"] .team-win-count { font-size: 14px; bottom: 2px; }
-
-/* Panneaux équipe : cachés par défaut, visibles quand expanded */
-[data-theme="rlcs2026"] .team-panel {
-  overflow: hidden; max-width: 0; min-width: 0 !important;
-  padding: 0 !important; justify-content: center;
-  border-top: none !important;
-  transition: max-width .4s ease, padding .4s ease;
-}
-[data-theme="rlcs2026"] #scoreboard.expanded .team-panel {
-  max-width: 260px; padding: 0 14px !important;
-}
-[data-theme="rlcs2026"] #scoreboard.expanded .team-panel.blue { justify-content: flex-end; }
-[data-theme="rlcs2026"] #scoreboard.expanded .team-panel.blue .series-dots-small { justify-content: flex-end; }
-[data-theme="rlcs2026"] #scoreboard.expanded .team-panel.orange { justify-content: flex-start; }
-[data-theme="rlcs2026"] .team-name { font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
-[data-theme="rlcs2026"] .sdot { width: 20px; height: 8px; }
-
-[data-theme="rlcs2026"] .score-box { width: 67px; font-size: 52px; font-style: italic; }
-[data-theme="rlcs2026"] #center-block { border-top: none; }
-[data-theme="rlcs2026"] #timer-wrap { min-width: 130px; padding: 0 10px; }
-[data-theme="rlcs2026"] #timer { font-size: 38px; letter-spacing: 2px; }
-[data-theme="rlcs2026"] #timer-sub { font-size: 10px; letter-spacing: 3px; }
-/* Points de série uniquement dans la sub-barre, pas dans les panels */
-[data-theme="rlcs2026"] .series-dots-small { display: none; }
-
-/* Sidebars — sous le scoreboard (≈115px) */
-[data-theme="rlcs2026"] #left-panel    { top: 115px; left: 0; gap: 6px; }
-[data-theme="rlcs2026"] #sidebar-blue  { width: 307px; }
-[data-theme="rlcs2026"] #sidebar-orange { top: 115px; right: 0; width: 307px; }
-
-/* Player rows style BARL */
-[data-theme="rlcs2026"] .row-wrap    { margin-bottom: 6px; }
-[data-theme="rlcs2026"] #sidebar-blue   .player-row { border-radius: 0 6px 6px 0; width: 100%; }
-[data-theme="rlcs2026"] #sidebar-orange .player-row { border-radius: 6px 0 0 6px; width: 100%; }
-[data-theme="rlcs2026"] .player-row { height: 40px; background: #181A1A !important; }
-[data-theme="rlcs2026"] .pr-info    { height: 30px; }
-[data-theme="rlcs2026"] .pr-name    { font-size: 16px; letter-spacing: .5px; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-name { padding-left: 16px; padding-right: 8px; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-name { text-align: right; padding-right: 16px; padding-left: 8px; }
-[data-theme="rlcs2026"] .pr-val     { font-size: 18px; color: #fff; padding: 0 9px; min-width: 36px; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-val  { padding-right: 14px; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-val  { padding-left: 14px; }
-[data-theme="rlcs2026"] .pr-accent  { width: 4px; }
-[data-theme="rlcs2026"] .pr-boost-bar  { height: 6px; background: #000; width: 100%; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-boost-bar { margin: 0; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-boost-bar { margin: 0; }
-
-/* Stat bar style RLCS (largeur fixe, items horizontaux) */
-[data-theme="rlcs2026"] #stat-bar {
-  height: 44px; border-radius: 0; width: 980px;
-  filter: drop-shadow(0 -4px 12px rgba(0,0,0,.7));
-}
-[data-theme="rlcs2026"] #stat-team-tag {
-  min-width: 200px; padding: 0 18px;
-  clip-path: none; border: none;
-  transition: background .2s;
-}
-[data-theme="rlcs2026"] #stat-arrows { display: none; }
-[data-theme="rlcs2026"] #stat-player-name { font-size: 22px; letter-spacing: 2px; font-weight: 800; font-style: italic; }
-[data-theme="rlcs2026"] #stat-values { background: #0d0d0d; }
-[data-theme="rlcs2026"] .stat-item { flex-direction: row; align-items: center; justify-content: center; gap: 7px; border-right: 1px solid rgba(255,255,255,.1); }
-[data-theme="rlcs2026"] .stat-val   { font-size: 26px; font-style: italic; font-weight: 900; min-width: auto; }
-[data-theme="rlcs2026"] .stat-lbl   { font-size: 11px; letter-spacing: 1.5px; font-style: italic; color: rgba(255,255,255,.55); padding-top: 0; }
-
-/* Joueur specté — fond couleur équipe */
-[data-theme="rlcs2026"] .player-row.spectating.blue   { background: #1FAFDA !important; }
-[data-theme="rlcs2026"] .player-row.spectating.orange { background: #FD5B00 !important; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-name { color: #fff; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-val  { color: #fff; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-boost-bar  { background: rgba(0,0,0,.3) !important; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-boost-fill { background: rgba(255,255,255,.65) !important; }
-
-/* Sub-barre série sous le scoreboard */
+/* Les thèmes sont chargés dynamiquement via <link id="theme-stylesheet"> */
 #score-sub-bar { display: none; }
-[data-theme="rlcs2026"] #score-sub-bar {
-  display: flex; align-items: center;
-  background: #111; height: 26px; padding: 0 8px; gap: 6px;
-}
-[data-theme="rlcs2026"] #sub-abbr-blue,
-[data-theme="rlcs2026"] #sub-abbr-orange {
-  font-size: 12px; font-weight: 800; font-style: italic;
-  letter-spacing: 2px; color: #B8BBB8; text-transform: uppercase;
-  flex: 0 0 auto; min-width: 60px;
-}
-[data-theme="rlcs2026"] #sub-abbr-orange { text-align: right; }
-[data-theme="rlcs2026"] #sub-ser-track {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-}
-[data-theme="rlcs2026"] .sub-sdot {
-  width: 26px; height: 10px; border-radius: 2px;
-  background: rgba(193,193,194,.12); outline: 1px solid rgba(193,193,194,.4);
-}
-[data-theme="rlcs2026"] .sub-sdot.won.blue   { background: #1FAFDA; outline: none; }
-[data-theme="rlcs2026"] .sub-sdot.won.orange { background: #FD5B00; outline: none; }
-[data-theme="rlcs2026"] .sub-sdot.mid { outline: 1px solid rgba(255,255,255,.6) !important; }
-
-/* Events — inside row, gradient bar + white icons */
-[data-theme="rlcs2026"] #sidebar-blue   .pr-icons,
-[data-theme="rlcs2026"] #sidebar-orange .pr-icons {
-  left: 0; right: 0; height: 40px;
-  gap: 2px; padding: 0;
-  overflow: hidden;
-}
-[data-theme="rlcs2026"] #sidebar-blue   .pr-icons {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
-}
-[data-theme="rlcs2026"] #sidebar-orange .pr-icons {
-  flex-direction: row;
-  justify-content: flex-start;
-}
-[data-theme="rlcs2026"] .row-wrap.blue   .pr-icons:not(:empty) {
-  background: linear-gradient(to left, #1FAFDA 0%, #1FAFDA 22%, rgba(31,175,218,0) 88%);
-}
-[data-theme="rlcs2026"] .row-wrap.orange .pr-icons:not(:empty) {
-  background: linear-gradient(to right, #FD5B00 0%, #FD5B00 22%, rgba(253,91,0,0) 88%);
-}
-[data-theme="rlcs2026"] .pr-icon {
-  background: transparent !important;
-  opacity: 1 !important;
-  width: 36px; height: 40px;
-}
-[data-theme="rlcs2026"] .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-icon { animation: iconSlideFromRight 5s forwards; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-icon { animation: iconSlideFromLeft  5s forwards; }
-
-@keyframes iconSlideFromLeft {
-  0%   { transform: translateX(-110%); opacity: 0; }
-  10%  { transform: translateX(0);     opacity: 1; }
-  80%  { transform: translateX(0);     opacity: 1; }
-  100% { transform: translateX(-110%); opacity: 0; }
-}
-@keyframes iconSlideFromRight {
-  0%   { transform: translateX(110%);  opacity: 0; }
-  10%  { transform: translateX(0);     opacity: 1; }
-  80%  { transform: translateX(0);     opacity: 1; }
-  100% { transform: translateX(110%);  opacity: 0; }
-}
-
-/* Boost meter — ticks style screen 3 */
-[data-theme="rlcs2026"] #boost-meter {
-  width: 180px; height: 180px; bottom: 50px;
-  background: rgba(0,0,0,.82); border-radius: 50%;
-}
-[data-theme="rlcs2026"] #boost-track { fill: none; stroke: rgba(255,255,255,.28); stroke-width: 5; stroke-dasharray: 2 7; }
-[data-theme="rlcs2026"] #boost-arc  { stroke-width: 7; stroke-linecap: butt; }
-[data-theme="rlcs2026"] #boost-big  { font-size: 58px; }
-[data-theme="rlcs2026"] #speed-val  { display: none; }
-[data-theme="rlcs2026"] #speed-unit { display: none; }
-
-/* — Amber — */
-[data-theme="amber"] {
-  --blue:        #f59e0b;
-  --blue-light:  #fbbf24;
-  --orange:      #ef4444;
-  --orange-light:#f87171;
-  --panel-bg:    rgba(240,234,218,.97);
-  --panel-text:  #1a0c00;
-  --dot-bg:      rgba(0,0,0,.10);
-  --center-bg:   #100800;
-  --row-bg:      rgba(22,14,2,.92);
-  --stat-vals-bg:rgba(10,6,0,.96);
-  --replay-bg:   rgba(240,234,218,.97);
-  --replay-text: #1a0c00;
-  --end-bg:      #0e0800;
-  --end-mid-bg:  #080400;
-  --end-tbl-bg:  #0a0500;
-}
 
 body {
   background: transparent;
@@ -407,6 +157,8 @@ body {
 }
 .team-logo-outer.blue   { background: rgba(14,14,30,.95); border-top: 4px solid var(--blue); }
 .team-logo-outer.orange { background: rgba(14,14,30,.95); border-top: 4px solid var(--orange); }
+
+.tlo-name { display: none; }
 
 .team-logo-img {
   width: 64px; height: 64px;
@@ -604,32 +356,22 @@ body {
   100% { transform: translateY(100%); opacity: 0; }
 }
 
-/* ── Demo banner (deux noms + bombe) — overlay inside .player-row ── */
-.demo-banner {
-  position: absolute; top: 0; left: 0; right: 0; height: 40px;
-  display: flex; align-items: stretch;
-  z-index: 3;
-  animation: demoSlide 6s forwards;
-}
-@keyframes demoSlide {
-  0%   { transform: translateY(100%); opacity: 0; }
-  8%   { transform: translateY(0);    opacity: 1; }
-  84%  { transform: translateY(0);    opacity: 1; }
-  100% { transform: translateY(100%); opacity: 0; }
-}
-.demo-banner-inner {
-  flex: 1;
-  display: flex; align-items: center; justify-content: center;
+/* ── Demo names banner — inside .pr-icons, same system as other events ── */
+.pr-demo-names {
+  height: 40px; width: 100%;
+  flex-shrink: 0;
+  display: flex; align-items: center;
   padding: 0 10px; gap: 6px;
   font-size: 11px; font-weight: 900;
   letter-spacing: .8px; text-transform: uppercase; color: #fff;
+  animation: iconSlide 5s forwards;
 }
-.demo-banner-name {
+.pr-demo-n {
   flex: 1; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; text-align: center;
   text-shadow: 0 1px 4px rgba(0,0,0,.7);
 }
-.demo-banner-bomb { font-size: 16px; flex-shrink: 0; }
+.pr-demo-bomb { font-size: 15px; flex-shrink: 0; }
 
 /* Barre de boost EN DESSOUS du nom */
 .pr-boost-bar {
@@ -760,7 +502,7 @@ body {
 #replay-bar {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 76px;
+  height: var(--replay-bar-h);
   display: flex; align-items: center;
   background: var(--replay-bg);
   border-top: 3px solid rgba(0,0,0,.06);
@@ -774,7 +516,7 @@ body {
 #replay-label {
   padding: 0 28px;
   border-left: 5px solid var(--blue);
-  font-size: 30px; font-weight: 900; font-style: italic;
+  font-size: var(--replay-label-size); font-weight: 900; font-style: italic;
   letter-spacing: 3px; text-transform: uppercase;
   color: var(--blue); white-space: nowrap;
   height: 100%; display: flex; align-items: center;
@@ -794,7 +536,7 @@ body {
 
 #replay-scorer {
   flex: 1;
-  font-size: 28px; font-weight: 900;
+  font-size: var(--replay-scorer-size); font-weight: 900;
   color: var(--replay-text); letter-spacing: 2px;
   text-transform: uppercase; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
@@ -816,7 +558,7 @@ body {
   display: flex; align-items: baseline; gap: 5px;
 }
 #replay-spd {
-  font-size: 32px; font-weight: 900; color: var(--replay-text); line-height: 1;
+  font-size: var(--replay-spd-size); font-weight: 900; color: var(--replay-text); line-height: 1;
 }
 #replay-spd-unit {
   font-size: 13px; font-weight: 700; color: #666;
@@ -857,7 +599,7 @@ body {
 #goal-notif.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
 #goal-inner {
-  background: rgba(6,6,12,.94);
+  background: var(--goal-bg);
   padding: 20px 70px; position: relative; overflow: hidden;
 }
 #goal-inner::after {
@@ -869,12 +611,12 @@ body {
 @keyframes sweep { to { transform: translateX(200%); } }
 
 #goal-word {
-  font-size: 80px; font-weight: 900;
+  font-size: var(--goal-word-size); font-weight: 900;
   letter-spacing: 10px; text-transform: uppercase;
   color: #fff; text-shadow: 0 0 50px currentColor; line-height: 1;
 }
 #goal-sub {
-  font-size: 22px; font-weight: 700;
+  font-size: var(--goal-sub-size); font-weight: 700;
   letter-spacing: 4px; color: rgba(255,255,255,.65); margin-top: 4px;
 }
 
@@ -884,12 +626,12 @@ body {
 #replay-wipe {
   position: absolute; inset: 0; z-index: 45;
   pointer-events: none;
-  background: #060e1a;
+  background: var(--wipe-bg);
   opacity: 0;
-  transition: opacity .5s ease;
+  transition: opacity var(--wipe-fadein-dur) ease;
 }
 #replay-wipe.rw-active { opacity: 1; }
-#replay-wipe.rw-fadeout { opacity: 0; transition: opacity 1.4s ease; }
+#replay-wipe.rw-fadeout { opacity: 0; transition: opacity var(--wipe-fadeout-dur) ease; }
 
 #rw-center {
   position: absolute; inset: 0; z-index: 2;
@@ -902,7 +644,7 @@ body {
   border: 2px solid rgba(255,255,255,.18);
   padding: 28px 80px;
   position: relative;
-  background: rgba(10,20,45,.85);
+  background: var(--wipe-box-bg);
   box-shadow: 0 0 0 8px rgba(255,255,255,.04), inset 0 0 0 8px rgba(255,255,255,.04);
 }
 #rw-box::before {
@@ -916,12 +658,12 @@ body {
 }
 
 #rw-word {
-  font-size: 155px; font-weight: 900; color: #fff;
+  font-size: var(--wipe-word-size); font-weight: 900; color: #fff;
   letter-spacing: 26px; text-transform: uppercase;
   position: relative; display: block; user-select: none;
 }
 #replay-wipe.rw-active #rw-word {
-  animation: rwSpread 3.2s cubic-bezier(.2,0,.6,1) forwards;
+  animation: rwSpread var(--wipe-duration) cubic-bezier(.2,0,.6,1) forwards;
 }
 #rw-word::before {
   content: attr(data-text);
@@ -1069,7 +811,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none;
   transition: opacity .5s; z-index: 20;
-  background: rgba(0,0,0,.94);
+  background: var(--win-bg);
   overflow: hidden;
 }
 #win-screen.show { opacity: 1; }
@@ -1083,7 +825,7 @@ body {
 #win-screen.show #win-glow { animation: winGlowPulse 1.2s .1s both; }
 
 #win-bar-top, #win-bar-bot {
-  position: absolute; left: 0; right: 0; height: 4px;
+  position: absolute; left: 0; right: 0; height: var(--win-bar-h);
   transform: scaleX(0);
 }
 #win-bar-top { top: 0; transform-origin: left; }
@@ -1113,7 +855,7 @@ body {
 #win-screen.show #win-label { animation: winFadeUp .6s .5s both; }
 
 #win-logo-wrap {
-  width: 150px; height: 150px;
+  width: var(--win-logo-sz); height: var(--win-logo-sz);
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
 }
@@ -1123,7 +865,7 @@ body {
 #win-logo-letter { font-size: 96px; font-weight: 900; color: #fff; line-height: 1; }
 
 #win-team-name {
-  font-size: 78px; font-weight: 900; font-style: italic;
+  font-size: var(--win-team-size); font-weight: 900; font-style: italic;
   letter-spacing: 4px; text-transform: uppercase; line-height: 1;
   opacity: 0;
 }
@@ -1233,6 +975,7 @@ body {
   <div id="league-label">SEMAINE 1 // LIGUE 1</div>
   <div id="scoreboard">
 
+    <span class="tlo-name" id="tlo-name-blue"></span>
     <div class="team-logo-outer blue">
       <img class="team-logo-img" id="blue-logo-img" src="" alt="">
       <div class="team-logo-letter" id="blue-logo">B</div>
@@ -1267,6 +1010,7 @@ body {
       <img class="team-logo-img" id="orange-logo-img" src="" alt="">
       <div class="team-logo-letter" id="orange-logo">O</div>
     </div>
+    <span class="tlo-name" id="tlo-name-orange"></span>
 
   </div>
 
@@ -1378,6 +1122,10 @@ function tc() { return THEME_COLS[currentTheme] || THEME_COLS.rlcs; }
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
+  const link = document.getElementById('theme-stylesheet');
+  if (link) {
+    link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
+  }
 }
 
 /* ── Boost arc ── */
@@ -1456,8 +1204,98 @@ function hideOverlay(delay) {
   }, delay ?? 0);
 }
 
+let _tloW = 0, _tloHideT = null, _tloNamesKey = '', _tloCollapsedW = 0;
+
+function _measureTloWidths() {
+  const b = document.getElementById('tlo-name-blue');
+  const o = document.getElementById('tlo-name-orange');
+  if (!b || !o) return;
+
+  // Styles identiques à .tlo-name — police explicite pour éviter tout héritage inattendu
+  const FONT = 'italic 800 21px "Barlow Condensed",sans-serif';
+  const doMeasure = () => {
+    const mk = (text) => {
+      if (!text) return 0;
+      const d = document.createElement('div');
+      d.style.cssText = [
+        'position:fixed','top:-9999px','left:0',
+        'display:inline-block','white-space:nowrap','overflow:visible',
+        'font:' + FONT,
+        'letter-spacing:2px','text-transform:uppercase',
+        'padding:0 22px',
+        'visibility:hidden','opacity:0','pointer-events:none','transition:none'
+      ].join(';');
+      d.textContent = text;
+      document.body.appendChild(d);
+      void d.offsetWidth;
+      const w = d.getBoundingClientRect().width;
+      document.body.removeChild(d);
+      return Math.ceil(w);
+    };
+    _tloW = Math.max(mk(b.textContent), mk(o.textContent)) + 6;
+
+    if (b.style.display !== 'flex' && document.body.dataset.theme === 'rlcs2026') {
+      const tb = document.getElementById('top-bar');
+      if (tb) {
+        _tloCollapsedW = Math.ceil(tb.getBoundingClientRect().width);
+        tb.style.width = _tloCollapsedW + 'px';
+      }
+    }
+  };
+
+  // Attendre que la police soit chargée avant de mesurer
+  if (!document.fonts.check(FONT)) {
+    document.fonts.load(FONT).then(doMeasure);
+  } else {
+    doMeasure();
+  }
+}
+
 function setScoreboardExpanded(expanded) {
   document.getElementById('scoreboard').classList.toggle('expanded', expanded);
+  const b = document.getElementById('tlo-name-blue');
+  const o = document.getElementById('tlo-name-orange');
+  if (!b || !o) return;
+  clearTimeout(_tloHideT);
+  const isRlcs = document.body.dataset.theme === 'rlcs2026';
+  // Thèmes non-rlcs2026 : ne jamais manipuler les tlo-names (causerait un élargissement du scoreboard)
+  if (!isRlcs) { b.style.display = 'none'; o.style.display = 'none'; return; }
+  const topBar = isRlcs ? document.getElementById('top-bar') : null;
+  if (expanded) {
+    b.style.transition = 'none';
+    o.style.transition = 'none';
+    b.style.display = 'flex';
+    o.style.display = 'flex';
+    b.style.width = '0';
+    o.style.width = '0';
+    b.style.opacity = '0';
+    o.style.opacity = '0';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      b.style.transition = '';
+      o.style.transition = '';
+      b.style.width = _tloW + 'px';
+      o.style.width = _tloW + 'px';
+      b.style.opacity = '1';
+      o.style.opacity = '1';
+      // Élargir top-bar pour couvrir les zones de nom (league-label + sub-bar s'étendent)
+      if (topBar && _tloCollapsedW > 0) {
+        topBar.style.width = (_tloCollapsedW + 2 * _tloW) + 'px';
+      }
+    }));
+  } else {
+    b.style.width = '0';
+    b.style.opacity = '0';
+    o.style.width = '0';
+    o.style.opacity = '0';
+    // Rétrécir top-bar en sync avec les noms
+    if (topBar && _tloCollapsedW > 0) {
+      topBar.style.width = _tloCollapsedW + 'px';
+    }
+    _tloHideT = setTimeout(() => {
+      b.style.display = 'none';
+      o.style.display = 'none';
+    }, 500);
+  }
 }
 
 /* ── WebSocket ── */
@@ -1651,14 +1489,35 @@ function setLogo(side, team) {
 }
 
 /* ── Render complet ── */
+/* Auto-fit : réduit la font-size si le nom dépasse la largeur du panel */
+function autoFitTeamName(el) {
+  if (!el) return;
+  el.style.fontSize = '';      // remet la valeur CSS
+  void el.offsetWidth;         // force reflow
+  if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
+    const fs = parseFloat(getComputedStyle(el).fontSize);
+    el.style.fontSize = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth)) + 'px';
+  }
+}
+
 function render(data) {
   const g = data.game;
 
   document.getElementById('blue-name').textContent   = g.teams[0].name;
   document.getElementById('orange-name').textContent = g.teams[1].name;
-  const abbr = n => (n || '').slice(0, 4).toUpperCase();
-  document.getElementById('sub-abbr-blue').textContent   = abbr(g.teams[0].name);
-  document.getElementById('sub-abbr-orange').textContent = abbr(g.teams[1].name);
+  autoFitTeamName(document.getElementById('blue-name'));
+  autoFitTeamName(document.getElementById('orange-name'));
+  const _abbrB = document.getElementById('sub-abbr-blue');
+  const _abbrO = document.getElementById('sub-abbr-orange');
+  if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
+  if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
+  const tloB = document.getElementById('tlo-name-blue');
+  const tloO = document.getElementById('tlo-name-orange');
+  if (tloB) tloB.textContent = g.teams[0].name;
+  if (tloO) tloO.textContent = g.teams[1].name;
+  // Re-mesurer uniquement quand les noms changent
+  const _nk = (g.teams[0].name || '') + '|' + (g.teams[1].name || '');
+  if (_nk !== _tloNamesKey) { _tloNamesKey = _nk; _measureTloWidths(); }
   setLogo('blue',   g.teams[0]);
   setLogo('orange', g.teams[1]);
   document.getElementById('score-blue').textContent   = g.teams[0].score;
@@ -2090,42 +1949,46 @@ function showDemoIcon(demolisherName, demolisherId, demolishedId, demolishedName
   if (_lastDemoTs[demolisherId] && now - _lastDemoTs[demolisherId] < 3000) return;
   _lastDemoTs[demolisherId] = now;
 
-  // Prefer demolished player's row; fall back to demolisher's row
-  let row      = _findRow(demolishedId, demolishedName);
-  let inVictim = !!row;
-  if (!row) row = _findRow(demolisherId, demolisherName);
-  if (!row) return;
+  const col = { b: tc().b, o: tc().o };
 
-  const playerRow = row.querySelector('.player-row');
-  if (!playerRow) return;
+  const victimRow = _findRow(demolishedId, demolishedName);
+  const killerRow = _findRow(demolisherId, demolisherName);
 
-  const rowTeam = row.classList.contains('blue') ? 0 : 1;
-  const col0 = tc().b, col1 = tc().o;
-  const demolisherCol = inVictim ? (rowTeam === 0 ? col1 : col0) : (rowTeam === 0 ? col0 : col1);
-  const demolishedCol = rowTeam === 0 ? col0 : col1;
-  const grad = `linear-gradient(90deg, ${demolisherCol}, ${demolishedCol})`;
-
-  const banner = document.createElement('div');
-  banner.className = 'demo-banner';
-
-  const inner = document.createElement('div');
-  inner.className = 'demo-banner-inner';
-  inner.style.background = grad;
-
-  if (inVictim) {
-    const n1 = document.createElement('span'); n1.className = 'demo-banner-name'; n1.textContent = demolisherName || '?';
-    const bomb = document.createElement('span'); bomb.className = 'demo-banner-bomb'; bomb.textContent = '💣';
-    const n2 = document.createElement('span'); n2.className = 'demo-banner-name'; n2.textContent = demolishedName || '?';
-    inner.appendChild(n1); inner.appendChild(bomb); inner.appendChild(n2);
-  } else {
-    const bomb = document.createElement('span'); bomb.className = 'demo-banner-bomb'; bomb.textContent = '💣';
-    const n1 = document.createElement('span'); n1.className = 'demo-banner-name'; n1.textContent = demolisherName || '?';
-    inner.appendChild(bomb); inner.appendChild(n1);
+  // Ligne du demolisseur : icône explosion standard (même système que goal/save/etc.)
+  if (killerRow) {
+    const icons = killerRow.querySelector('.pr-icons');
+    if (icons) {
+      const el = document.createElement('div');
+      el.className = 'pr-icon';
+      const img = document.createElement('img');
+      img.src = '/notif/explosion.png'; img.alt = 'demo';
+      el.appendChild(img);
+      icons.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }
   }
 
-  banner.appendChild(inner);
-  playerRow.appendChild(banner);
-  setTimeout(() => banner.remove(), 6000);
+  // Ligne de la victime : bannière [demolisherName] 💣 [demolishedName] avec gradient
+  if (victimRow && demolisherName && demolishedName) {
+    const icons = victimRow.querySelector('.pr-icons');
+    if (icons) {
+      const victimIsBlue = victimRow.classList.contains('blue');
+      const victimCol = victimIsBlue ? col.b : col.o;
+      const killerCol = victimIsBlue ? col.o : col.b;
+
+      const el = document.createElement('div');
+      el.className = 'pr-demo-names';
+      el.style.background = `linear-gradient(90deg, ${killerCol}, ${victimCol})`;
+
+      const n1   = document.createElement('span'); n1.className = 'pr-demo-n'; n1.textContent = demolisherName;
+      const bomb = document.createElement('span'); bomb.className = 'pr-demo-bomb'; bomb.textContent = '💣';
+      const n2   = document.createElement('span'); n2.className = 'pr-demo-n'; n2.textContent = demolishedName;
+      el.appendChild(n1); el.appendChild(bomb); el.appendChild(n2);
+
+      icons.appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }
+  }
 }
 
 function showStatIcon(playerId, playerName, type) {
@@ -2270,11 +2133,7 @@ function detectStatChanges(data) {
   Object.values(players).forEach(p => {
     const prev = _prevStats[p.name];
     if (!prev) { _prevStats[p.name] = { goals: p.goals??0, assists: p.assists??0, saves: p.saves??0, shots: p.shots??0, demos: p.demos??0 }; return; }
-    if ((p.goals   ??0) > prev.goals)   showStatIcon(p.id, p.name, 'goal');
-    if ((p.assists ??0) > prev.assists) showStatIcon(p.id, p.name, 'assist');
-    if ((p.saves   ??0) > prev.saves)   showStatIcon(p.id, p.name, 'save');
-    if ((p.shots   ??0) > prev.shots)   showStatIcon(p.id, p.name, 'shot on goal');
-    if ((p.demos   ??0) > prev.demos)   showDemoIcon(p.name, p.id, null, null);
+    // Les icônes viennent uniquement de stat_event — pas de doublon ici
     _prevStats[p.name] = { goals: p.goals??0, assists: p.assists??0, saves: p.saves??0, shots: p.shots??0, demos: p.demos??0 };
   });
   const names = new Set(Object.values(players).map(p => p.name));

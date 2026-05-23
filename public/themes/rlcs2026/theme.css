@@ -1,0 +1,274 @@
+/* ── RLCS 2026 — Variables ── */
+[data-theme="rlcs2026"] {
+  --blue:        #1FAFDA;
+  --blue-light:  #23AEDE;
+  --orange:      #FD5B00;
+  --orange-light:#FE5901;
+  --panel-bg:    rgba(10,10,10,.95);
+  --panel-text:  #ffffff;
+  --dot-bg:      rgba(193,193,194,.2);
+  --center-bg:   #fefefe;
+  --row-bg:      #181A1A;
+  --stat-vals-bg:#0d0d0d;
+  --replay-bg:   #111212;
+  --replay-text: #ffffff;
+  --end-bg:      #080c0c;
+  --end-mid-bg:  #040808;
+  --end-tbl-bg:  #060a0a;
+
+  /* ── Replay bar ── */
+  --replay-bar-h:       72px;
+  --replay-label-size:  26px;
+  --replay-scorer-size: 24px;
+  --replay-spd-size:    28px;
+
+  /* ── Notif GOAL ── */
+  --goal-bg:        #0d0d0d;
+  --goal-word-size: 76px;
+  --goal-sub-size:  18px;
+
+  /* ── Wipe LIVE / REPLAY ── */
+  --wipe-bg:          #040808;
+  --wipe-box-bg:      rgba(5,18,18,.92);
+  --wipe-word-size:   140px;
+  --wipe-duration:    2.8s;
+  --wipe-fadein-dur:  .4s;
+  --wipe-fadeout-dur: 1.2s;
+
+  /* ── Win screen ── */
+  --win-bg:        rgba(2,8,8,.97);
+  --win-bar-h:     3px;
+  --win-logo-sz:   140px;
+  --win-team-size: 72px;
+}
+[data-theme="rlcs2026"] .team-panel.blue   { background: rgba(1,17,18,.97); }
+[data-theme="rlcs2026"] .team-panel.orange { background: rgba(23,8,0,.97); }
+[data-theme="rlcs2026"] .team-logo-outer.blue   { background: rgba(1,17,18,1); }
+[data-theme="rlcs2026"] .team-logo-outer.orange { background: rgba(23,8,0,1); }
+[data-theme="rlcs2026"] .score-box { font-style: italic; }
+[data-theme="rlcs2026"] #center-block { border-top: none; }
+[data-theme="rlcs2026"] #timer-wrap { border-left-color: rgba(0,0,0,.1); border-right-color: rgba(0,0,0,.1); }
+[data-theme="rlcs2026"] #timer { color: #0a0a0a; font-style: italic; }
+[data-theme="rlcs2026"] #timer.warn { color: #cc1111; }
+[data-theme="rlcs2026"] #timer.ot   { color: #b86000; }
+[data-theme="rlcs2026"] #timer-sub  { color: rgba(0,0,0,.38); }
+[data-theme="rlcs2026"] .sdot { outline: 1px solid rgba(193,193,194,.55); }
+[data-theme="rlcs2026"] #scoreboard { position: relative; }
+[data-theme="rlcs2026"] #scoreboard::after { content: none; }
+[data-theme="rlcs2026"] .player-row.blue   .pr-boost-fill { background: linear-gradient(90deg, #258cc7, #23AEDE); }
+[data-theme="rlcs2026"] .player-row.orange .pr-boost-fill { background: linear-gradient(90deg, #ee5613, #FD5B00); }
+[data-theme="rlcs2026"] #stat-team-tag { border-left: 5px solid var(--blue); }
+
+/* ── Layout scoreboard ── */
+[data-theme="rlcs2026"] #top-bar { position: absolute; align-items: stretch; transition: opacity .6s ease, width .45s ease; }
+[data-theme="rlcs2026"] #top-bar::after { content: none; }
+[data-theme="rlcs2026"] #league-label {
+  background: #1A1A1A; border-radius: 0; text-align: center;
+  font-style: italic; color: #B8BBB8; font-size: 11px;
+  padding: 4px 22px; letter-spacing: 2px;
+}
+[data-theme="rlcs2026"] #scoreboard { height: 74px; gap: 0; }
+[data-theme="rlcs2026"] #score-main { border-radius: 0; }
+[data-theme="rlcs2026"] .team-logo-outer {
+  width: 74px; height: 74px; border-radius: 0; border-top: none !important;
+}
+[data-theme="rlcs2026"] .team-logo-outer.blue   { border-bottom: 3px solid #1FAFDA; }
+[data-theme="rlcs2026"] .team-logo-outer.orange { border-bottom: 3px solid #FD5B00; }
+
+/* Noms d'équipe hors flux flex */
+[data-theme="rlcs2026"] .tlo-name {
+  position: absolute; top: 0; height: 74px;
+  display: none; align-items: center;
+  overflow: hidden; width: 0; opacity: 0;
+  padding: 0 22px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 21px; font-weight: 800; font-style: italic;
+  letter-spacing: 2px; white-space: nowrap; text-transform: uppercase;
+  color: #fff;
+  transition: width .45s ease, opacity .25s ease;
+}
+[data-theme="rlcs2026"] #tlo-name-blue   { right: 100%; background: rgba(1,17,18,1);  border-bottom: 3px solid #1FAFDA; }
+[data-theme="rlcs2026"] #tlo-name-orange { left:  100%; background: rgba(23,8,0,1);   border-bottom: 3px solid #FD5B00; }
+[data-theme="rlcs2026"] .team-logo-img { width: 54px; height: 54px; }
+[data-theme="rlcs2026"] .team-logo-letter { font-size: 24px; }
+[data-theme="rlcs2026"] .team-win-count { font-size: 14px; bottom: 2px; }
+
+/* Panneaux équipe cachés */
+[data-theme="rlcs2026"] .team-panel,
+[data-theme="rlcs2026"] #scoreboard.expanded .team-panel {
+  overflow: hidden; max-width: 0 !important; min-width: 0 !important;
+  padding: 0 !important; border-top: none !important;
+}
+[data-theme="rlcs2026"] .team-name { font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
+[data-theme="rlcs2026"] .sdot { width: 20px; height: 8px; }
+[data-theme="rlcs2026"] .score-box { width: 67px; font-size: 52px; font-style: italic; }
+[data-theme="rlcs2026"] #center-block { border-top: none; }
+[data-theme="rlcs2026"] #timer-wrap { min-width: 130px; padding: 0 10px; }
+[data-theme="rlcs2026"] #timer { font-size: 38px; letter-spacing: 2px; }
+[data-theme="rlcs2026"] #timer-sub { font-size: 10px; letter-spacing: 3px; }
+[data-theme="rlcs2026"] .series-dots-small { display: none; }
+
+/* Sidebars */
+[data-theme="rlcs2026"] #left-panel    { top: 115px; left: 0; gap: 6px; }
+[data-theme="rlcs2026"] #sidebar-blue  { width: 307px; }
+[data-theme="rlcs2026"] #sidebar-orange { top: 115px; right: 0; width: 307px; }
+[data-theme="rlcs2026"] .row-wrap    { margin-bottom: 6px; }
+[data-theme="rlcs2026"] #sidebar-blue   .player-row { border-radius: 0 6px 6px 0; width: 100%; }
+[data-theme="rlcs2026"] #sidebar-orange .player-row { border-radius: 6px 0 0 6px; width: 100%; }
+[data-theme="rlcs2026"] .player-row { height: 40px; background: #181A1A !important; }
+[data-theme="rlcs2026"] .pr-info    { height: 30px; }
+[data-theme="rlcs2026"] .pr-name    { font-size: 16px; letter-spacing: .5px; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-name { padding-left: 16px; padding-right: 8px; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-name { text-align: right; padding-right: 16px; padding-left: 8px; }
+[data-theme="rlcs2026"] .pr-val     { font-size: 18px; color: #fff; padding: 0 9px; min-width: 36px; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-val  { padding-right: 14px; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-val  { padding-left: 14px; }
+[data-theme="rlcs2026"] .pr-accent  { width: 4px; }
+[data-theme="rlcs2026"] .pr-boost-bar  { height: 6px; background: #000; width: 100%; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-boost-bar { margin: 0; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-boost-bar { margin: 0; }
+
+/* Stat bar */
+[data-theme="rlcs2026"] #stat-bar {
+  height: 44px; border-radius: 0; width: 980px;
+  filter: drop-shadow(0 -4px 12px rgba(0,0,0,.7));
+}
+[data-theme="rlcs2026"] #stat-team-tag {
+  min-width: 200px; padding: 0 18px;
+  clip-path: none; border: none;
+  transition: background .2s;
+}
+[data-theme="rlcs2026"] #stat-arrows { display: none; }
+[data-theme="rlcs2026"] #stat-player-name { font-size: 22px; letter-spacing: 2px; font-weight: 800; font-style: italic; }
+[data-theme="rlcs2026"] #stat-values { background: #0d0d0d; }
+[data-theme="rlcs2026"] .stat-item { flex-direction: row; align-items: center; justify-content: center; gap: 7px; border-right: 1px solid rgba(255,255,255,.1); }
+[data-theme="rlcs2026"] .stat-val   { font-size: 26px; font-style: italic; font-weight: 900; min-width: auto; }
+[data-theme="rlcs2026"] .stat-lbl   { font-size: 11px; letter-spacing: 1.5px; font-style: italic; color: rgba(255,255,255,.55); padding-top: 0; }
+
+/* Joueur specté */
+[data-theme="rlcs2026"] .player-row.spectating.blue   { background: #1FAFDA !important; }
+[data-theme="rlcs2026"] .player-row.spectating.orange { background: #FD5B00 !important; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-name { color: #fff; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-val  { color: #fff; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-boost-bar  { background: rgba(0,0,0,.3) !important; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-boost-fill { background: rgba(255,255,255,.65) !important; }
+
+/* Sub-barre série */
+[data-theme="rlcs2026"] #score-sub-bar {
+  display: flex; align-items: center; justify-content: center;
+  background: #111; height: 26px;
+}
+[data-theme="rlcs2026"] #sub-abbr-blue,
+[data-theme="rlcs2026"] #sub-abbr-orange {
+  display: flex; align-items: center; justify-content: center;
+  width: 74px; flex-shrink: 0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 800; font-style: italic;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #fff; white-space: nowrap;
+}
+[data-theme="rlcs2026"] #sub-ser-track { flex: 1; justify-content: center; }
+[data-theme="rlcs2026"] #sub-ser-track {
+  display: flex; align-items: center; gap: 5px;
+}
+[data-theme="rlcs2026"] .sub-sdot {
+  width: 26px; height: 10px; border-radius: 2px;
+  background: rgba(193,193,194,.12); outline: 1px solid rgba(193,193,194,.4);
+}
+[data-theme="rlcs2026"] .sub-sdot.won.blue   { background: #1FAFDA; outline: none; }
+[data-theme="rlcs2026"] .sub-sdot.won.orange { background: #FD5B00; outline: none; }
+[data-theme="rlcs2026"] .sub-sdot.mid { outline: 1px solid rgba(255,255,255,.6) !important; }
+
+/* Events — icônes statfeed */
+[data-theme="rlcs2026"] #sidebar-blue   .pr-icons,
+[data-theme="rlcs2026"] #sidebar-orange .pr-icons {
+  left: 0; right: 0; height: 40px;
+  gap: 2px; padding: 0;
+  overflow: hidden;
+}
+[data-theme="rlcs2026"] #sidebar-blue   .pr-icons {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+[data-theme="rlcs2026"] #sidebar-orange .pr-icons {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+[data-theme="rlcs2026"] .row-wrap.blue   .pr-icons:not(:empty) {
+  background: linear-gradient(to left, #1FAFDA 0%, #1FAFDA 22%, rgba(31,175,218,0) 88%);
+}
+[data-theme="rlcs2026"] .row-wrap.orange .pr-icons:not(:empty) {
+  background: linear-gradient(to right, #FD5B00 0%, #FD5B00 22%, rgba(253,91,0,0) 88%);
+}
+[data-theme="rlcs2026"] .pr-icon {
+  background: transparent !important;
+  opacity: 1 !important;
+  width: 36px; height: 40px;
+}
+[data-theme="rlcs2026"] .pr-icon img { filter: brightness(0) invert(1); }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-icon { animation: iconSlideFromRight 5s forwards; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-icon { animation: iconSlideFromLeft  5s forwards; }
+
+@keyframes iconSlideFromLeft {
+  0%   { transform: translateX(-110%); opacity: 0; }
+  10%  { transform: translateX(0);     opacity: 1; }
+  80%  { transform: translateX(0);     opacity: 1; }
+  100% { transform: translateX(-110%); opacity: 0; }
+}
+@keyframes iconSlideFromRight {
+  0%   { transform: translateX(110%);  opacity: 0; }
+  10%  { transform: translateX(0);     opacity: 1; }
+  80%  { transform: translateX(0);     opacity: 1; }
+  100% { transform: translateX(110%);  opacity: 0; }
+}
+
+/* ── Replay bar ── */
+[data-theme="rlcs2026"] #replay-bar {
+  border-top: 2px solid rgba(255,255,255,.08);
+  border-radius: 0;
+}
+[data-theme="rlcs2026"] #replay-label {
+  border-left: 4px solid #1FAFDA;
+  color: #1FAFDA;
+  letter-spacing: 4px;
+}
+[data-theme="rlcs2026"] #replay-goal-tag {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 6px 100%);
+  font-style: italic;
+}
+[data-theme="rlcs2026"] #replay-spd-unit,
+[data-theme="rlcs2026"] #replay-spd-lbl,
+[data-theme="rlcs2026"] #replay-assist-lbl { color: rgba(255,255,255,.4); }
+[data-theme="rlcs2026"] #replay-speed-block,
+[data-theme="rlcs2026"] #replay-assist-block { border-left-color: rgba(255,255,255,.08); }
+
+/* ── Notif GOAL ── */
+[data-theme="rlcs2026"] #goal-inner {
+  border-radius: 0;
+  border-bottom: 3px solid #1FAFDA;
+}
+[data-theme="rlcs2026"] #goal-word { font-style: italic; letter-spacing: 12px; }
+
+/* ── Wipe LIVE / REPLAY ── */
+[data-theme="rlcs2026"] #rw-box {
+  border-color: rgba(31,175,218,.25);
+  border-radius: 0;
+}
+[data-theme="rlcs2026"] #rw-box::before { border-color: rgba(31,175,218,.1); }
+[data-theme="rlcs2026"] #rw-word { font-style: italic; color: #e8f9fd; }
+
+/* ── Win screen ── */
+[data-theme="rlcs2026"] #win-screen { background: var(--win-bg); }
+[data-theme="rlcs2026"] #win-team-name { font-style: italic; letter-spacing: 6px; }
+[data-theme="rlcs2026"] #win-label { letter-spacing: 10px; }
+
+/* Boost meter */
+[data-theme="rlcs2026"] #boost-meter {
+  width: 180px; height: 180px; bottom: 50px;
+  background: rgba(0,0,0,.82); border-radius: 50%;
+}
+[data-theme="rlcs2026"] #boost-track { fill: none; stroke: rgba(255,255,255,.28); stroke-width: 5; stroke-dasharray: 2 7; }
+[data-theme="rlcs2026"] #boost-arc  { stroke-width: 7; stroke-linecap: butt; }
+[data-theme="rlcs2026"] #boost-big  { font-size: 58px; }
+[data-theme="rlcs2026"] #speed-val  { display: none; }
+[data-theme="rlcs2026"] #speed-unit { display: none; }

@@ -1,0 +1,16 @@
+[data-theme="neon"] {
+  --panel-bg:    rgba(4,4,26,.97);
+  --panel-text:  #dde8ff;
+  --dot-bg:      rgba(255,255,255,.08);
+  --center-bg:   #020214;
+  --row-bg:      rgba(4,4,24,.92);
+  --stat-vals-bg:rgba(2,2,16,.96);
+  --replay-bg:   rgba(4,4,26,.97);
+  --replay-text: #dde8ff;
+  --end-bg:      #02020e;
+  --end-mid-bg:  #04041a;
+  --end-tbl-bg:  #030310;
+}
+[data-theme="neon"] .score-box.blue   { box-shadow: 0 0 18px rgba(26,95,255,.55); }
+[data-theme="neon"] .score-box.orange { box-shadow: 0 0 18px rgba(217,96,0,.55); }
+[data-theme="neon"] #replay-label { box-shadow: inset 0 0 20px rgba(26,95,255,.08); }

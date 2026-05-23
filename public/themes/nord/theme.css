@@ -1,0 +1,17 @@
+[data-theme="nord"] {
+  --blue:        #5e81ac;
+  --blue-light:  #88c0d0;
+  --orange:      #d08770;
+  --orange-light:#ebcb8b;
+  --panel-bg:    rgba(46,52,64,.97);
+  --panel-text:  #eceff4;
+  --dot-bg:      rgba(255,255,255,.1);
+  --center-bg:   #2e3440;
+  --row-bg:      rgba(36,40,52,.9);
+  --stat-vals-bg:rgba(30,34,44,.96);
+  --replay-bg:   rgba(46,52,64,.97);
+  --replay-text: #eceff4;
+  --end-bg:      #242c38;
+  --end-mid-bg:  #1e2430;
+  --end-tbl-bg:  #1e2430;
+}

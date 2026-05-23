@@ -1,0 +1,493 @@
+@import url('https://fonts.googleapis.com/css2?family=Aldrich&display=swap');
+
+/* ═══════════════════════════════════════════════════
+   RLCS 2023 — World Championship Style
+   Couleurs : Blue #027dd1 / Orange #fc6b21
+   Font     : Aldrich
+═══════════════════════════════════════════════════ */
+
+/* ── Variables ── */
+[data-theme="rlcs2023"] {
+  --blue:         #027dd1;
+  --blue-light:   #6fb5ed;
+  --orange:       #fc6b21;
+  --orange-light: #ff8921;
+  --panel-bg:     #1d1e23;
+  --panel-text:   #ffffff;
+  --dot-bg:       rgba(255,255,255,.15);
+  --center-bg:    #1a1c22;
+  --row-bg:       #1e1e23;
+  --stat-vals-bg: #1a1c22;
+  --replay-bg:    #1a1c22;
+  --replay-text:  #ffffff;
+  --end-bg:       #0d0e13;
+  --end-mid-bg:   #080910;
+  --end-tbl-bg:   #0a0b10;
+
+  /* Animations live/replay/win */
+  --wipe-bg:          #0a0b10;
+  --wipe-box-bg:      rgba(10,15,35,.94);
+  --wipe-word-size:   140px;
+  --wipe-duration:    3s;
+  --wipe-fadein-dur:  .45s;
+  --wipe-fadeout-dur: 1.3s;
+  --win-bg:           rgba(5,6,15,.97);
+  --win-team-size:    74px;
+  --win-logo-sz:      140px;
+  --win-bar-h:        3px;
+  --goal-bg:          #13141a;
+  --goal-word-size:   76px;
+  --goal-sub-size:    18px;
+
+  /* Replay bar */
+  --replay-bar-h:       68px;
+  --replay-label-size:  26px;
+  --replay-scorer-size: 24px;
+  --replay-spd-size:    28px;
+}
+
+/* ── Font globale ── */
+[data-theme="rlcs2023"] { font-family: 'Aldrich', sans-serif; }
+
+/* ════════════════════════════════════════════════════
+   LEAGUE LABEL
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #league-label {
+  background: #13141a;
+  font-family: 'Aldrich', sans-serif;
+  font-size: 13px; letter-spacing: 3px; font-style: normal;
+  color: #f0c040;
+  border-radius: 0;
+  padding: 5px 32px;
+  text-align: center;
+}
+
+/* ════════════════════════════════════════════════════
+   TOP BAR — stretch pour que la sub-bar couvre tout
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #top-bar {
+  position: absolute;
+  align-items: stretch;
+  transition: opacity .6s ease;
+}
+[data-theme="rlcs2023"] #top-bar::after { content: none; }
+
+/* ════════════════════════════════════════════════════
+   SCOREBOARD
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #scoreboard {
+  height: 70px; gap: 0;
+}
+[data-theme="rlcs2023"] #score-main {
+  border-radius: 0; flex: 1; gap: 0;
+}
+[data-theme="rlcs2023"] #center-block {
+  border-top: 1px solid #363f4b;
+}
+
+/* ── Logos d'équipe ── */
+[data-theme="rlcs2023"] .team-logo-outer {
+  width: 100px; height: 70px;
+  border-radius: 0;
+  border-top: none !important;
+  background: #131217;
+}
+[data-theme="rlcs2023"] .team-logo-outer.blue {
+  /* coin bas-gauche coupé */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+[data-theme="rlcs2023"] .team-logo-outer.orange {
+  /* coin bas-droit coupé */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+}
+[data-theme="rlcs2023"] .team-logo-img   { width: 50px; height: 50px; }
+[data-theme="rlcs2023"] .team-logo-letter { font-size: 22px; color: #fff; font-family: 'Aldrich', sans-serif; }
+[data-theme="rlcs2023"] .team-win-count   { font-size: 12px; }
+
+/* ── Panneaux équipe ── */
+[data-theme="rlcs2023"] .team-panel {
+  min-width: 261px; max-width: 261px;
+  padding: 0 20px;
+  gap: 0;
+  justify-content: center; align-items: center;
+  overflow: hidden;
+  border-top: none !important;
+}
+[data-theme="rlcs2023"] .team-panel.blue {
+  flex-direction: column;
+  background: linear-gradient(180deg, #027dd1 0%, #027dd1 7px, #1d1e23 8px, #2c5874 100%);
+  border-top: 1px solid #6fb5ed !important;
+}
+[data-theme="rlcs2023"] .team-panel.orange {
+  flex-direction: column;
+  background: linear-gradient(180deg, #fc6b21 0%, #fc6b21 7px, #1d1e23 8px, #7e4b35 100%);
+  border-top: 1px solid #ff8921 !important;
+}
+[data-theme="rlcs2023"] .team-name {
+  font-size: 22px; font-style: normal; font-weight: 400;
+  letter-spacing: 1px; color: #fff;
+  font-family: 'Aldrich', sans-serif;
+  overflow: hidden; white-space: nowrap;
+  width: 100%; max-width: 221px;
+}
+/* Bloquer les tlo-names (éléments RLCS2026) — évite le gonflement du scoreboard à chaque goal */
+[data-theme="rlcs2023"] .tlo-name {
+  display: none !important;
+  width: 0 !important; overflow: hidden !important;
+}
+[data-theme="rlcs2023"] .series-dots-small { display: none; }
+
+/* ── Scores ── */
+[data-theme="rlcs2023"] .score-box {
+  width: 80px; font-size: 52px; font-style: normal;
+  font-weight: 400; font-family: 'Aldrich', sans-serif;
+}
+[data-theme="rlcs2023"] .score-box.blue {
+  background: #027dd1;
+  border-top: 1px solid #6fb5ed;
+}
+[data-theme="rlcs2023"] .score-box.orange {
+  background: #fc6b21;
+  border-top: 1px solid #ff8921;
+}
+
+/* ── Timer ── */
+[data-theme="rlcs2023"] #timer-wrap {
+  width: 172px; flex-shrink: 0; flex-grow: 0;
+  padding: 0 8px;
+  border-left-color:  rgba(255,255,255,.05);
+  border-right-color: rgba(255,255,255,.05);
+}
+[data-theme="rlcs2023"] #timer {
+  font-size: 46px; font-style: normal;
+  letter-spacing: 2px; color: #fff;
+  font-family: 'Aldrich', sans-serif;
+  font-variant-numeric: tabular-nums;
+  /* Forcer les chiffres à prendre la même largeur via une font-feature */
+  font-feature-settings: "tnum" 1;
+  text-align: center; width: 100%;
+}
+[data-theme="rlcs2023"] #timer.warn { color: #ff4444; }
+[data-theme="rlcs2023"] #timer.ot   { color: #ffaa00; }
+[data-theme="rlcs2023"] #timer-sub  {
+  font-size: 10px; letter-spacing: 3px;
+  color: rgba(255,255,255,.45);
+  font-family: 'Aldrich', sans-serif;
+}
+
+/* ════════════════════════════════════════════════════
+   SUB-BAR (série + game info)
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #score-sub-bar {
+  display: flex; align-items: stretch;
+  height: 28px; background: transparent;
+}
+[data-theme="rlcs2023"] #sub-abbr-blue {
+  flex: 1; height: 100%;
+  background: #1a1c22;
+  clip-path: polygon(100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 0);
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: 0 14px 0 8px;
+  font-family: 'Aldrich', sans-serif; font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,.45); white-space: nowrap;
+}
+[data-theme="rlcs2023"] #sub-ser-track {
+  width: 340px; flex-shrink: 0; height: 100%;
+  background: #13131a;
+  clip-path: polygon(100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 0);
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+}
+[data-theme="rlcs2023"] #sub-abbr-orange {
+  flex: 1; height: 100%;
+  background: #1a1c22;
+  clip-path: polygon(100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 0);
+  display: flex; align-items: center; justify-content: flex-start;
+  padding: 0 8px 0 14px;
+  font-family: 'Aldrich', sans-serif; font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,.45); white-space: nowrap;
+}
+[data-theme="rlcs2023"] .sub-sdot {
+  width: 35px; height: 5px; border-radius: 2px;
+  background: #000; outline: none;
+  border: 2px solid #444;
+}
+[data-theme="rlcs2023"] .sub-sdot.won.blue {
+  background: #027dd1;
+  border-color: #0298ff #014f84 #014f84 #0298ff;
+}
+[data-theme="rlcs2023"] .sub-sdot.won.orange {
+  background: #fc6b21;
+  border-color: #ff8921 #af4a16 #af4a16 #ff8921;
+}
+[data-theme="rlcs2023"] .sub-sdot.mid {
+  border: 2px solid rgba(255,255,255,.55) !important;
+}
+
+/* ════════════════════════════════════════════════════
+   SIDEBARS
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #left-panel    { top: 108px; left: 20px; gap: 5px; }
+[data-theme="rlcs2023"] #sidebar-orange { top: 108px; right: 20px; }
+[data-theme="rlcs2023"] #sidebar-blue,
+[data-theme="rlcs2023"] #sidebar-orange { width: 300px; }
+
+[data-theme="rlcs2023"] .row-wrap { margin-bottom: 5px; }
+
+[data-theme="rlcs2023"] .player-row {
+  height: 36px; border-radius: 0;
+  background: #1e1e23 !important;
+  /* Pas de slide — transition opacity uniquement */
+  transition: opacity .2s !important;
+  transform: none !important;
+}
+[data-theme="rlcs2023"] #sidebar-blue   .player-row {
+  clip-path: polygon(calc(100% - 3px) 0, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 0);
+}
+[data-theme="rlcs2023"] #sidebar-orange .player-row {
+  clip-path: polygon(3px 0, 100% 0, 100% 100%, 3px 100%, 0 calc(100% - 3px), 0 3px);
+}
+[data-theme="rlcs2023"] .row-wrap.visible .player-row { opacity: 1; }
+
+[data-theme="rlcs2023"] .pr-info   { height: 30px; }
+[data-theme="rlcs2023"] .pr-accent { width: 3px; }
+
+[data-theme="rlcs2023"] .pr-name {
+  font-size: 20px; letter-spacing: .5px;
+  font-family: 'Aldrich', sans-serif; font-weight: 400;
+}
+[data-theme="rlcs2023"] #sidebar-blue   .pr-name { padding-left: 10px; padding-right: 6px; }
+[data-theme="rlcs2023"] #sidebar-orange .pr-name { padding-right: 10px; padding-left: 6px; text-align: right; }
+
+[data-theme="rlcs2023"] .pr-val {
+  font-size: 20px; color: #fff;
+  font-family: 'Aldrich', sans-serif; font-weight: 400;
+  min-width: 38px;
+}
+[data-theme="rlcs2023"] #sidebar-blue   .pr-val { padding-right: 12px; }
+[data-theme="rlcs2023"] #sidebar-orange .pr-val { padding-left: 12px; }
+
+[data-theme="rlcs2023"] .pr-boost-bar  { height: 5px; background: #000; }
+[data-theme="rlcs2023"] .player-row.blue   .pr-boost-fill { background: #027dd1; }
+[data-theme="rlcs2023"] .player-row.orange .pr-boost-fill { background: #fc6b21; }
+
+/* Joueur specté */
+[data-theme="rlcs2023"] .player-row.spectating.blue   { background: #027dd1 !important; }
+[data-theme="rlcs2023"] .player-row.spectating.orange { background: #fc6b21 !important; }
+[data-theme="rlcs2023"] .player-row.spectating .pr-name { color: #fff; }
+[data-theme="rlcs2023"] .player-row.spectating .pr-val  { color: #fff; }
+[data-theme="rlcs2023"] .player-row.spectating .pr-boost-bar  { background: rgba(0,0,0,.35) !important; }
+[data-theme="rlcs2023"] .player-row.spectating .pr-boost-fill { background: rgba(255,255,255,.6) !important; }
+
+/* Icônes statfeed */
+[data-theme="rlcs2023"] #sidebar-blue   .pr-icons,
+[data-theme="rlcs2023"] #sidebar-orange .pr-icons {
+  left: 0; right: 0; height: 36px;
+  gap: 2px; padding: 0; overflow: hidden;
+}
+[data-theme="rlcs2023"] #sidebar-blue   .pr-icons { flex-direction: row-reverse; justify-content: flex-start; }
+[data-theme="rlcs2023"] #sidebar-orange .pr-icons { flex-direction: row;         justify-content: flex-start; }
+[data-theme="rlcs2023"] .row-wrap.blue   .pr-icons:not(:empty) {
+  background: linear-gradient(to left, #027dd1 0%, #027dd1 20%, rgba(2,125,209,0) 85%);
+}
+[data-theme="rlcs2023"] .row-wrap.orange .pr-icons:not(:empty) {
+  background: linear-gradient(to right, #fc6b21 0%, #fc6b21 20%, rgba(252,107,33,0) 85%);
+}
+[data-theme="rlcs2023"] .pr-icon {
+  background: transparent !important;
+  opacity: 1 !important;
+  width: 34px; height: 36px;
+}
+[data-theme="rlcs2023"] .pr-icon img { filter: brightness(0) invert(1); }
+[data-theme="rlcs2023"] #sidebar-blue   .pr-icon { animation: iconSlideFromRight 5s forwards; }
+[data-theme="rlcs2023"] #sidebar-orange .pr-icon { animation: iconSlideFromLeft  5s forwards; }
+
+@keyframes iconSlideFromLeft {
+  0%   { transform: translateX(-110%); opacity: 0; }
+  10%  { transform: translateX(0);     opacity: 1; }
+  80%  { transform: translateX(0);     opacity: 1; }
+  100% { transform: translateX(-110%); opacity: 0; }
+}
+@keyframes iconSlideFromRight {
+  0%   { transform: translateX(110%);  opacity: 0; }
+  10%  { transform: translateX(0);     opacity: 1; }
+  80%  { transform: translateX(0);     opacity: 1; }
+  100% { transform: translateX(110%);  opacity: 0; }
+}
+
+/* ════════════════════════════════════════════════════
+   STAT BAR (bas gauche)
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #stat-bar {
+  height: 60px; border-radius: 0;
+  background: linear-gradient(0deg, #373b48 5px, #1a1c22 5px, #1a1c22 100%);
+  border-top: 1px solid #363f4b;
+  width: 780px;
+}
+[data-theme="rlcs2023"] #stat-team-tag {
+  background: #373b48;
+  min-width: 180px; padding: 0 20px;
+  clip-path: none; border: none;
+  transition: background .2s;
+}
+[data-theme="rlcs2023"] #stat-arrows { display: none; }
+[data-theme="rlcs2023"] #stat-player-name {
+  font-size: 20px; font-family: 'Aldrich', sans-serif;
+  letter-spacing: 1px; font-style: normal; font-weight: 400;
+}
+[data-theme="rlcs2023"] #stat-values { background: transparent; }
+[data-theme="rlcs2023"] .stat-item {
+  flex-direction: column-reverse; /* label en haut, valeur en bas */
+  align-items: center; justify-content: center;
+  border-right: 1px solid rgba(255,255,255,.07);
+  min-width: 80px; gap: 2px;
+}
+[data-theme="rlcs2023"] .stat-val {
+  font-size: 28px; font-family: 'Aldrich', sans-serif;
+  font-style: normal; min-width: auto; line-height: 1;
+}
+[data-theme="rlcs2023"] .stat-lbl {
+  font-size: 10px; letter-spacing: 2.5px;
+  color: rgba(255,255,255,.45);
+  font-family: 'Aldrich', sans-serif;
+  padding-top: 0; margin-top: 0;
+}
+
+/* ════════════════════════════════════════════════════
+   BOOST METER (bas droit)
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #boost-meter {
+  width: 165px; height: 165px; bottom: 50px;
+  background: rgba(13,14,20,.9);
+  border-radius: 50%;
+}
+[data-theme="rlcs2023"] #boost-track {
+  fill: rgba(0,0,0,.45);
+  stroke: rgba(255,255,255,.14);
+  stroke-width: 10;
+  stroke-dasharray: 3 8;
+}
+[data-theme="rlcs2023"] #boost-arc {
+  stroke-width: 11;
+  stroke: #ff9c00;
+  stroke-linecap: butt;
+}
+[data-theme="rlcs2023"] #boost-big {
+  font-size: 54px; font-family: 'Aldrich', sans-serif;
+}
+[data-theme="rlcs2023"] #speed-val  { display: none; }
+[data-theme="rlcs2023"] #speed-unit { display: none; }
+
+/* ════════════════════════════════════════════════════
+   REPLAY BAR
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #replay-bar {
+  background: #1a1c22;
+  border-top: 1px solid #363f4b;
+  border-radius: 0;
+}
+[data-theme="rlcs2023"] #replay-label {
+  font-family: 'Aldrich', sans-serif; font-style: normal;
+  border-left-width: 4px; letter-spacing: 2px;
+}
+[data-theme="rlcs2023"] #replay-goal-tag {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 6px 100%);
+  font-family: 'Aldrich', sans-serif; font-style: normal;
+}
+[data-theme="rlcs2023"] #replay-scorer {
+  font-family: 'Aldrich', sans-serif; font-style: normal; letter-spacing: 1px;
+}
+[data-theme="rlcs2023"] #replay-spd-unit,
+[data-theme="rlcs2023"] #replay-spd-lbl,
+[data-theme="rlcs2023"] #replay-assist-lbl { color: rgba(255,255,255,.45); }
+[data-theme="rlcs2023"] #replay-speed-block,
+[data-theme="rlcs2023"] #replay-assist-block { border-left-color: rgba(255,255,255,.07); }
+[data-theme="rlcs2023"] #replay-spd { font-family: 'Aldrich', sans-serif; }
+
+/* ════════════════════════════════════════════════════
+   NOTIF GOAL
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #goal-inner {
+  background: #13141a;
+  border-bottom: 3px solid #027dd1;
+  border-radius: 0;
+}
+[data-theme="rlcs2023"] #goal-word {
+  font-family: 'Aldrich', sans-serif; font-style: normal;
+  letter-spacing: 8px;
+}
+[data-theme="rlcs2023"] #goal-sub { font-family: 'Aldrich', sans-serif; }
+
+/* ════════════════════════════════════════════════════
+   WIPE LIVE / REPLAY — scintillement
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #rw-box {
+  border-color: rgba(2,125,209,.3);
+  border-radius: 0;
+}
+[data-theme="rlcs2023"] #rw-box::before { border-color: rgba(2,125,209,.12); }
+[data-theme="rlcs2023"] #rw-word {
+  font-family: 'Aldrich', sans-serif; font-style: normal; color: #fff;
+}
+
+/* Surcharge de l'animation spread → scintillement */
+[data-theme="rlcs2023"] #replay-wipe.rw-active #rw-word {
+  animation: rw2023Flicker var(--wipe-duration) ease-out forwards !important;
+}
+[data-theme="rlcs2023"] #replay-wipe.rw-active #rw-box {
+  animation: rw2023BoxGlow var(--wipe-duration) ease-out forwards;
+}
+
+/* Scintillement : flashes lumineux rapides → stabilisation → fondu */
+@keyframes rw2023Flicker {
+  0%   { opacity: 0;   filter: brightness(1);   text-shadow: none;                                           letter-spacing: 10px; }
+  4%   { opacity: 1;   filter: brightness(6);   text-shadow: 0 0 120px #fff, 0 0 80px rgba(2,125,209,.9);   letter-spacing: 10px; }
+  8%   { opacity: .05; filter: brightness(.5);  text-shadow: none; }
+  13%  { opacity: 1;   filter: brightness(4);   text-shadow: 0 0 100px #fff, 0 0 60px rgba(2,125,209,.7);   letter-spacing: 10px; }
+  17%  { opacity: .2;  filter: brightness(.7);  text-shadow: none; }
+  22%  { opacity: 1;   filter: brightness(3);   text-shadow: 0 0 80px rgba(255,255,255,.9), 0 0 40px rgba(2,125,209,.5); letter-spacing: 10px; }
+  27%  { opacity: .6;  filter: brightness(1.1); text-shadow: 0 0 30px rgba(255,255,255,.3); }
+  33%  { opacity: 1;   filter: brightness(1.8); text-shadow: 0 0 55px rgba(255,255,255,.65); letter-spacing: 10px; }
+  40%  { opacity: 1;   filter: brightness(1.3); text-shadow: 0 0 35px rgba(255,255,255,.4);  letter-spacing: 10px; }
+  52%  { opacity: 1;   filter: brightness(1.1); text-shadow: 0 0 18px rgba(255,255,255,.2);  letter-spacing: 10px; }
+  68%  { opacity: 1;   filter: brightness(1);   text-shadow: none;                           letter-spacing: 10px; }
+  80%  { opacity: .85; filter: brightness(1);   text-shadow: none;                           letter-spacing: 10px; }
+  92%  { opacity: .3;  filter: brightness(1.4); text-shadow: 0 0 40px rgba(2,125,209,.4);    letter-spacing: 10px; }
+  100% { opacity: 0;   filter: brightness(1);   text-shadow: none;                           letter-spacing: 10px; }
+}
+
+/* Boîte : pulse de bordure synchronisé avec les flashes */
+@keyframes rw2023BoxGlow {
+  0%   { border-color: rgba(2,125,209,.3);   box-shadow: none; }
+  4%   { border-color: rgba(100,200,255,.9); box-shadow: 0 0 50px rgba(2,125,209,.6), inset 0 0 25px rgba(2,125,209,.15); }
+  8%   { border-color: rgba(2,125,209,.1);   box-shadow: none; }
+  13%  { border-color: rgba(100,200,255,.8); box-shadow: 0 0 40px rgba(2,125,209,.5); }
+  17%  { border-color: rgba(2,125,209,.15);  box-shadow: none; }
+  22%  { border-color: rgba(100,200,255,.6); box-shadow: 0 0 30px rgba(2,125,209,.35); }
+  38%  { border-color: rgba(2,125,209,.4);   box-shadow: 0 0 15px rgba(2,125,209,.18); }
+  68%  { border-color: rgba(2,125,209,.3);   box-shadow: none; }
+  100% { border-color: rgba(2,125,209,.3);   box-shadow: none; }
+}
+
+/* ════════════════════════════════════════════════════
+   WIN SCREEN
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #win-team-name {
+  font-family: 'Aldrich', sans-serif; font-style: normal; letter-spacing: 5px;
+}
+[data-theme="rlcs2023"] #win-label,
+[data-theme="rlcs2023"] #win-subtitle,
+[data-theme="rlcs2023"] #win-series-score {
+  font-family: 'Aldrich', sans-serif; font-style: normal;
+}
+[data-theme="rlcs2023"] #win-label { letter-spacing: 8px; }
+
+/* ════════════════════════════════════════════════════
+   END SCREEN
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #end-bl .end-p-top { border-top-color: #027dd1; background: rgba(2,125,209,.12); }
+[data-theme="rlcs2023"] #end-or .end-p-top { border-top-color: #fc6b21; background: rgba(252,107,33,.12); }
+[data-theme="rlcs2023"] .end-side.blue   { border-left-color:  #027dd1; }
+[data-theme="rlcs2023"] .end-side.orange { border-right-color: #fc6b21; }

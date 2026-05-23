@@ -1,0 +1,17 @@
+[data-theme="amber"] {
+  --blue:        #f59e0b;
+  --blue-light:  #fbbf24;
+  --orange:      #ef4444;
+  --orange-light:#f87171;
+  --panel-bg:    rgba(240,234,218,.97);
+  --panel-text:  #1a0c00;
+  --dot-bg:      rgba(0,0,0,.10);
+  --center-bg:   #100800;
+  --row-bg:      rgba(22,14,2,.92);
+  --stat-vals-bg:rgba(10,6,0,.96);
+  --replay-bg:   rgba(240,234,218,.97);
+  --replay-text: #1a0c00;
+  --end-bg:      #0e0800;
+  --end-mid-bg:  #080400;
+  --end-tbl-bg:  #0a0500;
+}
