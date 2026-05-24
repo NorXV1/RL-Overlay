@@ -278,114 +278,132 @@
 ══════════════════════════════════════════════════════════ */
 
 [data-theme="rlcs2026"] #end-screen {
-  background: #0c0c12;
+  background: #0d0d14;
   flex-direction: column;
   justify-content: flex-start;
   align-items: stretch;
 }
 
-/* ── Header / Scoreboard ── */
+/* ──────────────────────────────────────────
+   HEADER — panneaux équipe plein format
+────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-hdr {
-  height: 88px;
+  height: 120px;
   flex-shrink: 0;
   border-bottom: none;
 }
+
+/* Côtés équipe : fond coloré plein, pas transparent */
 [data-theme="rlcs2026"] .end-side {
-  padding: 0 26px;
-  gap: 16px;
+  padding: 0 28px;
+  gap: 20px;
   border: none;
   animation: none;
 }
 [data-theme="rlcs2026"] .end-side.blue {
-  background: rgba(31,175,218,.07);
-  border-left:  5px solid #1FAFDA;
-  border-bottom: 3px solid #1FAFDA;
+  background: #0c2038;                     /* bleu sombre saturé */
+  border-left:  6px solid #1FAFDA;
+  border-bottom: 4px solid #1FAFDA;
 }
 [data-theme="rlcs2026"] .end-side.orange {
-  background: rgba(253,91,0,.07);
-  border-right: 5px solid #FD5B00;
-  border-bottom: 3px solid #FD5B00;
+  background: #200d00;                     /* rouge/brun sombre saturé */
+  border-right: 6px solid #FD5B00;
+  border-bottom: 4px solid #FD5B00;
 }
-[data-theme="rlcs2026"] .end-side.blue.winner   { background: rgba(31,175,218,.13); }
-[data-theme="rlcs2026"] .end-side.orange.winner { background: rgba(253,91,0,.13); }
+[data-theme="rlcs2026"] .end-side.blue.winner   { background: #0e2d50; }
+[data-theme="rlcs2026"] .end-side.orange.winner { background: #2e1200; }
 
+/* Logo équipe — grand cercle */
 [data-theme="rlcs2026"] .end-logo-sq {
-  width: 60px; height: 60px;
+  width: 76px; height: 76px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
+[data-theme="rlcs2026"] .end-logo-img  { width: 56px; height: 56px; }
 [data-theme="rlcs2026"] .end-side.blue .end-logo-sq {
-  background: rgba(31,175,218,.15);
-  border: 2px solid rgba(31,175,218,.55);
+  background: rgba(31,175,218,.18);
+  border: 2px solid rgba(31,175,218,.7);
 }
 [data-theme="rlcs2026"] .end-side.orange .end-logo-sq {
-  background: rgba(253,91,0,.15);
-  border: 2px solid rgba(253,91,0,.55);
+  background: rgba(253,91,0,.18);
+  border: 2px solid rgba(253,91,0,.7);
 }
-[data-theme="rlcs2026"] .end-logo-letter { font-size: 24px; }
+[data-theme="rlcs2026"] .end-logo-letter      { font-size: 28px; }
 [data-theme="rlcs2026"] .end-side.blue   .end-logo-letter { color: #1FAFDA; }
 [data-theme="rlcs2026"] .end-side.orange .end-logo-letter { color: #FD5B00; }
 
-[data-theme="rlcs2026"] .end-side-texts { gap: 3px; }
+/* Textes équipe */
+[data-theme="rlcs2026"] .end-side-texts { gap: 4px; }
 [data-theme="rlcs2026"] .end-side-result {
-  font-size: 9px; letter-spacing: 4px;
-  color: rgba(255,255,255,.3); font-style: italic;
+  font-size: 10px; letter-spacing: 5px;
+  color: rgba(255,255,255,.4); font-style: italic;
+  text-transform: uppercase;
 }
 [data-theme="rlcs2026"] .end-side.blue.winner   .end-side-result { color: #1FAFDA; }
 [data-theme="rlcs2026"] .end-side.orange.winner .end-side-result { color: #FD5B00; }
 [data-theme="rlcs2026"] .end-side-name {
-  font-size: 34px; font-weight: 900;
-  font-style: italic; letter-spacing: 3px; color: #fff;
+  font-size: 52px; font-weight: 900;
+  font-style: italic; letter-spacing: 4px;
+  color: #fff; line-height: 1;
+  text-shadow: 0 2px 18px rgba(0,0,0,.6);
 }
 
-/* ── Centre : scores + infos série ── */
+/* ──────────────────────────────────────────
+   CENTRE — scores + GAME X · BO7
+────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-mid {
-  width: 280px; flex-shrink: 0;
-  background: #0d0d12;
-  border-left:  1px solid rgba(255,255,255,.07);
-  border-right: 1px solid rgba(255,255,255,.07);
-  border-bottom: 3px solid rgba(255,255,255,.1);
+  width: 300px; flex-shrink: 0;
+  background: #0d0d14;
+  border-left:  1px solid rgba(255,255,255,.08);
+  border-right: 1px solid rgba(255,255,255,.08);
+  border-bottom: 4px solid rgba(255,255,255,.12);
   gap: 0; justify-content: center;
-  padding: 6px 0;
+  padding: 8px 0;
 }
-[data-theme="rlcs2026"] .end-sc-row { gap: 0; align-items: stretch; }
+[data-theme="rlcs2026"] .end-sc-row {
+  gap: 0; align-items: stretch;
+}
 [data-theme="rlcs2026"] .end-sc-box {
-  width: 74px; height: 52px;
-  font-size: 44px; font-style: italic;
+  width: 80px; height: 68px;
+  font-size: 54px; font-style: italic;
   border-radius: 0; font-weight: 900;
+  color: #fff;
 }
 [data-theme="rlcs2026"] .end-sc-box.blue   { background: #1FAFDA; }
 [data-theme="rlcs2026"] .end-sc-box.orange { background: #FD5B00; }
+
 [data-theme="rlcs2026"] .end-vs-sep {
   flex: 1;
-  font-size: 8px; font-weight: 800; font-style: italic;
-  letter-spacing: 1.5px; color: rgba(255,255,255,.5);
-  text-align: center;
+  font-size: 9px; font-weight: 800; font-style: italic;
+  letter-spacing: 1px; color: rgba(255,255,255,.55);
   display: flex; align-items: center; justify-content: center;
-  padding: 0 2px; background: #111116;
+  text-align: center; padding: 0 3px;
+  background: #111118; white-space: pre-line; line-height: 1.4;
 }
 [data-theme="rlcs2026"] .end-ser-row {
-  font-size: 8px; font-weight: 700; font-style: italic;
+  font-size: 9px; font-weight: 700; font-style: italic;
   letter-spacing: 3px; color: rgba(255,255,255,.35);
-  gap: 0; justify-content: center; padding: 2px 0;
+  gap: 0; justify-content: center; padding: 3px 0;
 }
-[data-theme="rlcs2026"] .end-bo-tag { display: none; }
+[data-theme="rlcs2026"] .end-bo-tag               { display: none; }
 [data-theme="rlcs2026"] #end-ser-blue,
-[data-theme="rlcs2026"] #end-ser-orange { display: none; }
+[data-theme="rlcs2026"] #end-ser-orange            { display: none; }
 [data-theme="rlcs2026"] #end-wins-text {
   display: block;
-  font-size: 9px; font-weight: 800; font-style: italic;
+  font-size: 11px; font-weight: 800; font-style: italic;
   letter-spacing: 2px; text-transform: uppercase;
-  color: rgba(255,255,255,.65); text-align: center;
+  color: rgba(255,255,255,.7); text-align: center;
   padding: 2px 6px; white-space: nowrap;
 }
 
-/* ── Tableau de stats ── */
+/* ──────────────────────────────────────────
+   TABLEAU STATS — plein écran
+────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-table {
   flex: 1;
-  padding: 0;
-  background: #0c0c12;
+  padding: 0; background: #0d0d14;
   border: none;
-  border-top: 1px solid rgba(255,255,255,.05);
+  border-top: 1px solid rgba(255,255,255,.06);
   overflow: hidden;
 }
 [data-theme="rlcs2026"] #end-bl,
@@ -398,70 +416,85 @@
 [data-theme="rlcs2026"] .end-p-col {
   height: 100%;
   display: flex; flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,.04);
+  border-right: 1px solid rgba(255,255,255,.05);
 }
 [data-theme="rlcs2026"] #end-or .end-p-col:last-child { border-right: none; }
 
+/* Nom du joueur (en-tête colonne) */
 [data-theme="rlcs2026"] .end-p-top {
-  height: 50px; flex-shrink: 0;
-  font-size: 12px; font-weight: 900; font-style: italic;
-  letter-spacing: 1.5px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  padding: 0 10px; position: relative; overflow: visible;
+  height: 58px; flex-shrink: 0;
+  font-size: 14px; font-weight: 900; font-style: italic;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  padding: 0 16px; position: relative; overflow: visible;
 }
 [data-theme="rlcs2026"] #end-bl .end-p-top {
-  background: rgba(31,175,218,.08);
-  border-top: 2px solid #1FAFDA;
-  color: rgba(255,255,255,.9);
+  background: rgba(31,175,218,.12);
+  border-top: 3px solid #1FAFDA;
+  color: #fff;
 }
 [data-theme="rlcs2026"] #end-or .end-p-top {
-  background: rgba(253,91,0,.08);
-  border-top: 2px solid #FD5B00;
-  color: rgba(255,255,255,.9);
+  background: rgba(253,91,0,.12);
+  border-top: 3px solid #FD5B00;
+  color: #fff;
 }
-[data-theme="rlcs2026"] .end-p-top.mvp::after {
+
+/* Étoile MVP : grande et dorée, au-dessus du nom */
+[data-theme="rlcs2026"] .end-p-top.mvp {
+  padding-top: 18px;            /* décale le nom vers le bas */
+}
+[data-theme="rlcs2026"] .end-p-top.mvp::before {
   content: '★';
-  background: none; color: #ffd700;
-  font-size: 12px; font-weight: 900;
-  padding: 0; border-radius: 0; letter-spacing: 0;
-  position: absolute; top: 6px; right: 6px; line-height: 1;
+  position: absolute;
+  top: 6px; left: 50%; transform: translateX(-50%);
+  font-size: 14px; font-weight: 900; line-height: 1;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255,215,0,.7);
 }
+[data-theme="rlcs2026"] .end-p-top.mvp::after { content: none; }   /* désactive l'ancien ::after */
+
+/* Valeurs stats */
 [data-theme="rlcs2026"] .end-p-cell {
   flex: 1; height: auto;
-  font-size: 28px; font-style: italic; font-weight: 900;
-  border-bottom: 1px solid rgba(255,255,255,.03);
+  font-size: 38px; font-style: italic; font-weight: 900;
+  border-bottom: 1px solid rgba(255,255,255,.04);
 }
-[data-theme="rlcs2026"] #end-bl .end-p-cell { color: rgba(255,255,255,.78); }
-[data-theme="rlcs2026"] #end-or .end-p-cell { color: rgba(255,255,255,.78); }
-/* MVP cellules en couleur équipe */
+[data-theme="rlcs2026"] #end-bl .end-p-cell { color: rgba(255,255,255,.82); }
+[data-theme="rlcs2026"] #end-or .end-p-cell { color: rgba(255,255,255,.82); }
+
+/* MVP : valeurs en couleur équipe */
 [data-theme="rlcs2026"] #end-bl .end-p-col:has(.mvp) .end-p-cell { color: #1FAFDA; }
 [data-theme="rlcs2026"] #end-or .end-p-col:has(.mvp) .end-p-cell { color: #FD5B00; }
 
-/* Colonne labels centrale */
+/* ──────────────────────────────────────────
+   COLONNE LABELS CENTRALE
+────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-lbl {
-  width: 150px; flex-shrink: 0;
-  background: #0d0d12;
-  border-left:  1px solid rgba(255,255,255,.06);
-  border-right: 1px solid rgba(255,255,255,.06);
+  width: 180px; flex-shrink: 0;
+  background: #0d0d14;
+  border-left:  1px solid rgba(255,255,255,.07);
+  border-right: 1px solid rgba(255,255,255,.07);
   align-self: stretch;
   display: flex; flex-direction: column;
 }
 [data-theme="rlcs2026"] .end-lbl-top {
-  height: 50px; flex-shrink: 0;
-  background: #0d0d12;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  height: 58px; flex-shrink: 0;
+  background: #0d0d14;
+  border-bottom: 1px solid rgba(255,255,255,.07);
 }
 [data-theme="rlcs2026"] .end-lbl-cell {
   flex: 1; height: auto;
-  border-bottom: 1px solid rgba(255,255,255,.04);
-  gap: 6px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  gap: 7px;
 }
 [data-theme="rlcs2026"] .end-lbl-text {
-  font-size: 10px; font-weight: 800; font-style: italic;
-  letter-spacing: 3px; color: rgba(255,255,255,.4);
+  font-size: 12px; font-weight: 900; font-style: italic;
+  letter-spacing: 3px; color: rgba(255,255,255,.55);
 }
-[data-theme="rlcs2026"] .end-mini-bar { width: 110px; height: 4px; border-radius: 0; }
+[data-theme="rlcs2026"] .end-mini-bar { width: 130px; height: 5px; border-radius: 0; }
 
-/* Cacher la section barres du bas (déjà intégrées dans la colonne labels) */
-[data-theme="rlcs2026"] #end-bars { display: none; }
+/* ──────────────────────────────────────────
+   NETTOYAGE
+────────────────────────────────────────── */
+[data-theme="rlcs2026"] #end-bars         { display: none; }
 [data-theme="rlcs2026"] #end-media-banner { margin: 0; border-radius: 0; }
