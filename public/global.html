@@ -54,6 +54,7 @@
 
 /* Les thèmes sont chargés dynamiquement via <link id="theme-stylesheet"> */
 #score-sub-bar { display: none; }
+#end-wins-text { display: none; }
 
 body {
   background: transparent;
@@ -1064,6 +1065,7 @@ body {
         <div class="end-bo-tag">BO<span id="end-bo-n">7</span></div>
         <span id="end-ser-orange">0</span>
       </div>
+      <div id="end-wins-text"></div>
     </div>
     <div class="end-side orange" id="end-side-orange">
       <div class="end-logo-sq" id="end-logo-sq-orange">
@@ -2044,6 +2046,23 @@ function buildEndScreen({ winner, teams, series, players }) {
   const bp = Object.values(players).filter(p => p.team === 0).sort((a,b) => (b.score??0)-(a.score??0));
   const op = Object.values(players).filter(p => p.team === 1).sort((a,b) => (b.score??0)-(a.score??0));
   const bWin = winner === 0, oWin = winner === 1;
+
+  // ── Reset éléments dynamiques ──
+  const vsEl = document.querySelector('.end-vs-sep');
+  if (vsEl) vsEl.textContent = 'vs';
+  const winsEl = document.getElementById('end-wins-text');
+  if (winsEl) winsEl.textContent = '';
+
+  // ── Overrides RLCS 2026 ──
+  if (document.body.dataset.theme === 'rlcs2026') {
+    const gameNum = (series?.blue ?? 0) + (series?.orange ?? 0);
+    if (vsEl) vsEl.textContent = `GAME ${gameNum}  ·  BO${series?.bestOf ?? 7}`;
+    if (winsEl) {
+      const winName = winner === 0 ? teams[0]?.name : winner === 1 ? teams[1]?.name : null;
+      const bW = series?.blue ?? 0, oW = series?.orange ?? 0;
+      winsEl.textContent = winName ? `${winName.toUpperCase()}  WINS  ${bW} – ${oW}` : '';
+    }
+  }
 
   document.getElementById('end-result-blue').textContent   = bWin ? 'VICTORY !' : 'DEFEAT';
   document.getElementById('end-result-orange').textContent = oWin ? 'VICTORY !' : 'DEFEAT';
