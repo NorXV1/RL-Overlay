@@ -562,6 +562,39 @@ input:checked + .slider:before { transform:translateX(18px); }
           </div>
         </div>
 
+        <!-- Vitality -->
+        <div class="tc" data-t="vitality" onclick="setTheme('vitality')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#080c14;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:#0c1828;border-bottom:2px solid #1AACE6;border-top:none;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#1AACE6;"></div>
+                  <div style="background:#080c14;flex:0.8;display:flex;align-items:center;justify-content:center;"><div style="font-size:5px;color:rgba(255,255,255,.4);font-style:italic;">0:46</div></div>
+                  <div class="tc-h-so" style="background:#FAD500;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:#1a1500;border-bottom:2px solid #FAD500;border-top:none;"></div>
+              </div>
+              <div class="tc-body">
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;">
+                  <div style="height:5px;width:40px;background:rgba(26,172,230,.9);border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:rgba(26,172,230,.9);border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:rgba(26,172,230,.9);border-radius:0;"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;margin-left:auto;">
+                  <div style="height:5px;width:40px;background:rgba(250,213,0,.9);border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:rgba(250,213,0,.9);border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:rgba(250,213,0,.9);border-radius:0;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">Vitality</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
         <!-- Amber -->
         <div class="tc" data-t="amber" onclick="setTheme('amber')">
           <div class="tc-preview">
@@ -739,8 +772,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 
 <script>
 /* ══════════ THEME ══════════════════════════════════ */
-let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023'];
-const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023']);
+let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality'];
+const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality']);
 
 function setTheme(t) {
   if (!_allThemes.includes(t)) t = 'rlcs';

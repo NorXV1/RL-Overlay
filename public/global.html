@@ -1118,6 +1118,7 @@ const THEME_COLS = {
   nord:     { b:'#5e81ac', bL:'#88c0d0', o:'#d08770', oL:'#ebcb8b' },
   amber:    { b:'#f59e0b', bL:'#fbbf24', o:'#ef4444', oL:'#f87171' },
   rlcs2026: { b:'#1FAFDA', bL:'#23AEDE', o:'#FD5B00', oL:'#FE5901' },
+  vitality: { b:'#1AACE6', bL:'#50CCFF', o:'#FAD500', oL:'#FFE840' },
 };
 let currentTheme = 'rlcs';
 function tc() { return THEME_COLS[currentTheme] || THEME_COLS.rlcs; }
@@ -1137,10 +1138,22 @@ boostArc.style.strokeDasharray = ARC_CIRC;
 setBoostArc(0);
 
 function setBoostArc(pct, team) {
-  boostArc.style.strokeDashoffset = ARC_CIRC - ARC_CIRC * Math.min(pct, 100) / 100;
+  const isVitality = document.body.dataset.theme === 'vitality';
+  /* Vitality : 100 % = 3/4 du cercle */
+  const total = isVitality ? ARC_CIRC * 0.75 : ARC_CIRC;
+  /* "total ARC_CIRC" : un seul dash de 270°, gap assez grand pour pas répéter */
+  boostArc.style.strokeDasharray  = isVitality ? `${total} ${ARC_CIRC}` : total;
+  boostArc.style.strokeDashoffset = total * (1 - Math.min(pct, 100) / 100);
   const cols = tc();
   if (team === 1) boostArc.style.stroke = pct >= 95 ? cols.oL : cols.o;
   else            boostArc.style.stroke = pct >= 95 ? cols.bL : cols.b;
+  /* Vitality : track prend aussi la couleur équipe (semi-transparente) */
+  if (isVitality) {
+    const bt = document.getElementById('boost-track');
+    if (bt) bt.style.stroke = team === 1
+      ? 'rgba(250,213,0,.6)'
+      : 'rgba(26,172,230,.6)';
+  }
 }
 
 /* ── State ── */
@@ -1167,7 +1180,23 @@ function doReplayWipe(word, onDone, hold = 1600) {
   cancelReplayWipe();
   const w   = document.getElementById('replay-wipe');
   const lbl = document.getElementById('rw-word');
-  lbl.textContent = lbl.dataset.text = word;
+
+  if (document.body.dataset.theme === 'vitality') {
+    /* Animation lettre par lettre : contour jaune → clignotement → plein jaune */
+    hold = Math.max(hold, 2500);
+    lbl.dataset.text = word;
+    const variants = ['vltFlicker1', 'vltFlicker2', 'vltFlicker3'];
+    lbl.innerHTML = [...word].map(ch => {
+      if (ch === ' ') return '<span class="vlt-letter" style="--vlt-delay:0s">&nbsp;</span>';
+      const anim  = variants[Math.floor(Math.random() * 3)];
+      const delay = (Math.random() * 0.55).toFixed(2);
+      return `<span class="vlt-letter" style="animation-name:${anim};--vlt-delay:${delay}s">${ch}</span>`;
+    }).join('');
+  } else {
+    lbl.textContent = lbl.dataset.text = word;
+  }
+  /* ──────────────────────────────────────────────── */
+
   w.classList.add('rw-active');
   _rwAfter(hold, () => {
     w.classList.add('rw-fadeout');
@@ -1571,6 +1600,22 @@ function buildSubTrack(blue, orange, bo) {
   if (!track) return;
   bo = bo || 5; blue = blue || 0; orange = orange || 0;
   track.innerHTML = '';
+
+  /* Vitality : affiche "GAME X  ►  BEST OF X" + chevrons de victoire */
+  if (document.body.dataset.theme === 'vitality') {
+    const gameNum = blue + orange + 1;
+    const span = document.createElement('span');
+    span.className = 'sub-game-text';
+    span.textContent = `GAME ${gameNum}  ►  BEST OF ${bo}`;
+    track.appendChild(span);
+    const abbrB = document.getElementById('sub-abbr-blue');
+    const abbrO = document.getElementById('sub-abbr-orange');
+    const pip = () => '<span class="vlt-win-pip"></span>';
+    if (abbrB) abbrB.innerHTML = Array.from({length: blue},   pip).join('');
+    if (abbrO) abbrO.innerHTML = Array.from({length: orange}, pip).join('');
+    return;
+  }
+
   for (let i = 0; i < bo; i++) {
     const d = document.createElement('div');
     let cls = 'sub-sdot';
@@ -1792,8 +1837,17 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  word.style.color = team === 0 ? tc().bL : team === 1 ? tc().oL : '#fff';
-  sub.textContent  = data.scorer?.name ? `⚽  ${data.scorer.name}` : '';
+  if (document.body.dataset.theme === 'vitality') {
+    /* Vitality : la CSS animation gère la couleur — on reset l'inline style */
+    word.style.color = '';
+    /* Reset pour re-déclenchement rapide */
+    notif.classList.remove('show');
+    void notif.offsetWidth;
+  } else {
+    word.style.color = team === 0 ? tc().bL : team === 1 ? tc().oL : '#fff';
+  }
+
+  sub.textContent = data.scorer?.name ? `⚽  ${data.scorer.name}` : '';
 
   const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
   if (scoreEl) { scoreEl.classList.add('bump'); setTimeout(() => scoreEl.classList.remove('bump'), 300); }
