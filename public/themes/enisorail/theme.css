@@ -102,11 +102,12 @@
   display: none !important; width: 0 !important; overflow: hidden !important;
 }
 
-/* ── Panneaux équipe : dégradés + watermark logos ── */
+/* ── Panneaux équipe : dégradés + watermark logos + texte centré ── */
 [data-theme="enisorail"] .team-panel {
   width: 300px; flex: 0 0 300px; overflow: hidden;
   border-radius: 0; border-top: none !important; padding: 0 24px;
   position: relative; isolation: isolate;
+  justify-content: center;
 }
 [data-theme="enisorail"] .team-panel.blue {
   background: linear-gradient(90deg, #03244b 0%, #02274e 55%, #011129 100%);
@@ -114,37 +115,44 @@
 [data-theme="enisorail"] .team-panel.orange {
   background: linear-gradient(270deg, #cb522d 0%, #c24320 55%, #aa2a0a 100%);
 }
-/* Logos ENS dispersés : positions manuelles aléatoires, fondu vers l'intérieur */
+/* Logos ENS dispersés : 8 par panneau, positions irrégulières, fondu vers l'intérieur */
 [data-theme="enisorail"] .team-panel.blue::before {
   content: '';
   position: absolute; inset: 0;
   background:
-    url('/themes/enisorail/logo_white.png')  12px  8px / auto 27px no-repeat,
-    url('/themes/enisorail/logo_white.png')  62px 38px / auto 21px no-repeat,
-    url('/themes/enisorail/logo_white.png') 108px 46px / auto 17px no-repeat,
-    url('/themes/enisorail/logo_white.png') 152px 10px / auto 22px no-repeat,
-    url('/themes/enisorail/logo_white.png') 210px 34px / auto 16px no-repeat;
+    url('/themes/enisorail/logo_white.png')  10px  7px / auto 27px no-repeat,
+    url('/themes/enisorail/logo_white.png')  36px 28px / auto 19px no-repeat,
+    url('/themes/enisorail/logo_white.png')  64px 42px / auto 21px no-repeat,
+    url('/themes/enisorail/logo_white.png')  88px  9px / auto 18px no-repeat,
+    url('/themes/enisorail/logo_white.png') 115px 48px / auto 17px no-repeat,
+    url('/themes/enisorail/logo_white.png') 150px 14px / auto 22px no-repeat,
+    url('/themes/enisorail/logo_white.png') 182px 50px / auto 15px no-repeat,
+    url('/themes/enisorail/logo_white.png') 214px 30px / auto 16px no-repeat;
   opacity: 0.22;
-  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 75%);
-  mask-image:         linear-gradient(to right, black 0%, transparent 75%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 78%);
+  mask-image:         linear-gradient(to right, black 0%, transparent 78%);
   pointer-events: none; z-index: 0;
 }
 [data-theme="enisorail"] .team-panel.orange::before {
   content: '';
   position: absolute; inset: 0;
   background:
-    url('/themes/enisorail/logo_white.png') right  12px top  8px / auto 27px no-repeat,
-    url('/themes/enisorail/logo_white.png') right  62px top 38px / auto 21px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 108px top 46px / auto 17px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 152px top 10px / auto 22px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 210px top 34px / auto 16px no-repeat;
+    url('/themes/enisorail/logo_white.png') right  10px top  7px / auto 27px no-repeat,
+    url('/themes/enisorail/logo_white.png') right  36px top 28px / auto 19px no-repeat,
+    url('/themes/enisorail/logo_white.png') right  64px top 42px / auto 21px no-repeat,
+    url('/themes/enisorail/logo_white.png') right  88px top  9px / auto 18px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 115px top 48px / auto 17px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 150px top 14px / auto 22px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 182px top 50px / auto 15px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 214px top 30px / auto 16px no-repeat;
   opacity: 0.22;
-  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 75%);
-  mask-image:         linear-gradient(to left, black 0%, transparent 75%);
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 78%);
+  mask-image:         linear-gradient(to left, black 0%, transparent 78%);
   pointer-events: none; z-index: 0;
 }
-/* Nom équipe au-dessus du watermark */
+/* Nom équipe centré + au-dessus du watermark */
 [data-theme="enisorail"] .team-panel .team-name-wrap { position: relative; z-index: 1; }
+[data-theme="enisorail"] .team-name { text-align: center; }
 [data-theme="enisorail"] .team-name {
   font-size: 28px; font-weight: 900;
   font-style: italic; letter-spacing: 3px; color: #fff;
@@ -401,7 +409,7 @@
    BOOST METER
 ══════════════════════════════════════════════════════════ */
 [data-theme="enisorail"] #boost-meter {
-  width: 170px; height: 170px; bottom: 50px;
+  width: 210px; height: 210px; bottom: 44px;
   background: rgba(1,4,14,.92); border-radius: 50%;
 }
 /* rotate(90deg) : début à 6h (bas-centre), sens horaire, fin à 3h (droite) à 100% */
@@ -412,7 +420,35 @@
   stroke-dasharray: 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 4.77 0 72.26;
 }
 [data-theme="enisorail"] #boost-arc   { stroke-width: 8; stroke-linecap: butt; }
-[data-theme="enisorail"] #boost-big   { font-size: 56px; font-style: italic; font-weight: 900; }
+
+/* Logo ENS centré sous le chiffre, teinté couleur équipe avec glow */
+[data-theme="enisorail"] #boost-center {
+  isolation: isolate;
+}
+[data-theme="enisorail"] #boost-center::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('/themes/enisorail/logo_white.png') no-repeat center / 52% auto;
+  opacity: 0.18;
+  pointer-events: none; z-index: 0;
+}
+/* Teinture bleue + glow bleu */
+[data-theme="enisorail"] #boost-meter[data-boost-team="blue"] #boost-center::before {
+  filter: brightness(0) sepia(1) saturate(5) hue-rotate(178deg) brightness(0.85)
+          drop-shadow(0 0 10px rgba(26,88,200,.75));
+  opacity: 0.28;
+}
+/* Teinture orange + glow orange */
+[data-theme="enisorail"] #boost-meter[data-boost-team="orange"] #boost-center::before {
+  filter: brightness(0) sepia(1) saturate(4) hue-rotate(335deg) brightness(1.05)
+          drop-shadow(0 0 10px rgba(203,82,45,.75));
+  opacity: 0.28;
+}
+/* Chiffre boost au-dessus du logo */
+[data-theme="enisorail"] #boost-big {
+  font-size: 62px; font-style: italic; font-weight: 900;
+  position: relative; z-index: 1;
+}
 [data-theme="enisorail"] #speed-val   { display: none; }
 [data-theme="enisorail"] #speed-unit  { display: none; }
 

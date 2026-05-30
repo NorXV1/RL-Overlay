@@ -1159,6 +1159,11 @@ function setBoostArc(pct, team) {
         bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'  : 'rgba(26,88,200,.5)';
     }
   }
+  /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
+  if (theme === 'enisorail') {
+    const meter = document.getElementById('boost-meter');
+    if (meter) meter.dataset.boostTeam = team === 1 ? 'orange' : 'blue';
+  }
 }
 
 /* ── State ── */
