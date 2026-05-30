@@ -453,17 +453,27 @@
   border-color: rgba(26,88,200,.45);
   border-radius: 0;
   box-shadow: none;
-  overflow: visible; position: relative;
+  overflow: hidden; position: relative;
 }
 [data-theme="enisorail"] #rw-box::before { border-color: rgba(203,82,45,.25); }
-/* Accent diagonal bleu dans la boîte */
+/* Scan bleu→orange (même effet que goal) */
 [data-theme="enisorail"] #rw-box::after {
   content: '';
-  position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(135deg,
-    transparent 38%, rgba(26,88,200,.07) 44%,
-    rgba(26,88,200,.12) 50%, rgba(26,88,200,.07) 56%,
-    transparent 62%);
+  position: absolute; top: 50%; width: 70%; height: 2px; margin-top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(26,88,200,.9), rgba(203,82,45,.9), transparent);
+  pointer-events: none;
+}
+[data-theme="enisorail"] #replay-wipe.rw-active #rw-box::after {
+  animation: ensGoalScan .75s .28s ease-out both;
+}
+/* Strike depuis la gauche — même feeling que le goal */
+[data-theme="enisorail"] #replay-wipe.rw-active #rw-box {
+  animation: ensWipeStrike .38s .04s cubic-bezier(.1,.85,.2,1.08) both;
+}
+@keyframes ensWipeStrike {
+  0%   { opacity:0; transform:skewX(-22deg) translateX(-300px) scaleX(.45); }
+  55%  { opacity:1; transform:skewX(3deg) translateX(8px) scaleX(1.02); }
+  100% { opacity:1; transform:none; }
 }
 
 /* Lettre individuelle : chute depuis le haut avec spring + blur */
