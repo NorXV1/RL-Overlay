@@ -747,7 +747,22 @@
   background: rgba(203,82,45,.14); border-top: 3px solid #cb522d;
   font-style: italic; font-size: 12px; font-weight: 800; letter-spacing: 1px;
 }
-[data-theme="enisorail"] .end-p-top.mvp::after { background: #1a58c8; color: #fff; border-radius: 0; }
+/* MVP : logo ENISorail centré avec glow gold */
+[data-theme="enisorail"] .end-p-top.mvp {
+  color: #fff !important;
+  text-shadow: 0 1px 6px rgba(255,215,0,.5);
+}
+[data-theme="enisorail"] .end-p-top.mvp::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('/themes/enisorail/logo_white.png') no-repeat center / auto 58%;
+  filter: sepia(1) saturate(4) hue-rotate(13deg) brightness(1.35)
+          drop-shadow(0 0 8px rgba(255,215,0,.9))
+          drop-shadow(0 0 22px rgba(255,215,0,.5));
+  opacity: 0.38;
+  border-radius: 0;
+  pointer-events: none;
+}
 [data-theme="enisorail"] #end-bl .end-p-cell   { color: #3a78e8; font-weight: 900; font-size: 26px; }
 [data-theme="enisorail"] #end-or .end-p-cell   { color: #e07848; font-weight: 900; font-size: 26px; }
 [data-theme="enisorail"] .end-p-cell           { border-bottom-color: rgba(255,255,255,.03); }
