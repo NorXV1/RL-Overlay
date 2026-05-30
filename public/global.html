@@ -1118,7 +1118,8 @@ const THEME_COLS = {
   nord:     { b:'#5e81ac', bL:'#88c0d0', o:'#d08770', oL:'#ebcb8b' },
   amber:    { b:'#f59e0b', bL:'#fbbf24', o:'#ef4444', oL:'#f87171' },
   rlcs2026: { b:'#1FAFDA', bL:'#23AEDE', o:'#FD5B00', oL:'#FE5901' },
-  vitality: { b:'#1AACE6', bL:'#50CCFF', o:'#FAD500', oL:'#FFE840' },
+  vitality:  { b:'#1AACE6', bL:'#50CCFF', o:'#FAD500', oL:'#FFE840' },
+  enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
 };
 let currentTheme = 'rlcs';
 function tc() { return THEME_COLS[currentTheme] || THEME_COLS.rlcs; }
@@ -1601,8 +1602,8 @@ function buildSubTrack(blue, orange, bo) {
   bo = bo || 5; blue = blue || 0; orange = orange || 0;
   track.innerHTML = '';
 
-  /* Vitality : affiche "GAME X  ►  BEST OF X" + chevrons de victoire */
-  if (document.body.dataset.theme === 'vitality') {
+  /* Vitality / ENISorail : affiche "GAME X  ►  BEST OF X" + pips de victoire */
+  if (document.body.dataset.theme === 'vitality' || document.body.dataset.theme === 'enisorail') {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
