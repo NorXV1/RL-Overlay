@@ -196,12 +196,14 @@
   border-top: 1px solid rgba(255,255,255,.04);
 }
 [data-theme="enisorail"] #sub-abbr-blue {
+  flex: 1;
   display: flex; align-items: center; justify-content: flex-end;
-  gap: 5px; padding: 0 14px; min-width: 70px;
+  gap: 5px; padding: 0 14px;
 }
 [data-theme="enisorail"] #sub-abbr-orange {
+  flex: 1;
   display: flex; align-items: center; justify-content: flex-start;
-  gap: 5px; padding: 0 14px; min-width: 70px;
+  gap: 5px; padding: 0 14px;
 }
 [data-theme="enisorail"] #sub-abbr-blue .vlt-win-pip {
   display: block; width: 28px; height: 9px; flex-shrink: 0;
