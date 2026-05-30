@@ -114,23 +114,33 @@
 [data-theme="enisorail"] .team-panel.orange {
   background: linear-gradient(270deg, #cb522d 0%, #c24320 55%, #aa2a0a 100%);
 }
-/* Logos ENS répétés : 30% opacité côté extérieur → 0% côté intérieur */
+/* Logos ENS dispersés : positions manuelles aléatoires, fondu vers l'intérieur */
 [data-theme="enisorail"] .team-panel.blue::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('/themes/enisorail/logo_white.png') repeat left center / auto 36px;
-  opacity: 0.28;
-  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 72%);
-  mask-image:         linear-gradient(to right, black 0%, transparent 72%);
+  background:
+    url('/themes/enisorail/logo_white.png')  12px  8px / auto 27px no-repeat,
+    url('/themes/enisorail/logo_white.png')  62px 38px / auto 21px no-repeat,
+    url('/themes/enisorail/logo_white.png') 108px 46px / auto 17px no-repeat,
+    url('/themes/enisorail/logo_white.png') 152px 10px / auto 22px no-repeat,
+    url('/themes/enisorail/logo_white.png') 210px 34px / auto 16px no-repeat;
+  opacity: 0.22;
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 75%);
+  mask-image:         linear-gradient(to right, black 0%, transparent 75%);
   pointer-events: none; z-index: 0;
 }
 [data-theme="enisorail"] .team-panel.orange::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('/themes/enisorail/logo_white.png') repeat right center / auto 36px;
-  opacity: 0.28;
-  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 72%);
-  mask-image:         linear-gradient(to left, black 0%, transparent 72%);
+  background:
+    url('/themes/enisorail/logo_white.png') right  12px top  8px / auto 27px no-repeat,
+    url('/themes/enisorail/logo_white.png') right  62px top 38px / auto 21px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 108px top 46px / auto 17px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 152px top 10px / auto 22px no-repeat,
+    url('/themes/enisorail/logo_white.png') right 210px top 34px / auto 16px no-repeat;
+  opacity: 0.22;
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 75%);
+  mask-image:         linear-gradient(to left, black 0%, transparent 75%);
   pointer-events: none; z-index: 0;
 }
 /* Nom équipe au-dessus du watermark */
