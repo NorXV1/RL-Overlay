@@ -1202,6 +1202,15 @@ function doReplayWipe(word, onDone, hold = 1600) {
       const delay = (Math.random() * 0.55).toFixed(2);
       return `<span class="vlt-letter" style="animation-name:${anim};--vlt-delay:${delay}s">${ch}</span>`;
     }).join('');
+  } else if (document.body.dataset.theme === 'enisorail') {
+    /* ENISorail : lettres qui tombent depuis le haut avec spring + blur */
+    hold = Math.max(hold, 2200);
+    lbl.dataset.text = word;
+    lbl.innerHTML = [...word].map((ch, i) =>
+      ch === ' '
+        ? `<span class="ens-letter" style="--ens-i:${i}">&nbsp;</span>`
+        : `<span class="ens-letter" style="--ens-i:${i}">${ch}</span>`
+    ).join('');
   } else {
     lbl.textContent = lbl.dataset.text = word;
   }
@@ -1847,8 +1856,8 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  if (document.body.dataset.theme === 'vitality') {
-    /* Vitality : la CSS animation gère la couleur — on reset l'inline style */
+  if (document.body.dataset.theme === 'vitality' || document.body.dataset.theme === 'enisorail') {
+    /* Vitality / ENISorail : la CSS animation gère la couleur — on reset l'inline style */
     word.style.color = '';
     /* Reset pour re-déclenchement rapide */
     notif.classList.remove('show');
