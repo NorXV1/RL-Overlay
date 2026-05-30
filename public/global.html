@@ -1660,9 +1660,19 @@ function buildSubTrack(blue, orange, bo) {
     track.appendChild(span);
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
-    const pip = () => '<span class="vlt-win-pip"></span>';
-    if (abbrB) abbrB.innerHTML = Array.from({length: blue},   pip).join('');
-    if (abbrO) abbrO.innerHTML = Array.from({length: orange}, pip).join('');
+
+    if (document.body.dataset.theme === 'enisorail') {
+      /* ENISorail : slots vides + remplis selon les wins */
+      const total = Math.ceil(bo / 2);
+      const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
+      if (abbrB) abbrB.innerHTML = Array.from({length: total}, (_, i) => mkPip(i < blue)).join('');
+      if (abbrO) abbrO.innerHTML = Array.from({length: total}, (_, i) => mkPip(i < orange)).join('');
+    } else {
+      /* Vitality : uniquement les pips gagnés */
+      const pip = () => '<span class="vlt-win-pip"></span>';
+      if (abbrB) abbrB.innerHTML = Array.from({length: blue},   pip).join('');
+      if (abbrO) abbrO.innerHTML = Array.from({length: orange}, pip).join('');
+    }
     return;
   }
 
