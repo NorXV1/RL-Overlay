@@ -476,19 +476,23 @@
   100% { opacity:1; transform:none; }
 }
 
-/* Lettre individuelle : chute depuis le haut avec spring + blur */
-[data-theme="enisorail"] .ens-letter {
-  display: inline-block;
-  animation: ensLetterDrop .5s calc(var(--ens-i) * 55ms) cubic-bezier(.17,.67,.22,1.45) both;
+/* Lettre individuelle (base) — non utilisée dans le wipe, override ci-dessous */
+[data-theme="enisorail"] .ens-letter { display: inline-block; }
+
+/* Wipe REPLAY / LIVE : glitch chromatique bleu/orange — même feeling que le goal */
+/* Délai 0.42s pour attendre que la boîte soit posée, puis cascade par lettre */
+[data-theme="enisorail"] #replay-wipe .ens-letter {
+  animation: ensWipeGlitch .8s calc(.42s + var(--ens-i) * 55ms) ease both;
 }
-@keyframes ensLetterDrop {
-  0%   { opacity:0; transform:translateY(-36px) scaleY(1.6); filter:blur(6px);
-         color:transparent; text-shadow:0 0 24px rgba(26,88,200,1); }
-  42%  { opacity:1; transform:translateY(5px) scaleY(.9); filter:blur(0);
-         color:#fff; text-shadow:0 0 22px rgba(255,255,255,.65); }
-  68%  { transform:translateY(-2px) scaleY(1.03); color:#fff;
-         text-shadow:0 0 10px rgba(255,255,255,.3); }
-  100% { transform:translateY(0) scaleY(1); color:#fff; text-shadow:none; }
+@keyframes ensWipeGlitch {
+  0%   { color:transparent; text-shadow:-5px 0 #1a58c8, 5px 0 #cb522d; filter:blur(3px); }
+  9%   { color:#fff; text-shadow:-4px 0 #1a58c8, 4px 0 #cb522d; filter:brightness(2.8) blur(0); }
+  16%  { color:transparent; text-shadow:3px 0 #1a58c8, -3px 0 #cb522d; }
+  25%  { color:#fff; text-shadow:-2px 0 #1a58c8; filter:brightness(2); }
+  31%  { color:transparent; text-shadow:2px 0 #cb522d; }
+  44%  { color:#fff; text-shadow:0 0 28px rgba(255,255,255,.7); filter:brightness(1.5); }
+  60%  { color:#fff; text-shadow:0 0 14px rgba(255,255,255,.35); filter:brightness(1.1); }
+  100% { color:#fff; text-shadow:none; filter:brightness(1); }
 }
 
 /* ══════════════════════════════════════════════════════════
