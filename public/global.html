@@ -1139,21 +1139,25 @@ boostArc.style.strokeDasharray = ARC_CIRC;
 setBoostArc(0);
 
 function setBoostArc(pct, team) {
-  const isVitality = document.body.dataset.theme === 'vitality';
-  /* Vitality : 100 % = 3/4 du cercle */
-  const total = isVitality ? ARC_CIRC * 0.75 : ARC_CIRC;
-  /* "total ARC_CIRC" : un seul dash de 270°, gap assez grand pour pas répéter */
-  boostArc.style.strokeDasharray  = isVitality ? `${total} ${ARC_CIRC}` : total;
+  const theme  = document.body.dataset.theme;
+  const is34   = theme === 'vitality' || theme === 'enisorail';
+  /* Vitality / ENISorail : 100 % = 3/4 du cercle */
+  const total  = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
+  /* un seul dash de 270°, gap assez grand pour pas répéter */
+  boostArc.style.strokeDasharray  = is34 ? `${total} ${ARC_CIRC}` : total;
   boostArc.style.strokeDashoffset = total * (1 - Math.min(pct, 100) / 100);
   const cols = tc();
   if (team === 1) boostArc.style.stroke = pct >= 95 ? cols.oL : cols.o;
   else            boostArc.style.stroke = pct >= 95 ? cols.bL : cols.b;
-  /* Vitality : track prend aussi la couleur équipe (semi-transparente) */
-  if (isVitality) {
+  /* Track : couleur équipe semi-transparente selon le thème */
+  if (is34) {
     const bt = document.getElementById('boost-track');
-    if (bt) bt.style.stroke = team === 1
-      ? 'rgba(250,213,0,.6)'
-      : 'rgba(26,172,230,.6)';
+    if (bt) {
+      if (theme === 'vitality')
+        bt.style.stroke = team === 1 ? 'rgba(250,213,0,.6)'  : 'rgba(26,172,230,.6)';
+      else
+        bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'  : 'rgba(26,88,200,.5)';
+    }
   }
 }
 

@@ -102,10 +102,11 @@
   display: none !important; width: 0 !important; overflow: hidden !important;
 }
 
-/* ── Panneaux équipe : dégradés directionnels ── */
+/* ── Panneaux équipe : dégradés + watermark logos ── */
 [data-theme="enisorail"] .team-panel {
   width: 300px; flex: 0 0 300px; overflow: hidden;
   border-radius: 0; border-top: none !important; padding: 0 24px;
+  position: relative; isolation: isolate;
 }
 [data-theme="enisorail"] .team-panel.blue {
   background: linear-gradient(90deg, #03244b 0%, #02274e 55%, #011129 100%);
@@ -113,6 +114,27 @@
 [data-theme="enisorail"] .team-panel.orange {
   background: linear-gradient(270deg, #cb522d 0%, #c24320 55%, #aa2a0a 100%);
 }
+/* Logos ENS répétés : 30% opacité côté extérieur → 0% côté intérieur */
+[data-theme="enisorail"] .team-panel.blue::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('/themes/enisorail/logo_white.png') repeat left center / auto 36px;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 72%);
+  mask-image:         linear-gradient(to right, black 0%, transparent 72%);
+  pointer-events: none; z-index: 0;
+}
+[data-theme="enisorail"] .team-panel.orange::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('/themes/enisorail/logo_white.png') repeat right center / auto 36px;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 72%);
+  mask-image:         linear-gradient(to left, black 0%, transparent 72%);
+  pointer-events: none; z-index: 0;
+}
+/* Nom équipe au-dessus du watermark */
+[data-theme="enisorail"] .team-panel .team-name-wrap { position: relative; z-index: 1; }
 [data-theme="enisorail"] .team-name {
   font-size: 28px; font-weight: 900;
   font-style: italic; letter-spacing: 3px; color: #fff;
@@ -372,11 +394,14 @@
   width: 170px; height: 170px; bottom: 50px;
   background: rgba(1,4,14,.92); border-radius: 50%;
 }
-[data-theme="enisorail"] #boost-svg   { transform: rotate(-90deg); }
+/* rotate(90deg) : début à 6h (bas-centre), sens horaire, fin à 3h (droite) à 100% */
+[data-theme="enisorail"] #boost-svg   { transform: rotate(90deg); }
+/* Track 3/4 cercle : dots sur 270°, gap propre sur le quart inférieur-droit */
 [data-theme="enisorail"] #boost-track {
-  fill: none; stroke: rgba(255,255,255,.07); stroke-width: 8;
+  fill: none; stroke: rgba(26,88,200,.5); stroke-width: 6;
+  stroke-dasharray: 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 4.77 0 72.26;
 }
-[data-theme="enisorail"] #boost-arc   { stroke-width: 8; stroke-linecap: round; }
+[data-theme="enisorail"] #boost-arc   { stroke-width: 8; stroke-linecap: butt; }
 [data-theme="enisorail"] #boost-big   { font-size: 56px; font-style: italic; font-weight: 900; }
 [data-theme="enisorail"] #speed-val   { display: none; }
 [data-theme="enisorail"] #speed-unit  { display: none; }
