@@ -599,6 +599,17 @@ body {
 }
 #goal-notif.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
+/* ════════════════════════════════════════════════════
+   NOTIF OVERTIME
+════════════════════════════════════════════════════ */
+#ot-notif {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; opacity: 0; pointer-events: none;
+  z-index: 11; display: none;
+}
+#ot-notif.show { display: block; }
+
 #goal-inner {
   background: var(--goal-bg);
   padding: 20px 70px; position: relative; overflow: hidden;
@@ -959,6 +970,13 @@ body {
     </div>
   </div>
 
+  <!-- OT NOTIFICATION -->
+  <div id="ot-notif">
+    <div id="ot-inner">
+      <div id="ot-word">OVERTIME</div>
+      <div id="ot-sub">PROLONGATION</div>
+    </div>
+  </div>
 
   <!-- REPLAY / LIVE WIPE -->
   <div id="replay-wipe">
@@ -1176,6 +1194,7 @@ let overlayForcedOff = false;
 let boostForcedOff   = false;
 let afterPreCountdown = false;
 let collapseScoreT;
+let _wasOT = false;
 let _rwTimers = [];
 function _rwClear() { _rwTimers.forEach(clearTimeout); _rwTimers = []; }
 function _rwAfter(ms, fn) { const t = setTimeout(fn, ms); _rwTimers.push(t); }
@@ -1591,10 +1610,22 @@ function renderTimer(s, isOT) {
   if (isOT) {
     el.textContent = '+' + fmt(s);
     el.className = 'ot';
+    if (!_wasOT) { _wasOT = true; triggerOTNotif(); }
   } else {
     el.textContent = fmt(s);
     el.className = s <= 30 && s >= 0 ? 'warn' : '';
+    _wasOT = false;
   }
+}
+
+function triggerOTNotif() {
+  if (document.body.dataset.theme !== 'enisorail') return;
+  const el = document.getElementById('ot-notif');
+  if (!el) return;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4800);
 }
 
 function fmt(s) {

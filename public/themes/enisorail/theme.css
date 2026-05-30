@@ -543,6 +543,74 @@
 [data-theme="enisorail"] #speed-unit  { display: none; }
 
 /* ══════════════════════════════════════════════════════════
+   OT NOTIFICATION — ENISORAIL
+══════════════════════════════════════════════════════════ */
+
+/* Enveloppe : apparaît + disparaît sur 4.8s */
+[data-theme="enisorail"] #ot-notif.show {
+  animation: ensOTEnvelope 4.8s ease both;
+}
+@keyframes ensOTEnvelope {
+  0%          { opacity: 0; }
+  4%, 82%     { opacity: 1; }
+  100%        { opacity: 0; }
+}
+
+/* Boîte : même strike diagonal que le goal */
+[data-theme="enisorail"] #ot-notif.show #ot-inner {
+  animation: ensOTStrike .36s cubic-bezier(.1,.85,.2,1.08) both;
+}
+@keyframes ensOTStrike {
+  0%   { opacity:0; transform:skewX(-22deg) translateX(-220px) scaleX(.42); }
+  55%  { opacity:1; transform:skewX(3deg) translateX(8px) scaleX(1.02); }
+  100% { opacity:1; transform:none; }
+}
+
+[data-theme="enisorail"] #ot-inner {
+  border: none;
+  border-left:  6px solid #1a58c8;
+  border-right: 6px solid #cb522d;
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(1,14,34,.97) 0%, rgba(10,3,0,.97) 100%);
+  padding: 20px 80px;
+  position: relative; overflow: hidden;
+}
+/* Scan bleu→orange */
+[data-theme="enisorail"] #ot-inner::after {
+  content: '';
+  position: absolute; top: 50%; width: 70%; height: 2px; margin-top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(26,88,200,.9), rgba(203,82,45,.9), transparent);
+  animation: ensGoalScan .8s .2s ease-out both;
+  pointer-events: none;
+}
+
+/* "OVERTIME" : glitch plus intense que le goal (plus grand, plus fort) */
+[data-theme="enisorail"] #ot-notif.show #ot-word {
+  font-size: 88px; font-weight: 900; font-style: italic;
+  letter-spacing: 18px; text-transform: uppercase; color: #fff;
+  animation: ensOTGlitch 1.4s .08s ease both;
+}
+@keyframes ensOTGlitch {
+  0%   { color:transparent; text-shadow:-7px 0 #1a58c8, 7px 0 #cb522d; filter:blur(5px); }
+  6%   { color:#fff; text-shadow:-5px 0 #1a58c8, 5px 0 #cb522d; filter:brightness(3.2) blur(0); }
+  12%  { color:transparent; text-shadow:4px 0 #1a58c8, -4px 0 #cb522d; }
+  20%  { color:#fff; text-shadow:-3px 0 #1a58c8; filter:brightness(2.4); }
+  26%  { color:transparent; text-shadow:3px 0 #cb522d; }
+  36%  { color:#fff; text-shadow:0 0 44px rgba(255,255,255,.9); filter:brightness(2); }
+  50%  { color:#fff; text-shadow:0 0 24px rgba(255,255,255,.55); filter:brightness(1.3); }
+  70%  { color:#fff; text-shadow:0 0 12px rgba(255,255,255,.3); filter:brightness(1.1); }
+  100% { color:#fff; text-shadow:0 0 6px rgba(255,255,255,.15); filter:brightness(1); }
+}
+
+/* Sous-titre "PROLONGATION" */
+[data-theme="enisorail"] #ot-sub {
+  font-size: 14px; font-weight: 700; font-style: italic;
+  letter-spacing: 9px; color: rgba(255,255,255,.45);
+  text-transform: uppercase; text-align: center; margin-top: 4px;
+  animation: ensGoalSubIn .45s .42s ease both; opacity: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
    WIN SCREEN — ENISORAIL
 ══════════════════════════════════════════════════════════ */
 [data-theme="enisorail"] #win-screen   { background: #020410; }
