@@ -115,39 +115,23 @@
 [data-theme="enisorail"] .team-panel.orange {
   background: linear-gradient(270deg, #cb522d 0%, #c24320 55%, #aa2a0a 100%);
 }
-/* Logos ENS dispersés : 8 par panneau, positions irrégulières, fondu vers l'intérieur */
+/* Logo ENS unique, grand, côté extérieur → fondu vers l'intérieur */
 [data-theme="enisorail"] .team-panel.blue::before {
   content: '';
   position: absolute; inset: 0;
-  background:
-    url('/themes/enisorail/logo_white.png')  10px  7px / auto 27px no-repeat,
-    url('/themes/enisorail/logo_white.png')  36px 28px / auto 19px no-repeat,
-    url('/themes/enisorail/logo_white.png')  64px 42px / auto 21px no-repeat,
-    url('/themes/enisorail/logo_white.png')  88px  9px / auto 18px no-repeat,
-    url('/themes/enisorail/logo_white.png') 115px 48px / auto 17px no-repeat,
-    url('/themes/enisorail/logo_white.png') 150px 14px / auto 22px no-repeat,
-    url('/themes/enisorail/logo_white.png') 182px 50px / auto 15px no-repeat,
-    url('/themes/enisorail/logo_white.png') 214px 30px / auto 16px no-repeat;
-  opacity: 0.22;
-  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 78%);
-  mask-image:         linear-gradient(to right, black 0%, transparent 78%);
+  background: url('/themes/enisorail/logo_white.png') left 12px center / auto 58px no-repeat;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 82%);
+  mask-image:         linear-gradient(to right, black 0%, transparent 82%);
   pointer-events: none; z-index: 0;
 }
 [data-theme="enisorail"] .team-panel.orange::before {
   content: '';
   position: absolute; inset: 0;
-  background:
-    url('/themes/enisorail/logo_white.png') right  10px top  7px / auto 27px no-repeat,
-    url('/themes/enisorail/logo_white.png') right  36px top 28px / auto 19px no-repeat,
-    url('/themes/enisorail/logo_white.png') right  64px top 42px / auto 21px no-repeat,
-    url('/themes/enisorail/logo_white.png') right  88px top  9px / auto 18px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 115px top 48px / auto 17px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 150px top 14px / auto 22px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 182px top 50px / auto 15px no-repeat,
-    url('/themes/enisorail/logo_white.png') right 214px top 30px / auto 16px no-repeat;
-  opacity: 0.22;
-  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 78%);
-  mask-image:         linear-gradient(to left, black 0%, transparent 78%);
+  background: url('/themes/enisorail/logo_white.png') right 12px center / auto 58px no-repeat;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 82%);
+  mask-image:         linear-gradient(to left, black 0%, transparent 82%);
   pointer-events: none; z-index: 0;
 }
 /* Nom équipe centré + au-dessus du watermark */
