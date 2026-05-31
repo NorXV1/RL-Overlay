@@ -1103,12 +1103,12 @@ async function doUpdate() {
   }
 }
 
-/* ── Version check ── */
-const VERSION_URL = 'https://raw.githubusercontent.com/NorXV1/version/refs/heads/main/RL%20Overlay%20Version';
+/* ── Version check — compare package.json local vs GitHub ── */
+const VERSION_URL = 'https://raw.githubusercontent.com/NorXV1/RL-Overlay/main/package.json';
 (async () => {
   try {
     const local  = ((await fetch('/api/version').then(r => r.json())).version) ?? '?';
-    const remote = (await fetch(VERSION_URL, { cache: 'no-store' }).then(r => r.text())).trim();
+    const remote = ((await fetch(VERSION_URL, { cache: 'no-store' }).then(r => r.json())).version ?? '').trim();
     document.getElementById('version-badge').textContent = `v${local}`;
     if (remote && remote !== local) {
       document.getElementById('update-banner-ver').textContent = `v${local} → v${remote}`;
