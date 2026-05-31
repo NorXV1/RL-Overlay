@@ -397,11 +397,6 @@ input:checked + .slider:before { transform:translateX(18px); }
     <h1>RL Overlay — Panneau de contrôle</h1>
     <div id="version-wrap">
       <span id="version-badge">v—</span>
-      <span id="user-badge" style="display:none;align-items:center;gap:6px;margin-left:8px;">
-        <span id="tier-badge" style="font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;"></span>
-        <span id="user-name" style="font-size:10px;color:var(--muted);letter-spacing:1px;"></span>
-        <button onclick="doLogout()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:inherit;text-transform:uppercase;">DÉCO</button>
-      </span>
     </div>
     <span id="hdr-fb"></span>
   </div>
@@ -903,18 +898,24 @@ function applyPremiumLocks() {
   });
 }
 
+/* Applique le thème sans restriction (démarrage / serveur) */
+function _applyThemeRaw(t) {
+  if (!_allThemes.includes(t)) t = 'rlcs';
+  document.body.setAttribute('data-theme', t === 'rlcs' ? '' : t);
+  document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === t));
+  localStorage.setItem('rl-theme', t);
+  fetch('/api/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme: t }) }).catch(() => {});
+}
+
+/* Sélection manuelle : bloque les thèmes premium si utilisateur basic */
 function setTheme(t) {
   if (!_allThemes.includes(t)) t = 'rlcs';
-  // Bloquer si thème premium et utilisateur basic
   if (PREMIUM_THEMES.has(t) && _userTier !== 'premium') {
     const fb = document.getElementById('hdr-fb');
     if (fb) { fb.textContent = '★ Thème réservé aux comptes Premium'; fb.style.opacity=1; setTimeout(()=>fb.style.opacity=0,2500); }
     return;
   }
-  document.body.setAttribute('data-theme', t === 'rlcs' ? '' : t);
-  document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === t));
-  localStorage.setItem('rl-theme', t);
-  fetch('/api/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme: t }) }).catch(() => {});
+  _applyThemeRaw(t);
 }
 
 function loadImportedThemes() {
@@ -972,11 +973,11 @@ async function deleteTheme(name) {
 
 (function initTheme() {
   fetch('/api/settings').then(r => r.json()).then(s => {
-    let t = s.theme || localStorage.getItem('rl-theme') || 'rlcs';
-    // Si thème premium et utilisateur basic → forcer rlcs
-    if (PREMIUM_THEMES.has(t) && _userTier !== 'premium') t = 'rlcs';
-    setTheme(t);
-  }).catch(() => { setTheme(localStorage.getItem('rl-theme') || 'rlcs'); });
+    // Pas de check premium au démarrage : on applique le thème sauvegardé directement
+    // (le check ne bloque que les clics manuels via setTheme)
+    const t = s.theme || localStorage.getItem('rl-theme') || 'rlcs';
+    _applyThemeRaw(t);
+  }).catch(() => { _applyThemeRaw(localStorage.getItem('rl-theme') || 'rlcs'); });
   loadImportedThemes();
 })();
 
@@ -1228,19 +1229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!s.authenticated) return;
 
     const isPrem = s.tier === 'premium';
-
-    /* ── Header badge ── */
-    const hBadge = document.getElementById('user-badge');
-    const hTier  = document.getElementById('tier-badge');
-    const hName  = document.getElementById('user-name');
-    if (hBadge) {
-      hBadge.style.display = 'flex';
-      hName.textContent    = s.username.toUpperCase();
-      hTier.textContent    = isPrem ? '★ PREMIUM' : '○ BASIC';
-      hTier.style.cssText  = isPrem
-        ? 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:linear-gradient(90deg,rgba(146,64,14,.3),rgba(217,119,6,.2));color:#fbbf24;border:1px solid rgba(217,119,6,.4)'
-        : 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15)';
-    }
 
     /* ── Tier global + verrous ── */
     _userTier = s.tier || 'basic';
