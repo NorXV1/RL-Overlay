@@ -119,7 +119,7 @@
 [data-theme="enisorail"] .team-panel.blue::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('/themes/enisorail/logo_white.png') left 12px center / auto 58px no-repeat;
+  background: url('/themes/enisorail/logo_white.png') left 12px center / auto 116px no-repeat;
   opacity: 0.28;
   -webkit-mask-image: linear-gradient(to right, black 0%, transparent 82%);
   mask-image:         linear-gradient(to right, black 0%, transparent 82%);
@@ -128,7 +128,7 @@
 [data-theme="enisorail"] .team-panel.orange::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('/themes/enisorail/logo_white.png') right 12px center / auto 58px no-repeat;
+  background: url('/themes/enisorail/logo_white.png') right 12px center / auto 116px no-repeat;
   opacity: 0.28;
   -webkit-mask-image: linear-gradient(to left, black 0%, transparent 82%);
   mask-image:         linear-gradient(to left, black 0%, transparent 82%);
