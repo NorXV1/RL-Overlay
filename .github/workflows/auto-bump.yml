@@ -24,8 +24,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Bump patch version
-        run: npm version patch --no-git-tag-version
+      - name: Bump version (patch max 9, puis minor++)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            const [major, minor, patch] = pkg.version.split('.').map(Number);
+            if (patch >= 9) {
+              pkg.version = major + '.' + (minor + 1) + '.0';
+            } else {
+              pkg.version = major + '.' + minor + '.' + (patch + 1);
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('New version: ' + pkg.version);
+          "
 
       - name: Commit & push
         run: |
