@@ -52,22 +52,14 @@
 }
 [data-theme="enisorail"] #top-bar::after { content: none; }
 
-/* Label ligue avec logo ENS blanc en amont du texte */
+/* Label ligue */
 [data-theme="enisorail"] #league-label {
   background: #010810;
   border-radius: 0; text-align: center;
   font-style: italic; color: rgba(255,255,255,.45);
   font-size: 10px; letter-spacing: 3px;
-  padding: 5px 22px 5px 52px;
+  padding: 5px 22px;
   border-bottom: 1px solid rgba(255,255,255,.04);
-  position: relative; display: flex; align-items: center; justify-content: center;
-}
-[data-theme="enisorail"] #league-label::before {
-  content: '';
-  position: absolute; left: 12px; top: 50%;
-  transform: translateY(-50%);
-  width: 34px; height: 20px;
-  background: url('/themes/enisorail/logo_white.png') no-repeat center / contain;
 }
 
 /* ══════════════════════════════════════════════════════════
