@@ -1373,6 +1373,18 @@ function connect() {
   ws.onopen = () => {};
   ws.onmessage = e => {
     const { type, data } = JSON.parse(e.data);
+    /* En mode preview : seuls thème et logos sont traités */
+    if (IS_PREVIEW) {
+      if (type === 'theme_change') applyTheme(data.theme);
+      if (type === 'logo_updated') {
+        const side = data.side === 'bleu' ? 'blue' : 'orange';
+        const img    = document.getElementById(`${side}-logo-img`);
+        const letter = document.getElementById(`${side}-logo`);
+        if (data.url) { img.src = data.url + '?t=' + Date.now(); img.classList.add('active'); letter.style.display = 'none'; }
+        else { img.classList.remove('active'); letter.style.display = ''; }
+      }
+      return;
+    }
     switch (type) {
       case 'init':
         clearSidebars();
@@ -2273,7 +2285,52 @@ function detectStatChanges(data) {
   Object.keys(_prevStats).forEach(n => { if (!names.has(n)) delete _prevStats[n]; });
 }
 
+/* ── MODE PREVIEW ── */
+const IS_PREVIEW = new URLSearchParams(location.search).has('preview');
+
 connect();
+
+if (IS_PREVIEW) {
+  document.body.style.background = '#09090f';
+
+  // Charger les settings (équipes, thème, ligue)
+  fetch('/api/settings').then(r => r.json()).then(s => {
+    if (s.theme) applyTheme(s.theme);
+    if (s.league) document.getElementById('league-label').textContent = s.league;
+    if (s.teams) {
+      document.getElementById('blue-name').textContent   = s.teams[0]?.name || 'BLUE TEAM';
+      document.getElementById('orange-name').textContent = s.teams[1]?.name || 'ORANGE TEAM';
+      autoFitTeamName(document.getElementById('blue-name'));
+      autoFitTeamName(document.getElementById('orange-name'));
+      // Logos
+      if (s.teams[0]?.logo_url) {
+        const img = document.getElementById('blue-logo-img');
+        img.src = s.teams[0].logo_url; img.classList.add('active');
+        document.getElementById('blue-logo').style.display = 'none';
+      }
+      if (s.teams[1]?.logo_url) {
+        const img = document.getElementById('orange-logo-img');
+        img.src = s.teams[1].logo_url; img.classList.add('active');
+        document.getElementById('orange-logo').style.display = 'none';
+      }
+    }
+    if (s.series) {
+      document.getElementById('bo-num').textContent = s.series.bestOf || 5;
+      if (!state) state = { series: { blue: s.series.blue||0, orange: s.series.orange||0, bestOf: s.series.bestOf||5 } };
+      renderSeriesDots();
+    }
+  }).catch(() => {});
+
+  // Forcer l'affichage du scoreboard
+  document.getElementById('score-blue').textContent   = '0';
+  document.getElementById('score-orange').textContent = '0';
+  document.getElementById('timer').textContent        = '5:00';
+  document.getElementById('timer').className          = '';
+
+  // Rendre visible
+  document.getElementById('overlay-root').classList.add('visible');
+  document.getElementById('top-bar').classList.add('visible');
+}
 </script>
 </body>
 </html>

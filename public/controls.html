@@ -331,6 +331,19 @@ input:checked + .slider:before { transform:translateX(18px); }
 .tc.active .tc-name { color:var(--blue); }
 .tc-check { display:none; width:14px; height:14px; border-radius:50%; background:var(--blue); align-items:center; justify-content:center; font-size:9px; color:#fff; }
 .tc.active .tc-check { display:flex; }
+/* Thèmes premium verrouillés */
+.tc-locked { opacity:.55; cursor:not-allowed; }
+.tc-locked:hover { transform:none !important; }
+.tc-lock {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(4,6,12,.65);
+  font-size:9px; font-weight:900; letter-spacing:2px;
+  color:#fbbf24; text-transform:uppercase;
+  border-radius:5px;
+  border:1px solid rgba(217,119,6,.4);
+  pointer-events:none;
+}
 
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -450,6 +463,25 @@ input:checked + .slider:before { transform:translateX(18px); }
   <!-- ── RIGHT ── -->
   <div id="right">
 
+    <!-- Aperçu OBS -->
+    <div class="card span2">
+      <div class="card-title white" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Aperçu OBS</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="preview-res" style="font-size:9px;color:var(--muted);letter-spacing:1px;">1920×1080</span>
+          <button id="preview-toggle" onclick="togglePreview()" class="btn btn-sm btn-gray">MASQUER</button>
+          <button onclick="reloadPreview()" class="btn btn-sm btn-gray" title="Rafraîchir">↻</button>
+        </div>
+      </div>
+      <div id="preview-container" style="position:relative;width:100%;overflow:hidden;border-radius:6px;background:#000;border:1px solid rgba(255,255,255,.06);">
+        <iframe id="preview-frame"
+          src="http://localhost:3000/global.html?preview=1"
+          style="position:absolute;top:0;left:0;width:1920px;height:1080px;border:none;transform-origin:top left;pointer-events:none;"
+          scrolling="no">
+        </iframe>
+      </div>
+    </div>
+
     <!-- Thèmes -->
     <div class="card span2">
       <div class="card-title white">Thème</div>
@@ -474,7 +506,7 @@ input:checked + .slider:before { transform:translateX(18px); }
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:4px;">
-            <div class="tc-name">RLCS</div>
+            <div class="tc-name">Default</div>
             <div class="tc-check">✓</div>
           </div>
         </div>
@@ -849,8 +881,36 @@ input:checked + .slider:before { transform:translateX(18px); }
 let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail'];
 const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail']);
 
+/* ── Thèmes réservés aux comptes Premium ── */
+const PREMIUM_THEMES = new Set(['vitality', 'enisorail']);
+let _userTier = 'basic'; // mis à jour après chargement de session
+
+function applyPremiumLocks() {
+  document.querySelectorAll('.tc[data-t]').forEach(el => {
+    const t = el.dataset.t;
+    if (!PREMIUM_THEMES.has(t)) return;
+    // Enlever un ancien verrou s'il existe
+    el.querySelector('.tc-lock')?.remove();
+    if (_userTier !== 'premium') {
+      el.classList.add('tc-locked');
+      const lock = document.createElement('div');
+      lock.className = 'tc-lock';
+      lock.innerHTML = '★ PREMIUM';
+      el.querySelector('.tc-preview').appendChild(lock);
+    } else {
+      el.classList.remove('tc-locked');
+    }
+  });
+}
+
 function setTheme(t) {
   if (!_allThemes.includes(t)) t = 'rlcs';
+  // Bloquer si thème premium et utilisateur basic
+  if (PREMIUM_THEMES.has(t) && _userTier !== 'premium') {
+    const fb = document.getElementById('hdr-fb');
+    if (fb) { fb.textContent = '★ Thème réservé aux comptes Premium'; fb.style.opacity=1; setTimeout(()=>fb.style.opacity=0,2500); }
+    return;
+  }
   document.body.setAttribute('data-theme', t === 'rlcs' ? '' : t);
   document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === t));
   localStorage.setItem('rl-theme', t);
@@ -912,7 +972,10 @@ async function deleteTheme(name) {
 
 (function initTheme() {
   fetch('/api/settings').then(r => r.json()).then(s => {
-    setTheme(s.theme || localStorage.getItem('rl-theme') || 'rlcs');
+    let t = s.theme || localStorage.getItem('rl-theme') || 'rlcs';
+    // Si thème premium et utilisateur basic → forcer rlcs
+    if (PREMIUM_THEMES.has(t) && _userTier !== 'premium') t = 'rlcs';
+    setTheme(t);
   }).catch(() => { setTheme(localStorage.getItem('rl-theme') || 'rlcs'); });
   loadImportedThemes();
 })();
@@ -1121,6 +1184,43 @@ async function doUpdate() {
   }
 }
 
+/* ── Aperçu OBS ── */
+let _previewVisible = true;
+
+function updatePreviewScale() {
+  const container = document.getElementById('preview-container');
+  const frame     = document.getElementById('preview-frame');
+  if (!container || !frame || !_previewVisible) return;
+  const scale = container.offsetWidth / 1920;
+  frame.style.transform = `scale(${scale})`;
+  container.style.height = Math.round(1080 * scale) + 'px';
+}
+
+function togglePreview() {
+  _previewVisible = !_previewVisible;
+  const container = document.getElementById('preview-container');
+  const btn       = document.getElementById('preview-toggle');
+  container.style.display = _previewVisible ? '' : 'none';
+  btn.textContent = _previewVisible ? 'MASQUER' : 'AFFICHER';
+  if (_previewVisible) updatePreviewScale();
+}
+
+function reloadPreview() {
+  const frame = document.getElementById('preview-frame');
+  if (frame) { frame.src = frame.src; }
+}
+
+// Scale au chargement et au resize
+window.addEventListener('load',   updatePreviewScale);
+window.addEventListener('resize', updatePreviewScale);
+// ResizeObserver sur le panneau right
+const _roPreview = new ResizeObserver(updatePreviewScale);
+document.addEventListener('DOMContentLoaded', () => {
+  const r = document.getElementById('right');
+  if (r) _roPreview.observe(r);
+  updatePreviewScale();
+});
+
 /* ── Session utilisateur ── */
 (async () => {
   try {
@@ -1141,6 +1241,10 @@ async function doUpdate() {
         ? 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:linear-gradient(90deg,rgba(146,64,14,.3),rgba(217,119,6,.2));color:#fbbf24;border:1px solid rgba(217,119,6,.4)'
         : 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15)';
     }
+
+    /* ── Tier global + verrous ── */
+    _userTier = s.tier || 'basic';
+    applyPremiumLocks();
 
     /* ── Card gauche ── */
     const card = document.getElementById('account-card');
