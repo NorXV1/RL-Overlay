@@ -4,13 +4,11 @@ on:
   push:
     branches: [main]
 
-# Permissions write au niveau workflow (nécessaire pour push)
 permissions:
   contents: write
 
 jobs:
   bump:
-    # Ne se déclenche pas sur les commits "bump:" pour éviter la boucle
     if: "!startsWith(github.event.head_commit.message, 'bump:')"
     runs-on: ubuntu-latest
 
@@ -33,6 +31,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION=$(node -p "require('./package.json').version")
           git add package.json
-          git commit -m "bump: version $(node -p \"require('./package.json').version\")"
+          git commit -m "bump: version $VERSION"
           git push origin main
