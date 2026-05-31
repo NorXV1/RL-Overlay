@@ -384,6 +384,11 @@ input:checked + .slider:before { transform:translateX(18px); }
     <h1>RL Overlay — Panneau de contrôle</h1>
     <div id="version-wrap">
       <span id="version-badge">v—</span>
+      <span id="user-badge" style="display:none;align-items:center;gap:6px;margin-left:8px;">
+        <span id="tier-badge" style="font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;"></span>
+        <span id="user-name" style="font-size:10px;color:var(--muted);letter-spacing:1px;"></span>
+        <button onclick="doLogout()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;font-size:9px;font-weight:800;letter-spacing:1px;padding:2px 8px;border-radius:3px;cursor:pointer;font-family:inherit;text-transform:uppercase;">DÉCO</button>
+      </span>
     </div>
     <span id="hdr-fb"></span>
   </div>
@@ -1101,6 +1106,32 @@ async function doUpdate() {
     btn.disabled = false;
     btn.textContent = 'Réessayer';
   }
+}
+
+/* ── Session utilisateur ── */
+(async () => {
+  try {
+    const s = await fetch('/api/session').then(r => r.json());
+    if (s.authenticated) {
+      const badge = document.getElementById('user-badge');
+      const tier  = document.getElementById('tier-badge');
+      const name  = document.getElementById('user-name');
+      badge.style.display = 'flex';
+      name.textContent    = s.username.toUpperCase();
+      if (s.tier === 'premium') {
+        tier.textContent   = '★ PREMIUM';
+        tier.style.cssText = 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:linear-gradient(90deg,rgba(146,64,14,.3),rgba(217,119,6,.2));color:#fbbf24;border:1px solid rgba(217,119,6,.4)';
+      } else {
+        tier.textContent   = '○ BASIC';
+        tier.style.cssText = 'font-size:9px;font-weight:800;letter-spacing:2px;padding:2px 8px;border-radius:3px;text-transform:uppercase;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15)';
+      }
+    }
+  } catch {}
+})();
+
+function doLogout() {
+  if (!confirm('Se déconnecter ?')) return;
+  if (window.electronAPI) window.electronAPI.logout();
 }
 
 /* ── Version check — compare package.json local vs GitHub ── */

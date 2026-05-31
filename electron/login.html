@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://overlay.rscast.fr; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+<title>RL Overlay — Connexion</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #04060c;
+  color: #e0e8f0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-app-region: drag; /* toute la fenêtre draggable */
+}
+.card {
+  background: #080c18;
+  border: 1px solid rgba(26,88,200,.28);
+  border-radius: 12px;
+  padding: 34px 32px;
+  width: 340px;
+  -webkit-app-region: no-drag;
+}
+.logo { text-align: center; margin-bottom: 28px; }
+.logo h1 { font-size: 22px; font-weight: 900; letter-spacing: 5px; text-transform: uppercase; color: #fff; }
+.logo h1 span { color: #1a58c8; }
+.logo p { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,.3); margin-top: 4px; }
+label { display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.38); margin-bottom: 5px; margin-top: 16px; }
+input { width: 100%; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 6px; color: #fff; font-size: 14px; padding: 10px 12px; outline: none; transition: border-color .2s; }
+input:focus { border-color: #1a58c8; background: rgba(26,88,200,.07); }
+.btn { width: 100%; margin-top: 20px; padding: 12px; background: #1a58c8; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: filter .15s; }
+.btn:hover { filter: brightness(1.15); }
+.btn:disabled { opacity: .5; cursor: default; filter: none; }
+.msg { margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 12px; text-align: center; display: none; }
+.msg.err { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #ef4444; }
+.msg.ok  { background: rgba(34,197,94,.1);  border: 1px solid rgba(34,197,94,.25); color: #22c55e; }
+.link { text-align: center; margin-top: 14px; font-size: 11px; color: rgba(255,255,255,.3); }
+.link a { color: #3a78e8; text-decoration: none; }
+.link a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <h1>RL <span>Overlay</span></h1>
+    <p>CONNEXION REQUISE</p>
+  </div>
+
+  <label>Identifiant ou Email</label>
+  <input type="text" id="user" placeholder="votre identifiant" autocomplete="username">
+
+  <label>Mot de passe</label>
+  <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password"
+         onkeydown="if(event.key==='Enter') doLogin()">
+
+  <button class="btn" id="btn" onclick="doLogin()">SE CONNECTER</button>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="link">
+    Pas de compte ? <a href="https://overlay.rscast.fr" target="_blank">S'inscrire</a>
+  </div>
+</div>
+
+<script>
+async function doLogin() {
+  const btn  = document.getElementById('btn');
+  const msg  = document.getElementById('msg');
+  const user = document.getElementById('user').value.trim();
+  const pass = document.getElementById('pass').value;
+
+  if (!user || !pass) { showMsg('Remplis tous les champs.', false); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'CONNEXION...';
+  msg.style.display = 'none';
+
+  try {
+    const r = await fetch('https://overlay.rscast.fr/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    }).then(r => r.json());
+
+    if (r.ok) {
+      showMsg('Connecté ! Ouverture...', true);
+      window.electronAPI.authSuccess({
+        token   : r.token,
+        license : r.license,
+        username: r.username,
+        tier    : r.tier || 'basic'
+      });
+    } else {
+      showMsg(r.error || 'Identifiants incorrects.', false);
+    }
+  } catch (e) {
+    showMsg('Impossible de joindre le serveur.', false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'SE CONNECTER';
+}
+
+function showMsg(text, ok) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

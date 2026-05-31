@@ -642,6 +642,20 @@ app.get('/api/version', (req, res) => {
   } catch { res.json({ version: '?' }); }
 });
 
+/* ── Session auth (set by Electron main) ── */
+let _session = null;
+exports.setSession = (s) => { _session = s; };
+
+app.get('/api/session', (req, res) => {
+  if (!_session) return res.json({ authenticated: false });
+  res.json({
+    authenticated: true,
+    username : _session.username,
+    tier     : _session.tier || 'basic',
+    license  : _session.license,
+  });
+});
+
 /* ── Auto-update ── */
 let _restartCallback = null;
 exports.onRestartRequest = (cb) => { _restartCallback = cb; };
