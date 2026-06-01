@@ -602,8 +602,18 @@ app.post('/api/themes/import', upload.single('css'), (req, res) => {
   if (!file || !name) return res.status(400).json({ error: 'name et fichier CSS requis' });
   const themeDir = path.join(THEMES_DIR, name);
   fs.mkdirSync(themeDir, { recursive: true });
-  fs.writeFileSync(path.join(themeDir, 'theme.css'), file.buffer);
-  res.json({ ok: true, name });
+  let css = file.buffer.toString('utf8');
+  // Détecter le thème source avant renommage
+  const baseMatch = css.match(/\[data-theme="([^"]+)"\]/);
+  const basedOn   = baseMatch ? baseMatch[1] : null;
+  // Réécrire les sélecteurs avec le nouveau nom
+  css = css.replace(/\[data-theme="[^"]*"\]/g, `[data-theme="${name}"]`);
+  fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
+  // Sauver les métadonnées (thème d'origine pour les comportements JS)
+  if (basedOn && basedOn !== name) {
+    fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn }, null, 2));
+  }
+  res.json({ ok: true, name, basedOn });
 });
 
 app.delete('/api/themes/:name', (req, res) => {

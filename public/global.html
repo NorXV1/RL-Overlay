@@ -1140,13 +1140,28 @@ const THEME_COLS = {
   enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
 };
 let currentTheme = 'rlcs';
-function tc() { return THEME_COLS[currentTheme] || THEME_COLS.rlcs; }
+let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' pour un thème copié)
+
+/* Vérifie si le thème actif (ou son thème source) correspond à name */
+function themeIs(name) { return currentTheme === name || currentThemeBase === name; }
+
+function tc() {
+  return THEME_COLS[currentTheme] || THEME_COLS[currentThemeBase] || THEME_COLS.rlcs;
+}
+
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
+  currentThemeBase = currentTheme; // reset — sera mis à jour par meta.json si importé
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
   if (link) {
     link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
+  }
+  // Charger les métadonnées du thème (thème source pour les comportements JS)
+  if (currentTheme !== 'rlcs') {
+    fetch(`/themes/${currentTheme}/meta.json`).then(r => r.json())
+      .then(m => { if (m.basedOn) currentThemeBase = m.basedOn; })
+      .catch(() => {}); // thème builtin : pas de meta.json, normal
   }
 }
 
@@ -1158,7 +1173,7 @@ setBoostArc(0);
 
 function setBoostArc(pct, team) {
   const theme  = document.body.dataset.theme;
-  const is34   = theme === 'vitality' || theme === 'enisorail';
+  const is34   = themeIs('vitality') || themeIs('enisorail');
   /* Vitality / ENISorail : 100 % = 3/4 du cercle */
   const total  = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
   /* un seul dash de 270°, gap assez grand pour pas répéter */
@@ -1171,14 +1186,14 @@ function setBoostArc(pct, team) {
   if (is34) {
     const bt = document.getElementById('boost-track');
     if (bt) {
-      if (theme === 'vitality')
+      if (themeIs('vitality'))
         bt.style.stroke = team === 1 ? 'rgba(250,213,0,.6)'  : 'rgba(26,172,230,.6)';
       else
         bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'  : 'rgba(26,88,200,.5)';
     }
   }
   /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
-  if (theme === 'enisorail') {
+  if (themeIs('enisorail')) {
     const meter = document.getElementById('boost-meter');
     if (meter) meter.dataset.boostTeam = team === 1 ? 'orange' : 'blue';
   }
@@ -1210,7 +1225,7 @@ function doReplayWipe(word, onDone, hold = 1600) {
   const w   = document.getElementById('replay-wipe');
   const lbl = document.getElementById('rw-word');
 
-  if (document.body.dataset.theme === 'vitality') {
+  if (themeIs('vitality')) {
     /* Animation lettre par lettre : contour jaune → clignotement → plein jaune */
     hold = Math.max(hold, 2500);
     lbl.dataset.text = word;
@@ -1221,7 +1236,7 @@ function doReplayWipe(word, onDone, hold = 1600) {
       const delay = (Math.random() * 0.55).toFixed(2);
       return `<span class="vlt-letter" style="animation-name:${anim};--vlt-delay:${delay}s">${ch}</span>`;
     }).join('');
-  } else if (document.body.dataset.theme === 'enisorail') {
+  } else if (themeIs('enisorail')) {
     /* ENISorail : lettres qui tombent depuis le haut avec spring + blur */
     hold = Math.max(hold, 2200);
     lbl.dataset.text = word;
@@ -1631,7 +1646,7 @@ function renderTimer(s, isOT) {
 }
 
 function triggerOTNotif() {
-  if (document.body.dataset.theme !== 'enisorail') return;
+  if (!themeIs('enisorail')) return;
   const el = document.getElementById('ot-notif');
   if (!el) return;
   el.classList.remove('show');
@@ -1664,7 +1679,7 @@ function buildSubTrack(blue, orange, bo) {
   track.innerHTML = '';
 
   /* Vitality / ENISorail : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (document.body.dataset.theme === 'vitality' || document.body.dataset.theme === 'enisorail') {
+  if (themeIs('vitality') || themeIs('enisorail')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
@@ -1673,7 +1688,7 @@ function buildSubTrack(blue, orange, bo) {
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
 
-    if (document.body.dataset.theme === 'enisorail') {
+    if (themeIs('enisorail')) {
       /* ENISorail : slots vides + remplis selon les wins */
       const total = Math.ceil(bo / 2);
       const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
@@ -1909,7 +1924,7 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  if (document.body.dataset.theme === 'vitality' || document.body.dataset.theme === 'enisorail') {
+  if (themeIs('vitality') || themeIs('enisorail')) {
     /* Vitality / ENISorail : la CSS animation gère la couleur — on reset l'inline style */
     word.style.color = '';
     /* Reset pour re-déclenchement rapide */
