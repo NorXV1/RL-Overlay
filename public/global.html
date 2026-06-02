@@ -1117,6 +1117,7 @@ body {
 <!-- BOOST METER — hors overlay-root, visibilité indépendante -->
 <div id="boost-meter">
   <svg id="boost-svg" viewBox="0 0 108 108">
+    <circle id="boost-ticks" cx="54" cy="54" r="50"/>
     <circle id="boost-track" cx="54" cy="54" r="46"/>
     <circle id="boost-arc"   cx="54" cy="54" r="46"/>
   </svg>
@@ -1152,18 +1153,59 @@ function tc() {
 
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
-  currentThemeBase = currentTheme; // reset — sera mis à jour par meta.json si importé
+  currentThemeBase = currentTheme;
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
   if (link) {
     link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
   }
-  // Charger les métadonnées du thème (thème source pour les comportements JS)
   if (currentTheme !== 'rlcs') {
     fetch(`/themes/${currentTheme}/meta.json`).then(r => r.json())
       .then(m => { if (m.basedOn) currentThemeBase = m.basedOn; })
-      .catch(() => {}); // thème builtin : pas de meta.json, normal
+      .catch(() => {});
   }
+  // Ticks RLCS 2025
+  setTimeout(initBoostTicks, 50);
+}
+
+/* ── Ticks boost RLCS 2025 ──
+   4 blancs longs à 0/25/50/75% de l'arc + 3 noirs courts entre chaque */
+function initBoostTicks() {
+  const svg = document.getElementById('boost-svg');
+  if (!svg) return;
+  svg.querySelectorAll('.boost-tick').forEach(el => el.remove());
+  if (!themeIs('rlcs2025')) return;
+
+  const cx = 54, cy = 54, NS = 'http://www.w3.org/2000/svg', DEG = Math.PI / 180;
+  // Arc couvre 270° en CW depuis SVG East (= visual 6h)
+  // Blanc aux quarts du CERCLE COMPLET : 0°, 90°, 180°, 270°
+  // → 0° = arc start, 90° = 1/4 circle, 180° = 1/2, 270° = arc END
+  const white = [0, 90, 180, 270];
+  const ticks = [];
+  white.forEach(a => ticks.push({ a, big: true }));
+  // 3 noirs entre chaque paire de blancs (intervalles de 90°)
+  for (let i = 0; i < 3; i++)
+    for (let j = 1; j <= 3; j++)
+      ticks.push({ a: white[i] + j * 90 / 4, big: false });
+
+  ticks.forEach(({ a, big }) => {
+    const rad = a * DEG;
+    const r1 = big ? 47  : 49;    // rayon intérieur
+    const r2 = big ? 53  : 51.5;  // rayon extérieur (blanc plus long)
+    const col = big ? 'rgba(255,255,255,.85)' : 'rgba(0,0,0,.65)';
+    const w   = big ? 2   : 1.5;
+
+    const ln = document.createElementNS(NS, 'line');
+    ln.classList.add('boost-tick');
+    ln.setAttribute('x1', (cx + r1 * Math.cos(rad)).toFixed(2));
+    ln.setAttribute('y1', (cy + r1 * Math.sin(rad)).toFixed(2));
+    ln.setAttribute('x2', (cx + r2 * Math.cos(rad)).toFixed(2));
+    ln.setAttribute('y2', (cy + r2 * Math.sin(rad)).toFixed(2));
+    ln.setAttribute('stroke', col);
+    ln.setAttribute('stroke-width', w);
+    ln.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(ln);
+  });
 }
 
 /* ── Boost arc ── */
@@ -1901,6 +1943,13 @@ function renderBoostMeter(p) {
   setBoostArc(boost, p.team);
   document.getElementById('boost-big').textContent = boost;
   document.getElementById('speed-val').textContent = Math.round(p.speed ?? 0);
+  /* RLCS 2025 : chiffre couleur équipe */
+  if (themeIs('rlcs2025')) {
+    const cols = tc();
+    document.getElementById('boost-big').style.color = p.team === 1 ? cols.o : cols.b;
+  } else {
+    document.getElementById('boost-big').style.color = '';
+  }
 }
 
 /* ── Série win ── */
@@ -2329,6 +2378,9 @@ function detectStatChanges(data) {
 const IS_PREVIEW = new URLSearchParams(location.search).has('preview');
 
 connect();
+
+/* Initialiser les ticks boost au chargement de la page */
+window.addEventListener('load', () => setTimeout(initBoostTicks, 300));
 
 if (IS_PREVIEW) {
   document.body.style.background = '#09090f';
