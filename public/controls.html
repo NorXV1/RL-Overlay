@@ -102,6 +102,29 @@
 [data-theme="enisorail"] .sl-team.blue   { background: linear-gradient(90deg, rgba(2,39,78,.9) 0%, transparent 80%); }
 [data-theme="enisorail"] .sl-team.orange { background: linear-gradient(270deg, rgba(170,42,10,.9) 0%, transparent 80%); }
 
+/* — RLCS 2025 — */
+[data-theme="rlcs2025"] {
+  --blue:      #0098EA;
+  --orange:    #E84A00;
+  --bg:        #040810;
+  --header-bg: #060a14;
+  --center-bg: #06101a;
+  --card:      #06090f;
+  --border:    rgba(0,152,234,.12);
+  --text:      #d0e8f8;
+  --muted:     rgba(200,230,250,.3);
+  --subtle:    rgba(0,152,234,.04);
+  --input-bg:  rgba(0,152,234,.06);
+  --input-bdr: rgba(0,152,234,.15);
+  --togbg:     rgba(0,152,234,.12);
+  --btnbg:     rgba(0,152,234,.1);
+  --card-glow: 0 0 0 1px rgba(0,152,234,.1), 0 4px 24px rgba(0,152,234,.05);
+}
+[data-theme="rlcs2025"] .card { box-shadow: var(--card-glow); }
+[data-theme="rlcs2025"] #header { box-shadow: 0 2px 30px rgba(0,152,234,.12); }
+[data-theme="rlcs2025"] .sl-team.blue   { background: linear-gradient(90deg, rgba(0,100,200,.3) 0%, transparent 80%); }
+[data-theme="rlcs2025"] .sl-team.orange { background: linear-gradient(270deg, rgba(200,60,0,.3) 0%, transparent 80%); }
+
 /* — RLCS 2026 — */
 [data-theme="rlcs2026"] {
   --blue:      #1FAFDA;
@@ -696,6 +719,39 @@ input:checked + .slider:before { transform:translateX(18px); }
           </div>
         </div>
 
+        <!-- RLCS 2025 -->
+        <div class="tc" data-t="rlcs2025" onclick="setTheme('rlcs2025')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#06060e;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:#0098EA;border-top:none;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#0076bb;"></div>
+                  <div style="background:#06060e;flex:0.8;display:flex;align-items:center;justify-content:center;"><div style="font-size:5px;color:rgba(255,255,255,.5);font-style:italic;">0:46</div></div>
+                  <div class="tc-h-so" style="background:#c03a00;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:#E84A00;border-top:none;"></div>
+              </div>
+              <div class="tc-body">
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;">
+                  <div style="height:5px;width:40px;background:#06101e;border-left:2px solid #0098EA;border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:#06101e;border-left:2px solid #0098EA;border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:#06101e;border-left:2px solid #0098EA;border-radius:0;"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;margin-left:auto;">
+                  <div style="height:5px;width:40px;background:#150500;border-right:2px solid #E84A00;border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:#150500;border-right:2px solid #E84A00;border-radius:0;"></div>
+                  <div style="height:5px;width:40px;background:#150500;border-right:2px solid #E84A00;border-radius:0;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">RLCS 2025</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
         <!-- Amber -->
         <div class="tc" data-t="amber" onclick="setTheme('amber')">
           <div class="tc-preview">
@@ -873,8 +929,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 
 <script>
 /* ══════════ THEME ══════════════════════════════════ */
-let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail'];
-const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail']);
+let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025'];
+const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025']);
 
 /* ── Thèmes réservés aux comptes Premium ── */
 const PREMIUM_THEMES = new Set(['vitality', 'enisorail']);

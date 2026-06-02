@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>RL Overlay — Global</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <link id="theme-stylesheet" rel="stylesheet" href="">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -1138,6 +1138,7 @@ const THEME_COLS = {
   rlcs2026: { b:'#1FAFDA', bL:'#23AEDE', o:'#FD5B00', oL:'#FE5901' },
   vitality:  { b:'#1AACE6', bL:'#50CCFF', o:'#FAD500', oL:'#FFE840' },
   enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
+  rlcs2025:  { b:'#0098EA', bL:'#33B9FF', o:'#E84A00', oL:'#FF7040' },
 };
 let currentTheme = 'rlcs';
 let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' pour un thème copié)
@@ -1173,7 +1174,7 @@ setBoostArc(0);
 
 function setBoostArc(pct, team) {
   const theme  = document.body.dataset.theme;
-  const is34   = themeIs('vitality') || themeIs('enisorail');
+  const is34   = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025');
   /* Vitality / ENISorail : 100 % = 3/4 du cercle */
   const total  = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
   /* un seul dash de 270°, gap assez grand pour pas répéter */
@@ -1187,9 +1188,11 @@ function setBoostArc(pct, team) {
     const bt = document.getElementById('boost-track');
     if (bt) {
       if (themeIs('vitality'))
-        bt.style.stroke = team === 1 ? 'rgba(250,213,0,.6)'  : 'rgba(26,172,230,.6)';
+        bt.style.stroke = team === 1 ? 'rgba(250,213,0,.6)'   : 'rgba(26,172,230,.6)';
+      else if (themeIs('rlcs2025'))
+        bt.style.stroke = team === 1 ? 'rgba(232,74,0,.45)'   : 'rgba(0,152,234,.45)';
       else
-        bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'  : 'rgba(26,88,200,.5)';
+        bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'   : 'rgba(26,88,200,.5)';
     }
   }
   /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
@@ -1632,16 +1635,27 @@ function render(data) {
   renderBoostMeter(spec);
 }
 
+function fmtTimer(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  /* rlcs2025 : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
+  if (themeIs('rlcs2025')) return `${m}:${String(sec).padStart(2, '0')}`;
+  return fmt(s);
+}
+
 function renderTimer(s, isOT) {
   const el = document.getElementById('timer');
   if (isOT) {
-    el.textContent = '+' + fmt(s);
+    el.textContent = '+' + fmtTimer(s);
     el.className = 'ot';
-    if (!_wasOT) { _wasOT = true; triggerOTNotif(); }
+    if (!_wasOT) {
+      _wasOT = true;
+      triggerOTNotif();
+      /* buildSubTrack() gère le texte OVERTIME et data-ot via _wasOT */
+    }
   } else {
-    el.textContent = fmt(s);
+    el.textContent = fmtTimer(s);
     el.className = s <= 30 && s >= 0 ? 'warn' : '';
-    _wasOT = false;
+    _wasOT = false; /* buildSubTrack retire data-ot au prochain render */
   }
 }
 
@@ -1679,16 +1693,27 @@ function buildSubTrack(blue, orange, bo) {
   track.innerHTML = '';
 
   /* Vitality / ENISorail : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (themeIs('vitality') || themeIs('enisorail')) {
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
-    span.textContent = `GAME ${gameNum}  ►  BEST OF ${bo}`;
+    /* RLCS 2025 : texte OVERTIME si en prolongations, sinon BEST OF X */
+    if (themeIs('rlcs2025') && _wasOT) {
+      span.textContent = `GAME ${gameNum}  |  OVERTIME`;
+      const sb = document.getElementById('score-sub-bar');
+      if (sb) sb.dataset.ot = 'true';
+    } else {
+      span.textContent = `GAME ${gameNum}  ►  BEST OF ${bo}`;
+      if (themeIs('rlcs2025')) {
+        const sb = document.getElementById('score-sub-bar');
+        if (sb) delete sb.dataset.ot;
+      }
+    }
     track.appendChild(span);
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
 
-    if (themeIs('enisorail')) {
+    if (themeIs('enisorail') || themeIs('rlcs2025')) {
       /* ENISorail : slots vides + remplis selon les wins */
       const total = Math.ceil(bo / 2);
       const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
@@ -1924,8 +1949,8 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  if (themeIs('vitality') || themeIs('enisorail')) {
-    /* Vitality / ENISorail : la CSS animation gère la couleur — on reset l'inline style */
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025')) {
+    /* Vitality / ENISorail / RLCS2025 : la CSS animation gère la couleur — reset l'inline style */
     word.style.color = '';
     /* Reset pour re-déclenchement rapide */
     notif.classList.remove('show');
