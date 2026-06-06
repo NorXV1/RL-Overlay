@@ -1630,11 +1630,16 @@ function setLogo(side, team) {
 }
 
 /* ── Render complet ── */
-/* Auto-fit : réduit la font-size si le nom dépasse la largeur du panel */
+/* Auto-fit : réduit la font-size si le nom dépasse la largeur du panel.
+   Cache le dernier nom traité pour éviter un reflow forcé à chaque frame. */
+const _fitNames = new Map();
 function autoFitTeamName(el) {
   if (!el) return;
-  el.style.fontSize = '';      // remet la valeur CSS
-  void el.offsetWidth;         // force reflow
+  const text = el.textContent;
+  if (_fitNames.get(el) === text) return;   // nom inchangé → pas de reflow
+  _fitNames.set(el, text);
+  el.style.fontSize = '';
+  void el.offsetWidth;
   if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
     const fs = parseFloat(getComputedStyle(el).fontSize);
     el.style.fontSize = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth)) + 'px';
@@ -1716,12 +1721,19 @@ function fmt(s) {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+let _lastSerKey = '';
 function renderSeriesDots() {
   if (!state) return;
   const ser = state.series, wins = Math.ceil(ser.bestOf / 2);
-  buildDots('blue-sdots',   ser.blue,   wins, 'blue');
-  buildDots('orange-sdots', ser.orange, wins, 'orange');
-  buildSubTrack(ser.blue, ser.orange, ser.bestOf);
+  /* Ne reconstruire les dots / sub-track que si les données ont vraiment changé.
+     Évite ~15 créations DOM par frame à 30 Hz → supprime la pression GC. */
+  const _sk = `${ser.blue}|${ser.orange}|${ser.bestOf}|${_wasOT ? 1 : 0}`;
+  if (_sk !== _lastSerKey) {
+    _lastSerKey = _sk;
+    buildDots('blue-sdots',   ser.blue,   wins, 'blue');
+    buildDots('orange-sdots', ser.orange, wins, 'orange');
+    buildSubTrack(ser.blue, ser.orange, ser.bestOf);
+  }
   const bc = document.getElementById('blue-win-count');
   const oc = document.getElementById('orange-win-count');
   if (bc) bc.textContent = ser.blue   > 0 ? ser.blue   : '';
@@ -1852,7 +1864,8 @@ function updateRow(row, p) {
   name.textContent = p.name;
   val.textContent  = boost;
   fill.style.transform = `scaleX(${boost / 100})`;
-  fill.className   = 'pr-boost-fill' + (boost <= 20 ? ' low' : boost >= 95 ? ' full' : '');
+  const _fc = 'pr-boost-fill' + (boost <= 20 ? ' low' : boost >= 95 ? ' full' : '');
+  if (fill.className !== _fc) fill.className = _fc;   // évite recalcul style inutile
 
   row.querySelector('.player-row').classList.toggle('spectating', !!p.isPrimary);
 }

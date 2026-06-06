@@ -187,7 +187,7 @@
 }
 [data-theme="rlcs2025"] #sub-abbr-orange .vlt-win-pip {
   display: block; width: 42px; height: 10px; flex-shrink: 0;
-  background: transparent; border: 2px solid rgba(232,74,0,.45); border-radius: 4px;
+  background: transparent; border: 2px solid rgba(232,74,0,.45); border-radius: 0;
 }
 /* Slots remplis */
 [data-theme="rlcs2025"] #sub-abbr-blue .vlt-win-pip.won {
@@ -279,7 +279,7 @@
 [data-theme="rlcs2025"] #sidebar-orange .player-row.spectating .pr-boost-bar  { background: #0a0a0a !important; }
 [data-theme="rlcs2025"] #sidebar-orange .player-row.spectating .pr-boost-fill { background: #fff !important; }
 
-/* ── Icônes statfeed : style RLCS 2026 avec couleurs 2025 ── */
+/* ── Icônes statfeed : même rendu que RLCS 2026 (gradient container + icône transparente) ── */
 [data-theme="rlcs2025"] #sidebar-blue   .pr-icons,
 [data-theme="rlcs2025"] #sidebar-orange .pr-icons {
   left: 0; right: 0; height: 40px;
@@ -298,28 +298,21 @@
   width: 36px; height: 40px;
 }
 [data-theme="rlcs2025"] .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="rlcs2025"] #sidebar-blue   .pr-icon { animation: iconSlideFromRight 5s forwards; }
-[data-theme="rlcs2025"] #sidebar-orange .pr-icon { animation: iconSlideFromLeft  5s forwards; }
+[data-theme="rlcs2025"] #sidebar-blue   .pr-icon { animation: rl25IconRight 5s forwards; }
+[data-theme="rlcs2025"] #sidebar-orange .pr-icon { animation: rl25IconLeft  5s forwards; }
 
-@keyframes iconSlideFromLeft {
+@keyframes rl25IconLeft {
   0%   { transform: translateX(-110%); opacity: 0; }
   10%  { transform: translateX(0);     opacity: 1; }
   80%  { transform: translateX(0);     opacity: 1; }
   100% { transform: translateX(-110%); opacity: 0; }
 }
-@keyframes iconSlideFromRight {
+@keyframes rl25IconRight {
   0%   { transform: translateX(110%);  opacity: 0; }
   10%  { transform: translateX(0);     opacity: 1; }
   80%  { transform: translateX(0);     opacity: 1; }
   100% { transform: translateX(110%);  opacity: 0; }
 }
-[data-theme="rlcs2025"] #sidebar-orange .pr-icons { right: 100%; left: auto; flex-direction: row-reverse; }
-[data-theme="rlcs2025"] .row-wrap.blue   .pr-icon { background: #0098EA !important; opacity: 1 !important; width: 28px; height: 28px; }
-[data-theme="rlcs2025"] .row-wrap.orange .pr-icon { background: #E84A00 !important; opacity: 1 !important; width: 28px; height: 28px; }
-[data-theme="rlcs2025"] .row-wrap.blue   .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="rlcs2025"] .row-wrap.orange .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="rlcs2025"] #sidebar-blue   .pr-icon { animation: vitalityIconRight 5s forwards; }
-[data-theme="rlcs2025"] #sidebar-orange .pr-icon { animation: vitalityIconLeft  5s forwards; }
 
 /* ══════════════════════════════════════════════════════════
    STAT BAR
@@ -335,6 +328,7 @@
   border-radius: 0;
   position: relative;
   height: 75px;
+  margin-top: 20px;
 }
 [data-theme="rlcs2025"] #media-banner::before {
   content: '';
@@ -512,6 +506,7 @@
 [data-theme="rlcs2025"] #boost-arc {
   stroke-width: 8;
   stroke-linecap: butt;
+  transition: stroke-dashoffset .06s linear, stroke .06s; /* 120ms → 60ms : plus réactif */
 }
 
 /* Chiffre boost : couleur équipe dynamique */

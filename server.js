@@ -90,6 +90,7 @@ let pendingGoalTimer     = null;
 let roundGoalBroadcast   = false;
 let overlayVisible       = true;
 let boostVisible         = true;
+let _lastStatsBroadcast  = 0;          // throttle UpdateState → ~30 fps max
 
 function flushGoalBroadcast() {
   if (!pendingGoalBroadcast) return;
@@ -201,10 +202,13 @@ function handleStatsApiMessage(msg) {
   if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return; } }
 
   switch (event) {
-    case 'UpdateState':
+    case 'UpdateState': {
       handleStatsApiUpdate(data);
-      broadcast('update_state', gameState);
+      /* Cap à ~30 fps : inutile d'envoyer 60-80 messages/s au client */
+      const _t = Date.now();
+      if (_t - _lastStatsBroadcast >= 33) { _lastStatsBroadcast = _t; broadcast('update_state', gameState); }
       break;
+    }
 
     case 'GoalScored': {
       if (roundGoalBroadcast) break; // RL sends GoalScored twice (before & after replay)
