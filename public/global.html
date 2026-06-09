@@ -189,6 +189,7 @@ body {
   width: 26px; height: 6px;
   border-radius: 3px;
   background: var(--dot-bg);
+  outline: 1px solid rgba(150,150,150,.28);
   transition: background .3s, box-shadow .3s;
 }
 .sdot.won.blue   { background: var(--blue);   box-shadow: 0 0 6px rgba(26,95,255,.5); }
@@ -1168,6 +1169,12 @@ function applyTheme(t) {
   }
   // Ticks RLCS 2025
   setTimeout(initBoostTicks, 50);
+  /* Forcer le rebuild des pips/dots série pour le nouveau thème.
+     Le cache _lastSerKey est invalidé maintenant, puis renderSeriesDots
+     est rappelé après 120ms (CSS chargé) pour reconstruire avec le bon
+     chemin vlt-win-pip / sub-sdot selon themeIs(). */
+  _lastSerKey = '';
+  if (state) setTimeout(renderSeriesDots, 120);
 }
 
 /* ── Ticks boost RLCS 2025 ──
