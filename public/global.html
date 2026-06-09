@@ -999,7 +999,6 @@ body {
     <div class="team-logo-outer blue">
       <img class="team-logo-img" id="blue-logo-img" src="" alt="">
       <div class="team-logo-letter" id="blue-logo">B</div>
-      <div class="team-win-count" id="blue-win-count"></div>
     </div>
 
     <div id="score-main">
@@ -1030,7 +1029,6 @@ body {
     <div class="team-logo-outer orange">
       <img class="team-logo-img" id="orange-logo-img" src="" alt="">
       <div class="team-logo-letter" id="orange-logo">O</div>
-      <div class="team-win-count" id="orange-win-count"></div>
     </div>
     <span class="tlo-name" id="tlo-name-orange"></span>
 
@@ -1664,8 +1662,12 @@ function render(data) {
   autoFitTeamName(document.getElementById('orange-name'));
   const _abbrB = document.getElementById('sub-abbr-blue');
   const _abbrO = document.getElementById('sub-abbr-orange');
-  if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
-  if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
+  /* Vitality / ENISorail / RLCS 2025 : #sub-abbr-* contient des vlt-win-pip spans.
+     Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
+  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025')) {
+    if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
+    if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
+  }
   const tloB = document.getElementById('tlo-name-blue');
   const tloO = document.getElementById('tlo-name-orange');
   if (tloB) tloB.textContent = g.teams[0].name;
