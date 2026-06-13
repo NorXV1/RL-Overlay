@@ -466,9 +466,8 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <div class="card">
-      <div class="card-title white">URLs OBS — 1920×1080 transparent</div>
+      <div class="card-title white">URL OBS — 1920×1080 transparent</div>
       <div class="url-link"><span class="lbl">Overlay</span><span id="u-overlay"></span><button class="copy-btn" onclick="copy('u-overlay')">Copier</button></div>
-      <div class="url-link"><span class="lbl">Série</span><span id="u-series"></span><button class="copy-btn" onclick="copy('u-series')">Copier</button></div>
     </div>
 
     <div class="card">
@@ -1041,10 +1040,8 @@ async function deleteTheme(name) {
 const BASE = location.origin;
 const ws   = new WebSocket(`ws://${location.host}`);
 
-['overlay','series'].forEach(k => {
-  const el = document.getElementById(`u-${k}`);
-  if (el) el.textContent = `${BASE}/${k}.html`;
-});
+const el = document.getElementById('u-overlay');
+if (el) el.textContent = `${BASE}/global.html`;
 
 ws.onopen  = () => { document.getElementById('dot').classList.add('on');    document.getElementById('conn-txt').textContent = 'CONNECTÉ';    };
 ws.onclose = () => { document.getElementById('dot').classList.remove('on'); document.getElementById('conn-txt').textContent = 'HORS LIGNE'; };
