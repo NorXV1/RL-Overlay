@@ -1,6 +1,6 @@
 {
   "name": "rl-overlay",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Rocket League RLCS-style broadcast overlay",
   "main": "electron/main.js",
   "scripts": {
