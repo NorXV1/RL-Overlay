@@ -422,6 +422,7 @@ app.post('/api/delete-logo/:side', (req, res) => {
 });
 
 app.post('/api/media-banner', (req, res) => {
+  if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
   const { enabled } = req.body;
   settings.mediaBanner = { enabled: !!enabled };
   saveSettings();
@@ -459,6 +460,7 @@ app.post('/api/swap-teams', (req, res) => {
 app.get('/api/utils', (req, res) => res.json(listUtils()));
 
 app.post('/api/upload-utils', upload.single('file'), (req, res) => {
+  if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
   if (!req.file) return res.status(400).json({ error: 'no file' });
   const ext = path.extname(req.file.originalname).toLowerCase();
   if (!IMG_EXTS.has(ext) && !VIDEO_EXTS.has(ext)) return res.status(400).json({ error: 'invalid type' });
@@ -469,6 +471,7 @@ app.post('/api/upload-utils', upload.single('file'), (req, res) => {
 });
 
 app.post('/api/delete-utils', (req, res) => {
+  if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
   const { name } = req.body;
   if (!name || name.includes('/') || name.includes('\\') || name.startsWith('.'))
     return res.status(400).json({ error: 'invalid name' });

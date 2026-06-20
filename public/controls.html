@@ -931,8 +931,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025'];
 const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025']);
 
-/* ── Thèmes réservés aux comptes Premium ── */
-const PREMIUM_THEMES = new Set(['vitality', 'enisorail']);
+/* ── Thèmes réservés aux comptes Premium — tous déverrouillés ── */
+const PREMIUM_THEMES = new Set([]);
 let _userTier = 'basic'; // mis à jour après chargement de session
 
 function applyPremiumLocks() {
@@ -1185,16 +1185,28 @@ function renderUtilsList(files) {
   files.forEach(f=>{ const item=document.createElement('div'); item.className='utils-item'; item.innerHTML=`<span>${f.type==='video'?'🎬':'🖼'} ${f.name}</span><button class="utils-del" onclick="deleteUtilsFile('${f.name.replace(/'/g,"\\'")}')">✕</button>`; el.appendChild(item); });
 }
 async function uploadUtilsFile() {
+  if (_userTier !== 'premium') { fb('fb-utils', '★ Fonctionnalité réservée aux comptes Premium'); return; }
   const input=document.getElementById('file-utils');
   if(!input.files.length) { fb('fb-utils','⚠ Sélectionne un fichier'); return; }
   const fd=new FormData(); fd.append('file',input.files[0]);
   try { const res=await fetch('/api/upload-utils',{method:'POST',body:fd}).then(r=>r.json()); if(res.ok){renderUtilsList(res.files);fb('fb-utils','✓ Uploadé');input.value='';} else fb('fb-utils','✗ '+(res.error||'Erreur')); } catch { fb('fb-utils','✗ Erreur réseau'); }
 }
-async function deleteUtilsFile(name) { const res=await post('/api/delete-utils',{name}); if(res.ok){renderUtilsList(res.files);fb('fb-utils','✓ Supprimé');} }
+async function deleteUtilsFile(name) {
+  if (_userTier !== 'premium') { fb('fb-utils', '★ Fonctionnalité réservée aux comptes Premium'); return; }
+  const res=await post('/api/delete-utils',{name}); if(res.ok){renderUtilsList(res.files);fb('fb-utils','✓ Supprimé');}
+}
 loadUtilsFiles();
 
 /* ── Actions ── */
-async function setMediaBanner(e) { await post('/api/media-banner',{enabled:e}); fb('fb-media',e?'✓ Bandeau activé':'✓ Désactivé'); }
+async function setMediaBanner(e) {
+  if (_userTier !== 'premium') {
+    document.getElementById('media-toggle').checked = false;
+    fb('fb-media', '★ Fonctionnalité réservée aux comptes Premium');
+    return;
+  }
+  await post('/api/media-banner', { enabled: e });
+  fb('fb-media', e ? '✓ Bandeau activé' : '✓ Désactivé');
+}
 async function selectPlayer(name) { await post('/api/spectate-player',{name}); fb('fb-player',`✓ ${name} affiché`); }
 async function clearSpec() { await post('/api/spectate-clear',{}); fb('fb-player','✓ Stat bar masquée'); }
 document.addEventListener('keydown',async e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; const n=parseInt(e.key); if(n>=1&&n<=9){const res=await post('/api/spectate-shortcut',{shortcut:n});if(res.ok) fb('fb-player',`✓ [${n}] ${res.name}`);}});
@@ -1283,9 +1295,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isPrem = s.tier === 'premium';
 
-    /* ── Tier global + verrous ── */
+    /* ── Tier global + verrous thèmes ── */
     _userTier = s.tier || 'basic';
     applyPremiumLocks();
+
+    /* ── Bandeau média — verrouillé si non premium ── */
+    const mediaToggle = document.getElementById('media-toggle');
+    const mediaCard   = mediaToggle?.closest('.card');
+    if (!isPrem && mediaCard) {
+      mediaToggle.disabled = true;
+      mediaToggle.checked  = false;
+      // Badge premium sur le titre de la card
+      const titleEl = mediaCard.querySelector('.card-title');
+      if (titleEl && !titleEl.querySelector('.prem-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'prem-badge';
+        badge.style.cssText = 'margin-left:8px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg,rgba(146,64,14,.35),rgba(217,119,6,.25));color:#fbbf24;border:1px solid rgba(217,119,6,.45);vertical-align:middle';
+        badge.textContent = '★ PREMIUM';
+        titleEl.appendChild(badge);
+      }
+      // Griser le toggle
+      const switchEl = mediaCard.querySelector('.switch');
+      if (switchEl) switchEl.style.opacity = '0.4';
+    }
+
+    /* ── Fichiers média — verrouillés si non premium ── */
+    const filesCard = document.getElementById('file-utils')?.closest('.card');
+    if (!isPrem && filesCard) {
+      filesCard.querySelector('#file-utils').disabled  = true;
+      filesCard.querySelector('.btn-gray').disabled    = true;
+      filesCard.querySelector('.btn-gray').style.opacity = '0.4';
+      filesCard.querySelector('#file-utils').style.opacity = '0.4';
+      const titleEl2 = filesCard.querySelector('.card-title');
+      if (titleEl2 && !titleEl2.querySelector('.prem-badge')) {
+        const badge2 = document.createElement('span');
+        badge2.className = 'prem-badge';
+        badge2.style.cssText = 'margin-left:8px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg,rgba(146,64,14,.35),rgba(217,119,6,.25));color:#fbbf24;border:1px solid rgba(217,119,6,.45);vertical-align:middle';
+        badge2.textContent = '★ PREMIUM';
+        titleEl2.appendChild(badge2);
+      }
+    }
 
     /* ── Card gauche ── */
     const card = document.getElementById('account-card');
