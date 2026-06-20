@@ -4,6 +4,8 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, shell, dialog, ipcMain } = 
 const path  = require('path');
 const fs    = require('fs');
 const https = require('https');
+const os    = require('os');
+const { execSync } = require('child_process');
 
 let mainWindow  = null;
 let loginWindow = null;
@@ -171,8 +173,62 @@ if (!gotLock) { app.exit(0); } else {
     tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
   }
 
+  /* ── Vérification PacketSendRate StatsAPI ───────────────────── */
+  function getRLIniPaths() {
+    const list = [];
+    // Config utilisateur (toujours présente)
+    list.push(path.join(os.homedir(), 'Documents', 'My Games', 'Rocket League', 'TAGame', 'Config', 'TAStatsAPI.ini'));
+    // Config jeu — on cherche RL dans toutes les bibliothèques Steam
+    try {
+      const reg = execSync('reg query "HKCU\\SOFTWARE\\Valve\\Steam" /v SteamPath', { encoding: 'utf8' });
+      const m   = reg.match(/SteamPath\s+REG_SZ\s+(.+)/i);
+      if (m) {
+        const steamPath = m[1].trim().replace(/\//g, '\\');
+        const libs = [steamPath];
+        const vdf  = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
+        if (fs.existsSync(vdf)) {
+          for (const lm of fs.readFileSync(vdf, 'utf8').matchAll(/"path"\s+"([^"]+)"/g))
+            libs.push(lm[1].replace(/\\\\/g, '\\'));
+        }
+        for (const lib of libs) {
+          const p = path.join(lib, 'steamapps', 'common', 'rocketleague', 'TAGame', 'Config', 'DefaultStatsAPI.ini');
+          if (fs.existsSync(p)) list.push(p);
+        }
+      }
+    } catch {}
+    return list;
+  }
+
+  function checkAndFixStatsApi() {
+    let fixed = false;
+    for (const iniPath of getRLIniPaths()) {
+      try {
+        if (!fs.existsSync(iniPath)) continue;
+        let txt = fs.readFileSync(iniPath, 'utf8');
+        if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1); // BOM
+        const m = txt.match(/PacketSendRate\s*=\s*(\d+)/i);
+        if (m && m[1] !== '100') {
+          fs.writeFileSync(iniPath, txt.replace(/PacketSendRate\s*=\s*\d+/i, 'PacketSendRate=100'), 'utf8');
+          console.log('[Config] PacketSendRate corrigé :', iniPath);
+          fixed = true;
+        }
+      } catch (e) { console.log('[Config] Erreur :', iniPath, e.message); }
+    }
+    return fixed;
+  }
+
   /* ── Démarrage ──────────────────────────────────────────────── */
   app.whenReady().then(async () => {
+    // Vérifier / corriger PacketSendRate avant d'ouvrir l'appli
+    if (checkAndFixStatsApi()) {
+      await dialog.showMessageBox({
+        type   : 'warning',
+        title  : 'Configuration Rocket League corrigée',
+        message: 'Le PacketSendRate a été remis à 100 dans les fichiers de config de Rocket League.\n\nRelance Rocket League pour appliquer les changements.',
+        buttons: ['OK'],
+      });
+    }
+
     const session = readSession();
 
     if (session && session.license) {
