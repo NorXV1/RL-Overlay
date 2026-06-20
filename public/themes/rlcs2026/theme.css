@@ -1,3 +1,11 @@
+/* ── RLCS 2026 — Police personnalisée ── */
+@font-face {
+  font-family: 'Bourgeois';
+  src: url('Bourgeois-BoldItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
 /* ── RLCS 2026 — Variables ── */
 [data-theme="rlcs2026"] {
   --blue:        #1FAFDA;
@@ -45,7 +53,11 @@
 [data-theme="rlcs2026"] .team-panel.orange { background: rgba(23,8,0,.97); }
 [data-theme="rlcs2026"] .team-logo-outer.blue   { background: rgba(1,17,18,1); }
 [data-theme="rlcs2026"] .team-logo-outer.orange { background: rgba(23,8,0,1); }
-[data-theme="rlcs2026"] .score-box { font-style: italic; }
+[data-theme="rlcs2026"] .score-box    { font-style: italic; font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
+[data-theme="rlcs2026"] #timer        { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
+[data-theme="rlcs2026"] .team-name    { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
+[data-theme="rlcs2026"] .tlo-name     { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
+[data-theme="rlcs2026"] #league-label { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
 [data-theme="rlcs2026"] #center-block { border-top: none; }
 [data-theme="rlcs2026"] #timer-wrap { border-left-color: rgba(0,0,0,.1); border-right-color: rgba(0,0,0,.1); }
 [data-theme="rlcs2026"] #timer { color: #0a0a0a; font-style: italic; }
@@ -101,7 +113,13 @@
 }
 [data-theme="rlcs2026"] .team-name { font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
 [data-theme="rlcs2026"] .sdot { width: 20px; height: 8px; }
-[data-theme="rlcs2026"] .score-box { width: 67px; font-size: 52px; font-style: italic; }
+[data-theme="rlcs2026"] .score-box {
+  width: 67px; height: 74px;
+  font-size: 52px; font-style: italic;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  padding-bottom: 10px;
+}
 [data-theme="rlcs2026"] #center-block { border-top: none; }
 [data-theme="rlcs2026"] #timer-wrap { min-width: 130px; padding: 0 10px; }
 [data-theme="rlcs2026"] #timer { font-size: 38px; letter-spacing: 2px; }
