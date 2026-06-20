@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RL Overlay — Configuration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #04060c;
+      color: #c8cfe0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .card {
+      width: 480px;
+      background: #0b0e1a;
+      border: 1px solid #1e2540;
+      border-radius: 12px;
+      padding: 36px 40px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-row img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .logo-row span {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: #e8eaf6;
+    }
+    .logo-row small {
+      font-size: 12px;
+      font-weight: 400;
+      color: #5a6490;
+      letter-spacing: .02em;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #e8eaf6;
+      line-height: 1.3;
+    }
+
+    .description {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #8891b0;
+    }
+    .description strong {
+      color: #b8c0d8;
+    }
+
+    .path-box {
+      background: #070912;
+      border: 1px solid #1a1f35;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .path-box-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #4a5270;
+    }
+    .path-example {
+      font-size: 12px;
+      font-family: 'Consolas', monospace;
+      color: #5c6890;
+      line-height: 1.5;
+    }
+    .path-example span {
+      color: #6e9eff;
+    }
+
+    /* Bouton principal */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px 20px;
+      background: #1a4fff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      letter-spacing: .02em;
+    }
+    .btn-primary:hover  { background: #2259ff; }
+    .btn-primary:active { background: #1440dd; transform: scale(.98); }
+    .btn-primary svg    { flex-shrink: 0; }
+
+    /* Bouton secondaire (passer) */
+    .btn-skip {
+      background: none;
+      border: none;
+      color: #3a4260;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      padding: 4px;
+      transition: color .15s;
+    }
+    .btn-skip:hover { color: #5a6490; }
+
+    /* ── Zone d'erreur / avertissement ── */
+    .alert {
+      display: none;
+      background: rgba(220, 38, 38, .08);
+      border: 1px solid rgba(220, 38, 38, .35);
+      border-radius: 8px;
+      padding: 14px 16px;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .alert.visible {
+      display: flex;
+    }
+    .alert-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .alert-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+    .alert-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f87171;
+    }
+    .alert-msg {
+      font-size: 12.5px;
+      color: #c87070;
+      line-height: 1.5;
+    }
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      background: rgba(220, 38, 38, .18);
+      border: 1px solid rgba(220, 38, 38, .4);
+      border-radius: 6px;
+      color: #f87171;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      width: fit-content;
+    }
+    .btn-retry:hover { background: rgba(220, 38, 38, .28); }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <div class="logo-row">
+    <img src="../public/logos/logo.png" onerror="this.style.display='none'">
+    <div>
+      <span>RL Overlay</span><br>
+      <small>Configuration initiale</small>
+    </div>
+  </div>
+
+  <div>
+    <h1>Dossier d'installation<br>de Rocket League</h1>
+  </div>
+
+  <p class="description">
+    Pour maintenir l'overlay fonctionnel après chaque mise à jour du jeu,
+    l'application a besoin de connaître l'emplacement d'installation de
+    <strong>Rocket League</strong>.<br><br>
+    Sélectionne le <strong>dossier racine</strong> du jeu, celui qui contient
+    directement <strong>Binaries</strong>, <strong>TAGame</strong>, etc.
+  </p>
+
+  <div class="path-box">
+    <div class="path-box-label">Exemples de chemin valide</div>
+    <div class="path-example">
+      <span>Epic :</span> C:\Program Files\Epic Games\rocketleague<br>
+      <span>Steam :</span> C:\Program Files (x86)\Steam\steamapps\common\rocketleague
+    </div>
+  </div>
+
+  <!-- Zone d'erreur (masquée par défaut) -->
+  <div class="alert" id="alert">
+    <svg class="alert-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r=".5" fill="#f87171"/>
+    </svg>
+    <div class="alert-body">
+      <div class="alert-title" id="alert-title">Dossier invalide</div>
+      <div class="alert-msg" id="alert-msg"></div>
+      <button class="btn-retry" id="btn-retry" onclick="doBrowse()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+        </svg>
+        Choisir un autre dossier
+      </button>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="btn-browse" onclick="doBrowse()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
+    Choisir le dossier d'installation
+  </button>
+
+  <button class="btn-skip" onclick="doSkip()">
+    Passer pour l'instant (l'overlay peut ne pas fonctionner)
+  </button>
+
+</div>
+
+<script>
+  async function doBrowse() {
+    const btn = document.getElementById('btn-browse');
+    btn.disabled = true;
+    btn.textContent = 'En attente…';
+
+    const result = await window.rlSetup.browse();
+
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+      Choisir le dossier d'installation`;
+
+    if (!result) {
+      // Annulé par l'utilisateur
+      showAlert(
+        'Aucun dossier sélectionné',
+        'Tu as annulé la sélection. L\'overlay ne pourra pas corriger automatiquement la configuration de Rocket League après une mise à jour.'
+      );
+      return;
+    }
+
+    if (result.error) {
+      showAlert('Dossier invalide', result.error);
+      return;
+    }
+
+    // Succès — la fenêtre sera fermée par le main process
+  }
+
+  function doSkip() {
+    window.rlSetup.skip();
+  }
+
+  function showAlert(title, msg) {
+    document.getElementById('alert-title').textContent = title;
+    document.getElementById('alert-msg').textContent   = msg;
+    document.getElementById('alert').classList.add('visible');
+  }
+</script>
+</body>
+</html>

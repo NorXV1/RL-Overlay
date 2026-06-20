@@ -5,7 +5,6 @@ const path  = require('path');
 const fs    = require('fs');
 const https = require('https');
 const os    = require('os');
-const { execSync } = require('child_process');
 
 let mainWindow  = null;
 let loginWindow = null;
@@ -174,34 +173,122 @@ if (!gotLock) { app.exit(0); } else {
   }
 
   /* ── Vérification PacketSendRate StatsAPI ───────────────────── */
-  function getRLIniPaths() {
-    const list = [];
-    // Config utilisateur (toujours présente)
-    list.push(path.join(os.homedir(), 'Documents', 'My Games', 'Rocket League', 'TAGame', 'Config', 'TAStatsAPI.ini'));
-    // Config jeu — on cherche RL dans toutes les bibliothèques Steam
+
+  /* Fichier de config Electron (séparé de settings.json géré par server.js) */
+  const APP_CONFIG_PATH = path.join(app.getPath('userData'), 'rl-config.json');
+  function readAppSettings()  { try { return JSON.parse(fs.readFileSync(APP_CONFIG_PATH, 'utf8')); } catch { return {}; } }
+  function saveAppSettings(s) { fs.writeFileSync(APP_CONFIG_PATH, JSON.stringify(s, null, 2)); }
+
+  /* ── Fenêtre de configuration RL ──────────────────────────── */
+  let _setupResolve = null;
+  let setupWindow   = null;
+
+  function closeSetupWindow() {
+    if (setupWindow && !setupWindow.isDestroyed()) {
+      setupWindow.destroy();
+      setupWindow = null;
+    }
+  }
+
+  /* IPC — appelé par le bouton "Choisir" dans setup.html */
+  ipcMain.handle('setup:browse', async () => {
+    const { filePaths } = await dialog.showOpenDialog(setupWindow, {
+      title      : 'Dossier d\'installation de Rocket League',
+      properties : ['openDirectory'],
+    });
+    if (!filePaths?.length) return null; // annulé → null envoyé à setup.html
+
+    const chosen  = filePaths[0];
+    const exePath = path.join(chosen, 'Binaries', 'Win64', 'RocketLeague.exe');
+    const iniPath = path.join(chosen, 'TAGame', 'Config', 'DefaultStatsAPI.ini');
+
+    // Vérifier que RocketLeague.exe est un vrai fichier (pas un raccourci .lnk)
     try {
-      const reg = execSync('reg query "HKCU\\SOFTWARE\\Valve\\Steam" /v SteamPath', { encoding: 'utf8' });
-      const m   = reg.match(/SteamPath\s+REG_SZ\s+(.+)/i);
-      if (m) {
-        const steamPath = m[1].trim().replace(/\//g, '\\');
-        const libs = [steamPath];
-        const vdf  = path.join(steamPath, 'steamapps', 'libraryfolders.vdf');
-        if (fs.existsSync(vdf)) {
-          for (const lm of fs.readFileSync(vdf, 'utf8').matchAll(/"path"\s+"([^"]+)"/g))
-            libs.push(lm[1].replace(/\\\\/g, '\\'));
-        }
-        for (const lib of libs) {
-          const p = path.join(lib, 'steamapps', 'common', 'rocketleague', 'TAGame', 'Config', 'DefaultStatsAPI.ini');
-          if (fs.existsSync(p)) list.push(p);
-        }
-      }
-    } catch {}
+      const stat = fs.statSync(exePath);
+      if (!stat.isFile()) throw new Error('not a file');
+    } catch {
+      return {
+        error: `RocketLeague.exe introuvable dans :\n${chosen}\\Binaries\\Win64\\\n\nVérifie que tu as bien sélectionné le dossier RACINE de Rocket League (pas un raccourci, pas un sous-dossier).`,
+      };
+    }
+
+    if (!fs.existsSync(iniPath)) {
+      return {
+        error: `DefaultStatsAPI.ini introuvable dans :\n${chosen}\\TAGame\\Config\\\n\nLe dossier semble invalide.`,
+      };
+    }
+
+    // ✅ Dossier valide → sauvegarder, répondre au renderer puis fermer
+    const s = readAppSettings();
+    s.rlInstallPath = chosen;
+    saveAppSettings(s);
+
+    // On laisse 120 ms pour que la réponse IPC parte avant de détruire la fenêtre
+    setTimeout(() => {
+      closeSetupWindow();
+      if (_setupResolve) { _setupResolve(chosen); _setupResolve = null; }
+    }, 120);
+    return { ok: true };
+  });
+
+  /* IPC — bouton "Passer" */
+  ipcMain.on('setup:skip', () => {
+    closeSetupWindow();
+    if (_setupResolve) { _setupResolve(''); _setupResolve = null; }
+  });
+
+  /* Affiche la fenêtre de config si le chemin n'est pas encore valide */
+  function ensureRLPath() {
+    const exeRelative = path.join('Binaries', 'Win64', 'RocketLeague.exe');
+    const iniRelative = path.join('TAGame', 'Config', 'DefaultStatsAPI.ini');
+    const s     = readAppSettings();
+    const saved = s.rlInstallPath || '';
+    if (
+      saved &&
+      fs.existsSync(path.join(saved, exeRelative)) &&
+      fs.existsSync(path.join(saved, iniRelative))
+    ) return Promise.resolve(saved);
+
+    return new Promise(resolve => {
+      _setupResolve = resolve;
+      setupWindow = new BrowserWindow({
+        width : 540, height: 580,
+        resizable   : false,
+        maximizable : false,
+        title       : 'RL Overlay — Configuration',
+        autoHideMenuBar: true,
+        backgroundColor: '#04060c',
+        icon: path.join(__dirname, '../public/logos/logo.png'),
+        webPreferences: {
+          nodeIntegration : false,
+          contextIsolation: true,
+          preload         : path.join(__dirname, 'setup-preload.js'),
+        },
+      });
+      setupWindow.loadFile(path.join(__dirname, 'setup.html'));
+      // Croix fermée par l'utilisateur = passer
+      setupWindow.on('closed', () => {
+        setupWindow = null;
+        if (_setupResolve) { _setupResolve(''); _setupResolve = null; }
+      });
+    });
+  }
+
+  function getRLIniPaths(rlPath) {
+    const list = [];
+    // Config utilisateur — toujours au même endroit
+    list.push(path.join(os.homedir(), 'Documents', 'My Games', 'Rocket League', 'TAGame', 'Config', 'TAStatsAPI.ini'));
+    // Config jeu — dossier sauvegardé
+    if (rlPath) {
+      const p = path.join(rlPath, 'TAGame', 'Config', 'DefaultStatsAPI.ini');
+      if (fs.existsSync(p)) list.push(p);
+    }
     return list;
   }
 
-  function checkAndFixStatsApi() {
+  function checkAndFixStatsApi(rlPath) {
     let fixed = false;
-    for (const iniPath of getRLIniPaths()) {
+    for (const iniPath of getRLIniPaths(rlPath)) {
       try {
         if (!fs.existsSync(iniPath)) continue;
         let txt = fs.readFileSync(iniPath, 'utf8');
@@ -219,8 +306,9 @@ if (!gotLock) { app.exit(0); } else {
 
   /* ── Démarrage ──────────────────────────────────────────────── */
   app.whenReady().then(async () => {
-    // Vérifier / corriger PacketSendRate avant d'ouvrir l'appli
-    if (checkAndFixStatsApi()) {
+    // Demande le dossier RL si pas encore configuré, puis vérifie PacketSendRate
+    const rlPath = await ensureRLPath();
+    if (checkAndFixStatsApi(rlPath)) {
       await dialog.showMessageBox({
         type   : 'warning',
         title  : 'Configuration Rocket League corrigée',
