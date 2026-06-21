@@ -6,6 +6,8 @@ public/logos/orange/
 public/utils/
 # Thèmes importés par les utilisateurs (non built-in)
 public/themes/da/
+public/themes/ds/
+public/themes/rs/
 *.log
 .DS_Store
 Thumbs.db
