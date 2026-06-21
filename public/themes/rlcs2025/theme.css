@@ -4,6 +4,63 @@
    Inspiré du broadcast RLCS Birmingham Major 2025
 ══════════════════════════════════════════════════════════ */
 
+@font-face {
+  font-family: 'Bourgeois';
+  src: url('../rlcs2026/Bourgeois-BoldItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════════════════════
+   POLICE BOURGEOIS — tous les textes
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2025"] .score-box,
+[data-theme="rlcs2025"] #timer,
+[data-theme="rlcs2025"] .team-name,
+[data-theme="rlcs2025"] #league-label,
+[data-theme="rlcs2025"] .sub-game-text,
+[data-theme="rlcs2025"] #stat-player-name,
+[data-theme="rlcs2025"] .stat-val,
+[data-theme="rlcs2025"] .stat-lbl,
+[data-theme="rlcs2025"] #boost-big,
+[data-theme="rlcs2025"] .pr-name,
+[data-theme="rlcs2025"] .pr-val,
+[data-theme="rlcs2025"] #replay-scorer,
+[data-theme="rlcs2025"] #replay-label,
+[data-theme="rlcs2025"] #rw-word,
+[data-theme="rlcs2025"] #win-team-name,
+[data-theme="rlcs2025"] #win-series-score,
+[data-theme="rlcs2025"] #win-label,
+[data-theme="rlcs2025"] #win-subtitle,
+[data-theme="rlcs2025"] .end-side-name,
+[data-theme="rlcs2025"] .end-side-result,
+[data-theme="rlcs2025"] .end-sc-box,
+[data-theme="rlcs2025"] .end-p-top,
+[data-theme="rlcs2025"] .end-p-cell,
+[data-theme="rlcs2025"] .end-vs-sep,
+[data-theme="rlcs2025"] .end-ser-row,
+[data-theme="rlcs2025"] .end-bo-tag,
+[data-theme="rlcs2025"] .end-bl-lbl,
+[data-theme="rlcs2025"] .end-bv,
+[data-theme="rlcs2025"] #goal-word,
+[data-theme="rlcs2025"] #goal-sub,
+[data-theme="rlcs2025"] #ot-word,
+[data-theme="rlcs2025"] #replay-spd,
+[data-theme="rlcs2025"] #replay-spd-unit,
+[data-theme="rlcs2025"] #replay-spd-lbl,
+[data-theme="rlcs2025"] #replay-assist-name,
+[data-theme="rlcs2025"] #replay-assist-lbl,
+[data-theme="rlcs2025"] .pr-demo-names {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECENTRAGE — descender Bourgeois plus long
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2025"] .score-box { display: flex; align-items: center; justify-content: center; padding-bottom: 12px; }
+[data-theme="rlcs2025"] .team-name { display: flex; align-items: center; padding-bottom: 4px; }
+[data-theme="rlcs2025"] #timer     { transform: translateY(-4px); }
+
 [data-theme="rlcs2025"] {
   --blue:        #0098EA;
   --blue-light:  #33B9FF;
@@ -133,7 +190,7 @@
 /* ── Timer : fond BLANC, texte NOIR ── */
 [data-theme="rlcs2025"] #center-block { background: #ffffff; border-top: none; }
 [data-theme="rlcs2025"] #timer-wrap {
-  min-width: 144px; padding: 0 14px;
+  width: 185px; flex: 0 0 185px; padding: 0 14px;
   border-left:  none;
   border-right: none;
 }
@@ -160,14 +217,15 @@
 /* Zone pips bleue : 290px (hors séparateur 10px) + gap 10px à droite */
 [data-theme="rlcs2025"] #sub-abbr-blue {
   width: 290px; flex: none;
-  display: flex; align-items: center; justify-content: flex-end;
+  display: flex; align-items: center; justify-content: flex-start;
+  flex-direction: row-reverse;
   gap: 6px; padding: 0 14px;
   background: #1b191c; height: 26px;
   margin-right: 10px;
 }
 /* Zone texte game : 288px (score+timer+score), s'aligne avec le centre */
 [data-theme="rlcs2025"] #sub-ser-track {
-  width: 304px; flex: none;
+  width: 345px; flex: none;
   display: flex; align-items: center; justify-content: center;
   background: #1b191c; height: 34px;
 }
@@ -247,19 +305,19 @@
 }
 
 [data-theme="rlcs2025"] #sidebar-blue .pr-name {
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 20px; font-weight: 800; color: #fff;
   padding-left: 8px; padding-right: 6px; letter-spacing: .8px;
 }
 [data-theme="rlcs2025"] #sidebar-blue .pr-val {
-  font-size: 16px; font-weight: 900; color: #fff;
+  font-size: 23px; font-weight: 900; color: #fff;
   padding-right: 10px; min-width: 36px; text-align: right;
 }
 [data-theme="rlcs2025"] #sidebar-orange .pr-name {
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 20px; font-weight: 800; color: #fff;
   padding-right: 10px; padding-left: 6px; letter-spacing: .8px; text-align: right;
 }
 [data-theme="rlcs2025"] #sidebar-orange .pr-val {
-  font-size: 16px; font-weight: 900; color: #fff;
+  font-size: 23px; font-weight: 900; color: #fff;
   padding-left: 10px; min-width: 36px;
 }
 
