@@ -211,7 +211,12 @@ body {
 }
 .score-box.blue   { background: var(--blue); }
 .score-box.orange { background: var(--orange); }
-.score-box.bump   { transform: scale(1.35); }
+.score-box.bump   { animation: scoreBump .5s cubic-bezier(.36,1,.64,1) forwards; }
+@keyframes scoreBump {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(1.35); }
+  100% { transform: scale(1);    }
+}
 
 #timer-wrap {
   display: flex; flex-direction: column;

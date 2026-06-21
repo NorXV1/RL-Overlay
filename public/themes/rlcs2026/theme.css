@@ -80,7 +80,7 @@
   padding: 4px 22px; letter-spacing: 2px;
 }
 [data-theme="rlcs2026"] #scoreboard { height: 74px; gap: 0; }
-[data-theme="rlcs2026"] #score-main { border-radius: 0; }
+[data-theme="rlcs2026"] #score-main { border-radius: 0; overflow: visible; }
 [data-theme="rlcs2026"] .team-logo-outer {
   width: 74px; height: 74px; border-radius: 0; border-top: none !important;
 }
@@ -121,7 +121,7 @@
   padding-bottom: 10px;
 }
 [data-theme="rlcs2026"] #center-block { border-top: none; }
-[data-theme="rlcs2026"] #timer-wrap { min-width: 130px; padding: 0 10px; }
+[data-theme="rlcs2026"] #timer-wrap { width: 155px; min-width: 155px; max-width: 155px; padding: 0 10px; overflow: hidden; }
 [data-theme="rlcs2026"] #timer { font-size: 38px; letter-spacing: 2px; }
 [data-theme="rlcs2026"] #timer-sub { font-size: 10px; letter-spacing: 3px; }
 [data-theme="rlcs2026"] .series-dots-small { display: none; }
