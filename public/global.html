@@ -941,6 +941,7 @@ body {
         <div class="arrow-block"></div>
       </div>
       <div id="stat-player-name">—</div>
+      <div id="stat-boost-track"><div id="stat-boost-fill"></div></div>
     </div>
     <div id="stat-values">
       <div class="stat-item"><div class="stat-val" id="st-goals">0</div><div class="stat-lbl">GOALS</div></div>
@@ -975,6 +976,7 @@ body {
       <div id="goal-sub"></div>
     </div>
   </div>
+
 
   <!-- OT NOTIFICATION -->
   <div id="ot-notif">
@@ -1980,6 +1982,11 @@ function renderStatBar(p) {
   const color = p.team === 0 ? tc().b : tc().o;
   document.getElementById('stat-player-name').textContent = p.name;
   document.getElementById('stat-team-tag').style.background = color;
+  const sv = document.getElementById('stat-values');
+  if (sv) sv.style.borderBottomColor = color;
+
+  const fill = document.getElementById('stat-boost-fill');
+  if (fill) fill.style.width = `${p.boost ?? 0}%`;
 
   document.getElementById('st-goals').textContent   = p.goals   ?? 0;
   document.getElementById('st-assists').textContent = p.assists ?? 0;
@@ -2249,10 +2256,12 @@ function showDemoIcon(demolisherName, demolisherId, demolishedId, demolishedName
 
       const el = document.createElement('div');
       el.className = 'pr-demo-names';
-      el.style.background = `linear-gradient(90deg, ${killerCol}, ${victimCol})`;
+      el.style.background = `linear-gradient(90deg, ${killerCol}, #0a0a0f 50%, ${victimCol})`;
 
       const n1   = document.createElement('span'); n1.className = 'pr-demo-n'; n1.textContent = demolisherName;
-      const bomb = document.createElement('span'); bomb.className = 'pr-demo-bomb'; bomb.textContent = '💣';
+      const bomb = document.createElement('span'); bomb.className = 'pr-demo-bomb';
+      const bombImg = document.createElement('img'); bombImg.src = '/notif/explosion.png'; bombImg.alt = '';
+      bomb.appendChild(bombImg);
       const n2   = document.createElement('span'); n2.className = 'pr-demo-n'; n2.textContent = demolishedName;
       el.appendChild(n1); el.appendChild(bomb); el.appendChild(n2);
 
@@ -2260,6 +2269,7 @@ function showDemoIcon(demolisherName, demolisherId, demolishedId, demolishedName
       setTimeout(() => el.remove(), 5000);
     }
   }
+
 }
 
 function showStatIcon(playerId, playerName, type) {
