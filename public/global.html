@@ -1466,9 +1466,13 @@ function connect() {
   ws.onopen = () => {};
   ws.onmessage = e => {
     const { type, data } = JSON.parse(e.data);
-    /* En mode preview : seuls thème et logos sont traités */
+    /* En mode preview : thème, logos et bandeau média sont traités */
     if (IS_PREVIEW) {
       if (type === 'theme_change') applyTheme(data.theme);
+      if (type === 'media_banner') {
+        if (data.enabled) startMediaBanner(); else stopMediaBanner();
+      }
+      if (type === 'utils_updated') onUtilsUpdated(data.files);
       if (type === 'logo_updated') {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
         const img    = document.getElementById(`${side}-logo-img`);
@@ -2435,10 +2439,11 @@ window.addEventListener('load', () => setTimeout(initBoostTicks, 300));
 if (IS_PREVIEW) {
   document.body.style.background = '#09090f';
 
-  // Charger les settings (équipes, thème, ligue)
+  // Charger les settings (équipes, thème, ligue, bandeau média)
   fetch('/api/settings').then(r => r.json()).then(s => {
     if (s.theme) applyTheme(s.theme);
     if (s.league) document.getElementById('league-label').textContent = s.league;
+    if (s.mediaBanner?.enabled) startMediaBanner();
 
     // Noms d'équipes (settings stocke s.blue.name / s.orange.name)
     const blueTeamName   = s.teams?.[0]?.name || s.blue?.name   || 'BLUE TEAM';
