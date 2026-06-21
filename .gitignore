@@ -4,6 +4,8 @@ settings.json
 public/logos/bleu/
 public/logos/orange/
 public/utils/
+# Thèmes importés par les utilisateurs (non built-in)
+public/themes/da/
 *.log
 .DS_Store
 Thumbs.db
