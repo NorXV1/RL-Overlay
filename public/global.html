@@ -1167,6 +1167,18 @@ function tc() {
   return { b, bL, o, oL };
 }
 
+/* Résout la chaîne d'héritage complète d'un thème importé.
+   Ex : ds → da → rlcs2025 → (built-in trouvé → retourne 'rlcs2025')
+   Sans ça, themeIs('rlcs2025') reste false pour les thèmes à 2+ niveaux. */
+function _resolveThemeBase(theme, depth) {
+  if (!depth || !theme || theme === 'rlcs' || THEME_COLS[theme])
+    return Promise.resolve(theme || 'rlcs');
+  return fetch(`/themes/${theme}/meta.json`)
+    .then(r => r.json())
+    .then(m => m.basedOn ? _resolveThemeBase(m.basedOn, depth - 1) : Promise.resolve(theme))
+    .catch(() => Promise.resolve(theme));
+}
+
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   currentThemeBase = currentTheme;
@@ -1175,19 +1187,15 @@ function applyTheme(t) {
   if (link) {
     link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
   }
-  if (currentTheme !== 'rlcs') {
-    fetch(`/themes/${currentTheme}/meta.json`).then(r => r.json())
-      .then(m => { if (m.basedOn) currentThemeBase = m.basedOn; })
-      .catch(() => {});
-  }
-  // Ticks RLCS 2025
-  setTimeout(initBoostTicks, 50);
-  /* Forcer le rebuild des pips/dots série pour le nouveau thème.
-     Le cache _lastSerKey est invalidé maintenant, puis renderSeriesDots
-     est rappelé après 120ms (CSS chargé) pour reconstruire avec le bon
-     chemin vlt-win-pip / sub-sdot selon themeIs(). */
   _lastSerKey = '';
-  if (state) setTimeout(renderSeriesDots, 120);
+  /* Résoudre l'héritage multi-niveaux AVANT de reconstruire les pips et les ticks.
+     Pour un thème built-in, la promesse résout en microtask (~0ms).
+     Pour ds→da→rlcs2025, deux fetches locaux s'enchaînent (~5-20ms). */
+  _resolveThemeBase(currentTheme, 5).then(base => {
+    currentThemeBase = base;
+    setTimeout(initBoostTicks, 50);
+    if (state) setTimeout(renderSeriesDots, 120);
+  });
 }
 
 /* ── Ticks boost RLCS 2025 ──
@@ -2460,12 +2468,9 @@ if (IS_PREVIEW) {
     const serOrange = s.series?.orange || 0;
     document.getElementById('bo-num').textContent = bestOf;
     state = { hasGame: true, series: { blue: serBlue, orange: serOrange, bestOf } };
-    renderSeriesDots();
-    // Abréviations d'équipe dans la sub-barre
-    const abbrB = document.getElementById('sub-abbr-blue');
-    const abbrO = document.getElementById('sub-abbr-orange');
-    if (abbrB) abbrB.textContent = (blueTeamName   || 'BLU').slice(0, 4);
-    if (abbrO) abbrO.textContent = (orangeTeamName || 'ORA').slice(0, 4);
+    // Note : ne pas toucher abbrB/abbrO ici — buildSubTrack (dans renderSeriesDots)
+    // les remplace par des pip-spans pour rlcs2025. Les écraser les ferait disparaître.
+    // applyTheme() a déjà planifié renderSeriesDots() après résolution du thème.
 
     // ── Joueurs fictifs pour l'aperçu (sidebars + boost) ──
     const fakePlayers = {
@@ -2482,15 +2487,14 @@ if (IS_PREVIEW) {
     const primary = Object.values(fakePlayers).find(p => p.isPrimary);
     renderBoostMeter(primary);
     renderStatBar(primary);
-    /* Le CSS du thème charge en async → les couleurs JS (tc()) sont fausses
-       au premier appel. On ré-applique une fois le <link> chargé. */
+    /* Deux raisons de re-rendre le boost meter :
+       1. CSS du thème charge en async → couleurs tc() incorrectes au 1er appel
+       2. currentThemeBase résolu en async (ds→da→rlcs2025) → is34 incorrect au 1er appel
+       On re-rend au chargement CSS ET après 500ms (résolution thème garantie). */
+    const _pvReBoost = () => { renderBoostMeter(primary); renderStatBar(primary); };
     const _tLink = document.getElementById('theme-stylesheet');
-    if (_tLink && _tLink.href) {
-      _tLink.addEventListener('load', () => {
-        renderBoostMeter(primary);
-        renderStatBar(primary);
-      }, { once: true });
-    }
+    if (_tLink && _tLink.href) _tLink.addEventListener('load', _pvReBoost, { once: true });
+    setTimeout(_pvReBoost, 500);
 
     // ── Événements fictifs en boucle pour l'aperçu ──
     const _pvEvents = [
