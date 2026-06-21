@@ -1154,7 +1154,17 @@ let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' p
 function themeIs(name) { return currentTheme === name || currentThemeBase === name; }
 
 function tc() {
-  return THEME_COLS[currentTheme] || THEME_COLS[currentThemeBase] || THEME_COLS.rlcs;
+  /* Les variables CSS --blue / --orange définies par le thème (ou un override doré)
+     priment sur les valeurs JS hardcodées dans THEME_COLS.
+     Ainsi un CSS externe qui redéfinit --blue/#--orange change TOUTES les couleurs
+     dynamiques (boost arc, stat bar, score-box, etc.) sans toucher à global.html. */
+  const base = THEME_COLS[currentTheme] || THEME_COLS[currentThemeBase] || THEME_COLS.rlcs;
+  const cs = getComputedStyle(document.body);
+  const b  = cs.getPropertyValue('--blue').trim()         || base.b;
+  const bL = cs.getPropertyValue('--blue-light').trim()   || base.bL;
+  const o  = cs.getPropertyValue('--orange').trim()       || base.o;
+  const oL = cs.getPropertyValue('--orange-light').trim() || base.oL;
+  return { b, bL, o, oL };
 }
 
 function applyTheme(t) {
@@ -1241,10 +1251,13 @@ function setBoostArc(pct, team) {
   if (is34) {
     const bt = document.getElementById('boost-track');
     if (bt) {
+      const _cs    = getComputedStyle(document.body);
+      const _cssTB = _cs.getPropertyValue('--boost-track-b').trim();
+      const _cssTО = _cs.getPropertyValue('--boost-track-o').trim();
       if (themeIs('vitality'))
-        bt.style.stroke = team === 1 ? 'rgba(250,213,0,.6)'   : 'rgba(26,172,230,.6)';
+        bt.style.stroke = team === 1 ? (_cssTО || 'rgba(250,213,0,.6)')   : (_cssTB || 'rgba(26,172,230,.6)');
       else if (themeIs('rlcs2025'))
-        bt.style.stroke = team === 1 ? 'rgba(232,74,0,.45)'   : 'rgba(0,152,234,.45)';
+        bt.style.stroke = team === 1 ? (_cssTО || 'rgba(232,74,0,.45)')   : (_cssTB || 'rgba(0,152,234,.45)');
       else
         bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'   : 'rgba(26,88,200,.5)';
     }
@@ -2418,28 +2431,83 @@ if (IS_PREVIEW) {
   fetch('/api/settings').then(r => r.json()).then(s => {
     if (s.theme) applyTheme(s.theme);
     if (s.league) document.getElementById('league-label').textContent = s.league;
-    if (s.teams) {
-      document.getElementById('blue-name').textContent   = s.teams[0]?.name || 'BLUE TEAM';
-      document.getElementById('orange-name').textContent = s.teams[1]?.name || 'ORANGE TEAM';
-      autoFitTeamName(document.getElementById('blue-name'));
-      autoFitTeamName(document.getElementById('orange-name'));
-      // Logos
-      if (s.teams[0]?.logo_url) {
-        const img = document.getElementById('blue-logo-img');
-        img.src = s.teams[0].logo_url; img.classList.add('active');
-        document.getElementById('blue-logo').style.display = 'none';
-      }
-      if (s.teams[1]?.logo_url) {
-        const img = document.getElementById('orange-logo-img');
-        img.src = s.teams[1].logo_url; img.classList.add('active');
-        document.getElementById('orange-logo').style.display = 'none';
-      }
+
+    // Noms d'équipes (settings stocke s.blue.name / s.orange.name)
+    const blueTeamName   = s.teams?.[0]?.name || s.blue?.name   || 'BLUE TEAM';
+    const orangeTeamName = s.teams?.[1]?.name || s.orange?.name || 'ORANGE TEAM';
+    document.getElementById('blue-name').textContent   = blueTeamName;
+    document.getElementById('orange-name').textContent = orangeTeamName;
+    autoFitTeamName(document.getElementById('blue-name'));
+    autoFitTeamName(document.getElementById('orange-name'));
+
+    // Logos
+    const logoUrlB = s.teams?.[0]?.logo_url || s.blue?.logo_url;
+    const logoUrlO = s.teams?.[1]?.logo_url || s.orange?.logo_url;
+    if (logoUrlB) {
+      const img = document.getElementById('blue-logo-img');
+      img.src = logoUrlB; img.classList.add('active');
+      document.getElementById('blue-logo').style.display = 'none';
     }
-    if (s.series) {
-      document.getElementById('bo-num').textContent = s.series.bestOf || 5;
-      if (!state) state = { series: { blue: s.series.blue||0, orange: s.series.orange||0, bestOf: s.series.bestOf||5 } };
-      renderSeriesDots();
+    if (logoUrlO) {
+      const img = document.getElementById('orange-logo-img');
+      img.src = logoUrlO; img.classList.add('active');
+      document.getElementById('orange-logo').style.display = 'none';
     }
+
+    // Série (bestOf est au niveau racine dans settings.json)
+    const bestOf    = s.bestOf || s.series?.bestOf || 5;
+    const serBlue   = s.series?.blue   || 0;
+    const serOrange = s.series?.orange || 0;
+    document.getElementById('bo-num').textContent = bestOf;
+    state = { hasGame: true, series: { blue: serBlue, orange: serOrange, bestOf } };
+    renderSeriesDots();
+    // Abréviations d'équipe dans la sub-barre
+    const abbrB = document.getElementById('sub-abbr-blue');
+    const abbrO = document.getElementById('sub-abbr-orange');
+    if (abbrB) abbrB.textContent = (blueTeamName   || 'BLU').slice(0, 4);
+    if (abbrO) abbrO.textContent = (orangeTeamName || 'ORA').slice(0, 4);
+
+    // ── Joueurs fictifs pour l'aperçu (sidebars + boost) ──
+    const fakePlayers = {
+      'p1': { id: 'p1', name: 'Ayyjayy', team: 0, boost: 72,  isPrimary: false, goals: 1, assists: 0, saves: 1, shots: 2, demos: 0, speed: 1250 },
+      'p2': { id: 'p2', name: 'jstn.',   team: 0, boost: 34,  isPrimary: false, goals: 0, assists: 1, saves: 0, shots: 1, demos: 0, speed: 980  },
+      'p3': { id: 'p3', name: 'Garrett', team: 0, boost: 88,  isPrimary: false, goals: 0, assists: 0, saves: 2, shots: 0, demos: 1, speed: 1540 },
+      'p4': { id: 'p4', name: 'Vatira.', team: 1, boost: 55,  isPrimary: true,  goals: 0, assists: 0, saves: 0, shots: 1, demos: 0, speed: 1320 },
+      'p5': { id: 'p5', name: 'Joyo',    team: 1, boost: 100, isPrimary: false, goals: 1, assists: 1, saves: 0, shots: 2, demos: 0, speed: 1700 },
+      'p6': { id: 'p6', name: 'Kassio',  team: 1, boost: 18,  isPrimary: false, goals: 0, assists: 0, saves: 1, shots: 0, demos: 0, speed: 870  },
+    };
+    renderSidebar(fakePlayers);
+
+    // Boost meter + stat bar : joueur primaire (spectated)
+    const primary = Object.values(fakePlayers).find(p => p.isPrimary);
+    renderBoostMeter(primary);
+    renderStatBar(primary);
+    /* Le CSS du thème charge en async → les couleurs JS (tc()) sont fausses
+       au premier appel. On ré-applique une fois le <link> chargé. */
+    const _tLink = document.getElementById('theme-stylesheet');
+    if (_tLink && _tLink.href) {
+      _tLink.addEventListener('load', () => {
+        renderBoostMeter(primary);
+        renderStatBar(primary);
+      }, { once: true });
+    }
+
+    // ── Événements fictifs en boucle pour l'aperçu ──
+    const _pvEvents = [
+      { id: 'p2', name: 'jstn.',   type: 'shot' },
+      { id: 'p5', name: 'Joyo',    type: 'goal' },
+      { id: 'p3', name: 'Garrett', type: 'save' },
+      { id: 'p1', name: 'Ayyjayy', type: 'assist' },
+      { id: 'p6', name: 'Kassio',  type: 'shot' },
+      { id: 'p4', name: 'Vatira.', type: 'epic save' },
+    ];
+    let _pvIdx = 0;
+    const _firePvEvent = () => {
+      const e = _pvEvents[_pvIdx++ % _pvEvents.length];
+      showStatIcon(e.id, e.name, e.type);
+    };
+    setTimeout(() => { _firePvEvent(); setInterval(_firePvEvent, 4000); }, 800);
+
   }).catch(() => {});
 
   // Forcer l'affichage du scoreboard
