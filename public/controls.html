@@ -974,7 +974,7 @@ function setTheme(t) {
 }
 
 function loadImportedThemes() {
-  fetch('/api/themes').then(r => r.json()).then(({ themes, current }) => {
+  return fetch('/api/themes').then(r => r.json()).then(({ themes, current }) => {
     _allThemes = themes;
     const imported = themes.filter(t => !BUILTIN.has(t));
     const row  = document.getElementById('imported-themes-row');
@@ -1027,13 +1027,17 @@ async function deleteTheme(name) {
 }
 
 (function initTheme() {
-  fetch('/api/settings').then(r => r.json()).then(s => {
-    // Pas de check premium au démarrage : on applique le thème sauvegardé directement
-    // (le check ne bloque que les clics manuels via setTheme)
-    const t = s.theme || localStorage.getItem('rl-theme') || 'rlcs';
+  /* Charger les thèmes importés ET les settings en parallèle.
+     Sans ça : _allThemes ne contient pas encore les thèmes importés quand
+     _applyThemeRaw() est appelé → fallback 'rlcs' → broadcast 'rlcs' à l'overlay
+     → settings.json écrasé → le thème choisi disparaît après chaque redémarrage. */
+  Promise.all([
+    fetch('/api/settings').then(r => r.json()).catch(() => ({})),
+    loadImportedThemes()
+  ]).then(([s]) => {
+    const t = (s && s.theme) || localStorage.getItem('rl-theme') || 'rlcs';
     _applyThemeRaw(t);
-  }).catch(() => { _applyThemeRaw(localStorage.getItem('rl-theme') || 'rlcs'); });
-  loadImportedThemes();
+  });
 })();
 
 /* ══════════ WS ═════════════════════════════════════ */
