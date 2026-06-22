@@ -390,7 +390,7 @@
 /* Barre de boost */
 [data-theme="rlcs2025"] #stat-boost-track {
   display: block;
-  position: absolute; bottom: 9px; left: 8%; right: 5%;
+  position: absolute; bottom: 9px; left: 4%; right: 5%;
   height: 4px; background: rgba(0,0,0,.35);
   border-radius: 2px;
 }
