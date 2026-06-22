@@ -110,7 +110,7 @@
   background: #1b191c;
   border-radius: 0; text-align: center;
   font-weight: 900; font-style: italic;
-  color: rgba(255,255,255,.85); font-size: 30px; padding: 6px 22px;
+  color: rgba(255,255,255,.85); font-size: 20px; padding: 6px 22px;
   letter-spacing: 3px; border-bottom: 1px solid rgba(255,255,255,.08);
   margin: 0 96px;
 }
