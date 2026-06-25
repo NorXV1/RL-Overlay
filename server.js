@@ -610,13 +610,19 @@ app.post('/api/themes/import', upload.single('css'), (req, res) => {
   const themeDir = path.join(THEMES_DIR, name);
   fs.mkdirSync(themeDir, { recursive: true });
   let css = file.buffer.toString('utf8');
-  // Détecter le thème source avant renommage — valeur la plus fréquente (pas seulement la 1ère)
-  const allThemeRefs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
-  const freq = {};
-  allThemeRefs.forEach(t => { freq[t] = (freq[t] || 0) + 1; });
-  const basedOn = allThemeRefs.length > 0
-    ? Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]
-    : null;
+  // basedOn : priorité au champ explicite du formulaire, sinon auto-détection (valeur la plus fréquente)
+  const forcedBase = (req.body.basedOn || '').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+  let basedOn;
+  if (forcedBase) {
+    basedOn = forcedBase;
+  } else {
+    const allThemeRefs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
+    const freq = {};
+    allThemeRefs.forEach(t => { freq[t] = (freq[t] || 0) + 1; });
+    basedOn = allThemeRefs.length > 0
+      ? Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]
+      : null;
+  }
   // Réécrire les sélecteurs avec le nouveau nom
   css = css.replace(/\[data-theme="[^"]*"\]/g, `[data-theme="${name}"]`);
   fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
