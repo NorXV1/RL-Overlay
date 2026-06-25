@@ -2483,7 +2483,17 @@ if (IS_PREVIEW) {
     const serBlue   = s.series?.blue   || 0;
     const serOrange = s.series?.orange || 0;
     document.getElementById('bo-num').textContent = bestOf;
-    state = { hasGame: true, series: { blue: serBlue, orange: serOrange, bestOf } };
+    state = {
+      hasGame: true,
+      series: { blue: serBlue, orange: serOrange, bestOf },
+      // Équipes avec logos pour les animations preview (Goal/Fin/Win)
+      game: {
+        teams: [
+          { name: s.teams?.[0]?.name || blueTeamName,   logo_url: s.teams?.[0]?.logo_url || '' },
+          { name: s.teams?.[1]?.name || orangeTeamName, logo_url: s.teams?.[1]?.logo_url || '' },
+        ]
+      },
+    };
     // Note : ne pas toucher abbrB/abbrO ici — buildSubTrack (dans renderSeriesDots)
     // les remplace par des pip-spans pour rlcs2025. Les écraser les ferait disparaître.
     // applyTheme() a déjà planifié renderSeriesDots() après résolution du thème.

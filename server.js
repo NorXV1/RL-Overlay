@@ -381,7 +381,14 @@ overlayWss.on('connection', ws => {
 /* ─────────────────── REST API ─────────────────── */
 app.get('/api/state', (req, res) => res.json(gameState));
 
-app.get('/api/settings', (req, res) => res.json(settings));
+app.get('/api/settings', (req, res) => res.json({
+  ...settings,
+  // Injecter les logo_url depuis le gameState (non stockés dans settings.json)
+  teams: [
+    { name: gameState.game.teams[0].name, logo_url: gameState.game.teams[0].logo_url || '' },
+    { name: gameState.game.teams[1].name, logo_url: gameState.game.teams[1].logo_url || '' },
+  ],
+}));
 
 app.post('/api/settings', (req, res) => {
   const { league, blue, orange, bestOf, series } = req.body;
