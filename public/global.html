@@ -2540,6 +2540,64 @@ if (IS_PREVIEW) {
   document.getElementById('overlay-root').classList.add('visible');
   document.getElementById('top-bar').classList.add('visible');
 }
+
+/* ══════════════════════════════════════════════════════════
+   PREVIEW ANIMATIONS — déclenchées via postMessage depuis les contrôles
+══════════════════════════════════════════════════════════ */
+window.addEventListener('message', ({ data }) => {
+  if (!data?.type?.startsWith('preview-')) return;
+
+  if (data.type === 'preview-goal') {
+    onGoal({ scorer: { team_num: data.team ?? 0, name: 'Preview' } });
+
+  } else if (data.type === 'preview-end') {
+    const teams = state?.game?.teams || [];
+    const ser   = state?.series || { blue: 3, orange: 2, bestOf: 5 };
+    const plrs  = state?.players || {};
+    buildEndScreen({
+      winner: 0,
+      teams: [
+        { name: teams[0]?.name || 'BLUE',   score: 3, logo_url: teams[0]?.logo_url },
+        { name: teams[1]?.name || 'ORANGE', score: 2, logo_url: teams[1]?.logo_url },
+      ],
+      series: ser,
+      players: plrs,
+    });
+    document.getElementById('end-screen').classList.add('visible');
+    setScoreboardExpanded(true);
+    setTimeout(() => {
+      document.getElementById('end-screen').classList.remove('visible');
+      setScoreboardExpanded(false);
+    }, 7000);
+
+  } else if (data.type === 'preview-win') {
+    const w      = data.team ?? 0;
+    const team   = state?.game?.teams?.[w] || { name: w === 0 ? 'BLUE' : 'ORANGE' };
+    const color  = w === 0 ? tc().bL : tc().oL;
+    const screen = document.getElementById('win-screen');
+    document.getElementById('win-team-name').textContent    = team.name;
+    document.getElementById('win-team-name').style.color    = color;
+    document.getElementById('win-series-score').textContent = w === 0 ? '3 – 2' : '2 – 3';
+    document.getElementById('win-glow').style.background    = color;
+    document.getElementById('win-bar-top').style.background = color;
+    document.getElementById('win-bar-bot').style.background = color;
+    const img    = document.getElementById('win-logo-img');
+    const letter = document.getElementById('win-logo-letter');
+    if (team.logo_url) {
+      img.src = team.logo_url; img.classList.add('active');
+      letter.style.display = 'none';
+    } else {
+      img.src = ''; img.classList.remove('active');
+      letter.textContent   = (team.name || '?').charAt(0).toUpperCase();
+      letter.style.color   = color;
+      letter.style.display = '';
+    }
+    screen.classList.remove('show');
+    void screen.offsetWidth;
+    screen.classList.add('show');
+    setTimeout(() => screen.classList.remove('show'), 5000);
+  }
+});
 </script>
 </body>
 </html>
