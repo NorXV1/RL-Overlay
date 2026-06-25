@@ -2547,10 +2547,32 @@ if (IS_PREVIEW) {
 window.addEventListener('message', ({ data }) => {
   if (!data?.type?.startsWith('preview-')) return;
 
+  /* ── Goal : notif + wipe REPLAY + barre replay + wipe LIVE ── */
   if (data.type === 'preview-goal') {
-    onGoal({ scorer: { team_num: data.team ?? 0, name: 'Preview' } });
+    const team = data.team ?? 0;
+    onGoal({ scorer: { team_num: team, name: state?.game?.teams?.[team]?.name || (team === 0 ? 'BLUE' : 'ORANGE') } });
+    setScoreboardExpanded(true);
+    setTimeout(() => {
+      doReplayWipe('REPLAY', () => {
+        const replayBar = document.getElementById('replay-bar');
+        document.getElementById('replay-scorer').textContent      = state?.game?.teams?.[team]?.name || '—';
+        document.getElementById('replay-assist-name').textContent = '—';
+        document.getElementById('replay-spd').textContent         = Math.floor(Math.random() * 50 + 100);
+        replayBar.classList.add('show');
+        clearTimeout(replayT);
+        replayT = setTimeout(() => {
+          replayBar.classList.remove('show');
+          doReplayWipe('LIVE', () => {
+            hideReplay();
+            setScoreboardExpanded(false);
+          }, 2900);
+        }, 8200);
+      }, 2800);
+    }, 1000);
 
+  /* ── Fin : masque l'overlay + écran de fin (7s) ── */
   } else if (data.type === 'preview-end') {
+    hideOverlay(0);
     const teams = state?.game?.teams || [];
     const ser   = state?.series || { blue: 3, orange: 2, bestOf: 5 };
     const plrs  = state?.players || {};
@@ -2568,9 +2590,12 @@ window.addEventListener('message', ({ data }) => {
     setTimeout(() => {
       document.getElementById('end-screen').classList.remove('visible');
       setScoreboardExpanded(false);
+      showOverlay();
     }, 7000);
 
+  /* ── Streak Win : masque l'overlay + écran victoire série (5s) ── */
   } else if (data.type === 'preview-win') {
+    hideOverlay(0);
     const w      = data.team ?? 0;
     const team   = state?.game?.teams?.[w] || { name: w === 0 ? 'BLUE' : 'ORANGE' };
     const color  = w === 0 ? tc().bL : tc().oL;
@@ -2595,7 +2620,10 @@ window.addEventListener('message', ({ data }) => {
     screen.classList.remove('show');
     void screen.offsetWidth;
     screen.classList.add('show');
-    setTimeout(() => screen.classList.remove('show'), 5000);
+    setTimeout(() => {
+      screen.classList.remove('show');
+      showOverlay();
+    }, 5000);
   }
 });
 </script>
