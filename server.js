@@ -5,6 +5,7 @@ const WebSocket = require('ws');
 const path    = require('path');
 const fs      = require('fs');
 const multer  = require('multer');
+const yauzl   = require('yauzl');
 
 const PORT           = process.env.PORT           || 3000;
 const STATS_API_PORT = process.env.STATS_API_PORT || 49123;
@@ -638,6 +639,128 @@ app.post('/api/themes/import', upload.single('css'), (req, res) => {
     fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn }, null, 2));
   }
   res.json({ ok: true, name, basedOn });
+});
+
+/* ── Import ZIP de thème (CSS + meta.json + images) ── */
+function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(err);
+      const ALLOWED = /\.(css|json|png|jpe?g|webp|gif|svg)$/i;
+      const files = {}; // basename → Buffer
+
+      zipfile.readEntry();
+      zipfile.on('entry', (entry) => {
+        if (/\/$/.test(entry.fileName)) { zipfile.readEntry(); return; } // dossier
+        const basename = path.basename(entry.fileName);
+        if (!ALLOWED.test(basename)) { zipfile.readEntry(); return; }     // extension non autorisée
+        zipfile.openReadStream(entry, (err, readStream) => {
+          if (err) { zipfile.readEntry(); return; }
+          const chunks = [];
+          readStream.on('data', c => chunks.push(c));
+          readStream.on('end', () => { files[basename] = Buffer.concat(chunks); zipfile.readEntry(); });
+          readStream.on('error', () => zipfile.readEntry());
+        });
+      });
+
+      zipfile.on('end', () => {
+        if (!files['theme.css']) return reject(new Error('theme.css manquant dans le ZIP'));
+
+        // Détecter basedOn depuis les sélecteurs CSS
+        let css = files['theme.css'].toString('utf8');
+        let basedOn = null;
+        if (!forcedBasedOn) {
+          const refs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
+          const freq = {};
+          refs.forEach(t => { freq[t] = (freq[t] || 0) + 1; });
+          basedOn = refs.length ? Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0] : null;
+        }
+
+        // meta.json du ZIP peut préciser/corriger basedOn
+        if (!forcedBasedOn && files['meta.json']) {
+          try { const m = JSON.parse(files['meta.json'].toString('utf8')); if (m.basedOn) basedOn = m.basedOn; } catch {}
+        }
+
+        const finalBasedOn = forcedBasedOn || basedOn;
+
+        // Détecter le nom original du thème (avant réécriture) pour corriger les chemins d'images
+        const originalRefs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
+        const origFreq = {};
+        originalRefs.forEach(t => { origFreq[t] = (origFreq[t] || 0) + 1; });
+        const originalName = originalRefs.length
+          ? Object.entries(origFreq).sort((a, b) => b[1] - a[1])[0][0]
+          : null;
+
+        // Réécrire les sélecteurs data-theme
+        css = css.replace(/\[data-theme="[^"]*"\]/g, `[data-theme="${name}"]`);
+
+        // Réécrire les chemins d'images url('/themes/original/...') → url('/themes/name/...')
+        if (originalName && originalName !== name) {
+          const escapedOrig = originalName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          css = css.replace(new RegExp(`(/themes/)${escapedOrig}(/)`, 'g'), `$1${name}$2`);
+        }
+
+        fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
+
+        // Écrire meta.json
+        if (finalBasedOn && finalBasedOn !== name)
+          fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn: finalBasedOn }, null, 2));
+
+        // Écrire les images et autres fichiers
+        for (const [fname, content] of Object.entries(files)) {
+          if (fname === 'theme.css' || fname === 'meta.json') continue;
+          fs.writeFileSync(path.join(themeDir, fname), content);
+        }
+
+        resolve({ basedOn: finalBasedOn });
+      });
+
+      zipfile.on('error', reject);
+    });
+  });
+}
+
+/* Lecture rapide du meta.json dans un ZIP (pour auto-remplir le formulaire) */
+app.post('/api/themes/zip-peek', upload.single('zip'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier' });
+  yauzl.fromBuffer(req.file.buffer, { lazyEntries: true }, (err, zipfile) => {
+    if (err) return res.status(400).json({ error: 'ZIP invalide' });
+    let answered = false;
+    const done = (data) => { if (!answered) { answered = true; try { zipfile.close(); } catch {} res.json(data); } };
+    zipfile.readEntry();
+    zipfile.on('entry', (entry) => {
+      if (path.basename(entry.fileName) === 'meta.json') {
+        zipfile.openReadStream(entry, (err, stream) => {
+          if (err) return done({ ok: true, basedOn: null });
+          const chunks = [];
+          stream.on('data', c => chunks.push(c));
+          stream.on('end', () => {
+            try { const m = JSON.parse(Buffer.concat(chunks).toString('utf8')); done({ ok: true, basedOn: m.basedOn || null }); }
+            catch  { done({ ok: true, basedOn: null }); }
+          });
+          stream.on('error', () => done({ ok: true, basedOn: null }));
+        });
+      } else { zipfile.readEntry(); }
+    });
+    zipfile.on('end',   () => done({ ok: true, basedOn: null }));
+    zipfile.on('error', () => done({ ok: true, basedOn: null }));
+  });
+});
+
+app.post('/api/themes/import-zip', upload.single('zip'), async (req, res) => {
+  const file = req.file;
+  const name = (req.body.name || '').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+  if (!file || !name) return res.status(400).json({ error: 'Nom et fichier ZIP requis' });
+  const themeDir = path.join(THEMES_DIR, name);
+  const forcedBase = (req.body.basedOn || '').replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || null;
+  try {
+    fs.mkdirSync(themeDir, { recursive: true });
+    const { basedOn } = await extractThemeZip(file.buffer, themeDir, name, forcedBase);
+    res.json({ ok: true, name, basedOn });
+  } catch (e) {
+    try { fs.rmSync(themeDir, { recursive: true, force: true }); } catch {}
+    res.status(400).json({ error: e.message || 'Erreur extraction ZIP' });
+  }
 });
 
 app.delete('/api/themes/:name', (req, res) => {

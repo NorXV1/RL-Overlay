@@ -806,8 +806,8 @@ input:checked + .slider:before { transform:translateX(18px); }
             <input type="text" id="import-theme-base" placeholder="rlcs2025" maxlength="30" style="width:100%;">
           </div>
           <div style="flex:2;min-width:140px;">
-            <label style="font-size:10px;color:var(--text-dim);">FICHIER CSS</label>
-            <input type="file" id="import-theme-file" accept=".css" style="width:100%;color:var(--text);font-size:11px;">
+            <label style="font-size:10px;color:var(--text-dim);">FICHIER <span style="color:var(--text-dim)">CSS</span> <span style="color:var(--text-dimmer,#555)">ou</span> <span style="color:#4a9">ZIP</span></label>
+            <input type="file" id="import-theme-file" accept=".css,.zip" style="width:100%;color:var(--text);font-size:11px;">
           </div>
           <button class="btn btn-blue" onclick="importTheme()" style="white-space:nowrap;">Importer</button>
         </div>
@@ -1022,12 +1022,19 @@ async function importTheme() {
   const baseInput = document.getElementById('import-theme-base').value.trim().replace(/[^a-zA-Z0-9_-]/g,'').toLowerCase();
   const file      = document.getElementById('import-theme-file').files[0];
   const fb        = document.getElementById('fb-import');
-  if (!name || !file) { fb.textContent = 'Nom et fichier CSS requis.'; fb.style.color = '#e05'; return; }
+  if (!name || !file) { fb.textContent = 'Nom et fichier requis.'; fb.style.color = '#e05'; return; }
+
+  const isZip = file.name.toLowerCase().endsWith('.zip');
   const fd = new FormData();
   fd.append('name', name);
-  fd.append('css', file);
+  fd.append(isZip ? 'zip' : 'css', file);
   if (baseInput) fd.append('basedOn', baseInput);
-  const r = await fetch('/api/themes/import', { method:'POST', body: fd }).then(r => r.json());
+
+  fb.textContent = isZip ? 'Extraction en cours…' : 'Import en cours…';
+  fb.style.color = 'var(--text-dim)';
+
+  const endpoint = isZip ? '/api/themes/import-zip' : '/api/themes/import';
+  const r = await fetch(endpoint, { method:'POST', body: fd }).then(r => r.json());
   if (r.ok) {
     fb.textContent = `Thème "${name}" importé !`; fb.style.color = '#3c9';
     document.getElementById('import-theme-name').value = '';
@@ -1036,6 +1043,27 @@ async function importTheme() {
     loadImportedThemes();
   } else { fb.textContent = r.error || 'Erreur'; fb.style.color = '#e05'; }
 }
+
+/* Auto-remplissage NOM + BASÉ SUR quand on choisit un ZIP */
+document.getElementById('import-theme-file').addEventListener('change', async function () {
+  const file = this.files[0];
+  if (!file || !file.name.toLowerCase().endsWith('.zip')) return;
+
+  // NOM ← nom du fichier ZIP sans extension, assaini
+  const nameInput = document.getElementById('import-theme-name');
+  const nameFromFile = file.name.replace(/\.zip$/i, '').replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+  nameInput.value = nameFromFile;
+
+  // BASÉ SUR ← basedOn lu dans meta.json du ZIP (via serveur)
+  const baseInput = document.getElementById('import-theme-base');
+  baseInput.value = '…';
+  try {
+    const fd = new FormData();
+    fd.append('zip', file);
+    const r = await fetch('/api/themes/zip-peek', { method: 'POST', body: fd }).then(r => r.json());
+    baseInput.value = (r.ok && r.basedOn) ? r.basedOn : '';
+  } catch { baseInput.value = ''; }
+});
 
 async function deleteTheme(name) {
   if (!confirm(`Supprimer le thème "${name}" ?`)) return;
