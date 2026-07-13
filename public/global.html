@@ -1182,6 +1182,15 @@ function _resolveThemeBase(theme, depth) {
     .catch(() => Promise.resolve(theme));
 }
 
+/* Écrit le texte du league-label en tronquant à 52 chars pour rlcs2026
+   (au-delà, le top-bar déborde et décale le layout) */
+function setLeagueLabel(text) {
+  const el = document.getElementById('league-label');
+  if (!el) return;
+  const t = String(text || '');
+  el.textContent = (currentTheme === 'rlcs2026' && t.length > 52) ? t.slice(0, 51) + '…' : t;
+}
+
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   currentThemeBase = currentTheme;
@@ -1198,6 +1207,18 @@ function applyTheme(t) {
     currentThemeBase = base;
     setTimeout(initBoostTicks, 50);
     if (state) setTimeout(renderSeriesDots, 120);
+    /* Re-render les couleurs inline (boost arc stroke, stat bar bg) qui dépendent de tc().
+       Nécessaire car : (1) le CSS charge en async → tc() lit les mauvaises vars au 1er appel,
+       (2) chaque theme_change remplace le CSS mais les inline styles restent de l'ancien thème.
+       On déclenche via l'event 'load' du stylesheet ET un timeout de secours (si load déjà parti). */
+    const _reColor = () => {
+      if (_lastSpecPlayer) { renderBoostMeter(_lastSpecPlayer); renderStatBar(_lastSpecPlayer); }
+      if (_lastPlayers)    renderSidebar(_lastPlayers);
+    };
+    if (link && link.href) {
+      link.addEventListener('load', () => setTimeout(_reColor, 20), { once: true });
+    }
+    setTimeout(_reColor, 350);
   });
 }
 
@@ -1283,6 +1304,8 @@ function setBoostArc(pct, team) {
 /* ── State ── */
 let ws, reconT, goalT, hideT;
 let state = null;
+let _lastSpecPlayer = null; // dernier joueur spectated (pour re-render couleurs après changement thème)
+let _lastPlayers    = null; // dernier snapshot des players (sidebar)
 let replayT, replayDelayT, replayActive = false;
 let pendingReplayData = null;
 let lastPrimaryId = null;
@@ -1402,7 +1425,12 @@ function _measureTloWidths() {
     if (b.style.display !== 'flex' && document.body.dataset.theme === 'rlcs2026') {
       const tb = document.getElementById('top-bar');
       if (tb) {
-        _tloCollapsedW = Math.ceil(tb.getBoundingClientRect().width);
+        /* Mesurer le scoreboard (pas le top-bar) : le league-label peut être plus large
+           que le scoreboard et faire gonfler top-bar → _tloCollapsedW incorrect. */
+        const sc = document.getElementById('scoreboard');
+        _tloCollapsedW = sc
+          ? Math.ceil(sc.getBoundingClientRect().width)
+          : Math.ceil(tb.getBoundingClientRect().width);
         tb.style.width = _tloCollapsedW + 'px';
       }
     }
@@ -1715,7 +1743,7 @@ function render(data) {
 
   renderTimer(g.time, g.isOT);
 
-  if (data.meta?.league) document.getElementById('league-label').textContent = data.meta.league;
+  if (data.meta?.league) setLeagueLabel(data.meta.league);
   if (data.series)       document.getElementById('bo-num').textContent = data.series.bestOf;
 
   renderSeriesDots();
@@ -1860,6 +1888,7 @@ function buildDots(id, won, total, side) {
 const sidebarMaps = { blue: new Map(), orange: new Map() };
 
 function renderSidebar(players) {
+  _lastPlayers = players;
   const bEl = document.getElementById('sidebar-blue');
   const oEl = document.getElementById('sidebar-orange');
 
@@ -1998,6 +2027,7 @@ function renderStatBar(p) {
 
 /* ── Boost meter ── */
 function renderBoostMeter(p) {
+  if (p) _lastSpecPlayer = p;
   const meter = document.getElementById('boost-meter');
   if (!p || replayActive || boostForcedOff || !state?.hasGame) { meter.classList.remove('show'); return; }
   meter.classList.add('show');
@@ -2448,12 +2478,12 @@ connect();
 window.addEventListener('load', () => setTimeout(initBoostTicks, 300));
 
 if (IS_PREVIEW) {
-  document.body.style.background = '#09090f';
+  document.body.style.background = 'url("/img/preview-bg.png") center/cover no-repeat #09090f';
 
   // Charger les settings (équipes, thème, ligue, bandeau média)
   fetch('/api/settings').then(r => r.json()).then(s => {
     if (s.theme) applyTheme(s.theme);
-    if (s.league) document.getElementById('league-label').textContent = s.league;
+    if (s.league) setLeagueLabel(s.league);
     if (s.mediaBanner?.enabled) startMediaBanner();
 
     // Noms d'équipes (settings stocke s.blue.name / s.orange.name)

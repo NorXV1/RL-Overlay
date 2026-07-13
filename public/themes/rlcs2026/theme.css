@@ -78,6 +78,8 @@
   background: #1A1A1A; border-radius: 0; text-align: center;
   font-style: italic; color: #B8BBB8; font-size: 11px;
   padding: 4px 22px; letter-spacing: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
 }
 [data-theme="rlcs2026"] #scoreboard { height: 74px; gap: 0; }
 [data-theme="rlcs2026"] #score-main { border-radius: 0; overflow: visible; }
