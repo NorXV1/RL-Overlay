@@ -1228,25 +1228,24 @@ function initBoostTicks() {
   const svg = document.getElementById('boost-svg');
   if (!svg) return;
   svg.querySelectorAll('.boost-tick').forEach(el => el.remove());
-  if (!themeIs('rlcs2025')) return;
+  if (!themeIs('rlcs2025') && !themeIs('fifa-world-cup')) return;
 
   const cx = 54, cy = 54, NS = 'http://www.w3.org/2000/svg', DEG = Math.PI / 180;
-  // Arc couvre 270° en CW depuis SVG East (= visual 6h)
-  // Blanc aux quarts du CERCLE COMPLET : 0°, 90°, 180°, 270°
-  // → 0° = arc start, 90° = 1/4 circle, 180° = 1/2, 270° = arc END
+  const isFifa = themeIs('fifa-world-cup');
   const white = [0, 90, 180, 270];
   const ticks = [];
   white.forEach(a => ticks.push({ a, big: true }));
-  // 3 noirs entre chaque paire de blancs (intervalles de 90°)
   for (let i = 0; i < 3; i++)
     for (let j = 1; j <= 3; j++)
       ticks.push({ a: white[i] + j * 90 / 4, big: false });
 
   ticks.forEach(({ a, big }) => {
     const rad = a * DEG;
-    const r1 = big ? 47  : 49;    // rayon intérieur
-    const r2 = big ? 53  : 51.5;  // rayon extérieur (blanc plus long)
-    const col = big ? 'rgba(255,255,255,.85)' : 'rgba(0,0,0,.65)';
+    const r1 = big ? 47  : 49;
+    const r2 = big ? 53  : 51.5;
+    const col = big
+      ? (isFifa ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.85)')
+      : (isFifa ? 'rgba(255,255,255,.2)'  : 'rgba(0,0,0,.65)');
     const w   = big ? 2   : 1.5;
 
     const ln = document.createElementNS(NS, 'line');
@@ -1270,7 +1269,7 @@ setBoostArc(0);
 
 function setBoostArc(pct, team) {
   const theme  = document.body.dataset.theme;
-  const is34   = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025');
+  const is34   = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup');
   /* Vitality / ENISorail : 100 % = 3/4 du cercle */
   const total  = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
   /* un seul dash de 270°, gap assez grand pour pas répéter */
@@ -1286,7 +1285,9 @@ function setBoostArc(pct, team) {
       const _cs    = getComputedStyle(document.body);
       const _cssTB = _cs.getPropertyValue('--boost-track-b').trim();
       const _cssTО = _cs.getPropertyValue('--boost-track-o').trim();
-      if (themeIs('vitality'))
+      if (themeIs('fifa-world-cup'))
+        bt.style.stroke = 'rgba(255,255,255,.07)';
+      else if (themeIs('vitality'))
         bt.style.stroke = team === 1 ? (_cssTО || 'rgba(250,213,0,.6)')   : (_cssTB || 'rgba(26,172,230,.6)');
       else if (themeIs('rlcs2025'))
         bt.style.stroke = team === 1 ? (_cssTО || 'rgba(232,74,0,.45)')   : (_cssTB || 'rgba(0,152,234,.45)');
@@ -1555,7 +1556,12 @@ function connect() {
             document.getElementById('replay-scorer').textContent      = scorer.name || '—';
             document.getElementById('replay-spd').textContent         = spd;
             document.getElementById('replay-assist-name').textContent = assister || '—';
-            document.getElementById('replay-bar').classList.add('show');
+            const replayBarEl = document.getElementById('replay-bar');
+            replayBarEl.dataset.team = scorer.team_num ?? 0;
+            if (themeIs('fifa-world-cup')) {
+              document.getElementById('replay-assist-block').style.display = assister ? '' : 'none';
+            }
+            replayBarEl.classList.add('show');
             document.getElementById('stat-bar').classList.remove('show');
             clearTimeout(replayT);
             replayT = setTimeout(() => {
@@ -1723,9 +1729,9 @@ function render(data) {
   autoFitTeamName(document.getElementById('orange-name'));
   const _abbrB = document.getElementById('sub-abbr-blue');
   const _abbrO = document.getElementById('sub-abbr-orange');
-  /* Vitality / ENISorail / RLCS 2025 : #sub-abbr-* contient des vlt-win-pip spans.
+  /* Vitality / ENISorail / RLCS 2025 / FIFA WC : #sub-abbr-* contient des vlt-win-pip spans.
      Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
-  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025')) {
+  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup')) {
     if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
     if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
   }
@@ -1818,8 +1824,8 @@ function buildSubTrack(blue, orange, bo) {
   bo = bo || 5; blue = blue || 0; orange = orange || 0;
   track.innerHTML = '';
 
-  /* Vitality / ENISorail : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025')) {
+  /* Vitality / ENISorail / FIFA WC : affiche "GAME X  ►  BEST OF X" + pips de victoire */
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
@@ -1839,8 +1845,8 @@ function buildSubTrack(blue, orange, bo) {
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
 
-    if (themeIs('enisorail') || themeIs('rlcs2025')) {
-      /* ENISorail : slots vides + remplis selon les wins */
+    if (themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
+      /* ENISorail / FIFA WC : slots vides + remplis selon les wins */
       const total = Math.ceil(bo / 2);
       const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
       if (abbrB) abbrB.innerHTML = Array.from({length: total}, (_, i) => mkPip(i < blue)).join('');
@@ -2008,10 +2014,33 @@ function renderStatBar(p) {
   const bar = document.getElementById('stat-bar');
   if (!p || !state?.hasGame) { bar.classList.remove('show'); return; }
   bar.classList.add('show');
+  bar.dataset.team = p.team;
 
   const color = p.team === 0 ? tc().b : tc().o;
   document.getElementById('stat-player-name').textContent = p.name;
-  document.getElementById('stat-team-tag').style.background = color;
+
+  if (themeIs('fifa-world-cup')) {
+    const grad = p.team === 0
+      ? 'linear-gradient(90deg, #0a2483 0%, #1e63dc 100%)'
+      : 'linear-gradient(90deg, #ffaa3c 0%, #f3702b 100%)';
+    bar.style.background = 'transparent';
+    const tag = document.getElementById('stat-team-tag');
+    tag.style.background = grad;
+    let wrap = tag.querySelector('.sb-logo-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'sb-logo-wrap';
+      const img = document.createElement('img');
+      wrap.appendChild(img);
+      tag.insertBefore(wrap, tag.firstChild);
+    }
+    const team = state?.game?.teams?.[p.team];
+    const img = wrap.querySelector('img');
+    if (img) { img.src = team?.logo_url || ''; wrap.style.display = team?.logo_url ? 'flex' : 'none'; }
+  } else {
+    document.getElementById('stat-team-tag').style.background = color;
+  }
+
   const sv = document.getElementById('stat-values');
   if (sv) sv.style.borderBottomColor = color;
 
@@ -2090,8 +2119,8 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025')) {
-    /* Vitality / ENISorail / RLCS2025 : la CSS animation gère la couleur — reset l'inline style */
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
+    /* Vitality / ENISorail / RLCS2025 / FIFA WC : la CSS gère la couleur — reset l'inline style */
     word.style.color = '';
     /* Reset pour re-déclenchement rapide */
     notif.classList.remove('show');
@@ -2598,6 +2627,10 @@ window.addEventListener('message', ({ data }) => {
         document.getElementById('replay-scorer').textContent      = state?.game?.teams?.[team]?.name || '—';
         document.getElementById('replay-assist-name').textContent = '—';
         document.getElementById('replay-spd').textContent         = Math.floor(Math.random() * 50 + 100);
+        replayBar.dataset.team = team;
+        if (themeIs('fifa-world-cup')) {
+          document.getElementById('replay-assist-block').style.display = 'none';
+        }
         replayBar.classList.add('show');
         clearTimeout(replayT);
         replayT = setTimeout(() => {

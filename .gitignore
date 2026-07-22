@@ -7,7 +7,7 @@ public/utils/
 # Thèmes importés par les utilisateurs (non built-in)
 public/themes/da/
 public/themes/ds/
-public/themes/rs/
+public/themes/rscast/
 *.log
 .DS_Store
 Thumbs.db
