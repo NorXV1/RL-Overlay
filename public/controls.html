@@ -1007,6 +1007,8 @@ function _applyThemeRaw(t) {
   document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === t));
   localStorage.setItem('rl-theme', t);
   fetch('/api/theme', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme: t }) }).catch(() => {});
+  const li = document.getElementById('league-input');
+  if (li) { li.maxLength = t === 'fifa-world-cup' ? 14 : 80; if (li.value.length > li.maxLength) li.value = li.value.slice(0, li.maxLength); }
 }
 
 /* Sélection manuelle : bloque les thèmes premium si utilisateur basic */
