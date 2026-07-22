@@ -1,0 +1,1048 @@
+/* ════════════════════════════════════════════════════════════
+   FIFA WORLD CUP — Imported Theme
+   Bleu : #0a2483 → #1e63dc  |  Orange : #f3702b → #ffaa3c  |  Or : #fdb745
+════════════════════════════════════════════════════════════ */
+
+/* ── Police ── */
+@font-face {
+  font-family: 'Bourgeois';
+  src: url('Bourgeois-BoldItalic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+}
+
+/* ── Variables ─────────────────────────────────────────── */
+[data-theme="fifa-world-cup"] {
+  --blue:              #1e63dc;
+  --blue-light:        #3A6ED4;
+  --orange:            #f3702b;
+  --orange-light:      #ffaa3c;
+  --panel-bg:          #0a2483;
+  --panel-text:        #ffffff;
+  --dot-bg:            rgba(255,255,255,.3);
+  --center-bg:         transparent;
+  --row-bg:            #ffffff;
+  --stat-vals-bg:      rgba(5,8,25,.96);
+  --replay-bg:         #f3702b;
+  --replay-text:       #ffffff;
+  --wipe-bg:           linear-gradient(160deg, #04080e 0%, #0d1f60 50%, #04080e 100%);
+  --wipe-box-bg:       rgba(4,8,28,.35);
+  --wipe-word-size:    80px;
+  --wipe-duration:     2s;
+  --wipe-fadein-dur:   .4s;
+  --wipe-fadeout-dur:  1.2s;
+  --goal-bg:           linear-gradient(150deg, #06091c 0%, #0c2070 55%, #06091c 100%);
+  --goal-word-size:    88px;
+  --goal-sub-size:     22px;
+  --win-bg:            linear-gradient(160deg, #04080e 0%, #0d1f60 50%, #04080e 100%);
+  --win-bar-h:         4px;
+  --win-logo-sz:       160px;
+  --win-team-size:     72px;
+  --end-bg:            #060913;
+  --end-mid-bg:        rgba(4,8,28,.85);
+  --end-tbl-bg:        rgba(4,6,20,.6);
+  --replay-bar-h:      72px;
+  --replay-label-size: 18px;
+  --replay-scorer-size:26px;
+  --replay-spd-size:   28px;
+  --boost-track-b:     rgba(10,36,131,.35);
+  --boost-track-o:     rgba(243,112,43,.35);
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOP-BAR
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #top-bar {
+  position: relative;
+  align-items: center;
+  top: 7px;
+}
+[data-theme="fifa-world-cup"] #top-bar::after { content: none; }
+[data-theme="fifa-world-cup"] .tlo-name { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════
+   SCOREBOARD — pilule blanche (62px)
+
+   [logo bleu][=== panel bleu gradient ===][5px] SCORES+TIMER [5px][=== panel orange gradient ===][logo orange]
+
+   Gradients :
+   Bleu  : logo (#0a2483 plat) → panel (90deg : #0a2483 → #1e63dc)
+   Orange: panel (90deg : #f3702b → #ffaa3c) → logo (#ffaa3c plat)
+
+   Bords colorés arrondis des DEUX côtés :
+   - côté extérieur : clip par overflow:hidden du scoreboard
+   - côté intérieur : border-radius propre du panneau
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #scoreboard {
+  order: 1;
+  height: 56px;
+  padding: 0;
+  gap: 0 !important;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #ffffff;
+  align-items: stretch;
+  box-shadow: 0 6px 28px rgba(0,0,0,.60);
+  filter: none;
+}
+
+/* ── Logo-outer : fond plat couleur de bord ── */
+[data-theme="fifa-world-cup"] .team-logo-outer {
+  width: 62px;
+  flex: 0 0 62px;
+  border-radius: 0;
+  overflow: visible;
+  border: none !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+[data-theme="fifa-world-cup"] .team-logo-outer.blue   { background: #0a2483; margin-right: -6px; }
+[data-theme="fifa-world-cup"] .team-logo-outer.orange { background: #f3702b; margin-left: -6px; }
+
+/* Rectangle blanc opacité 50%, border-radius 30px */
+[data-theme="fifa-world-cup"] .team-logo-outer::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  background: rgba(255,255,255,.50);
+  border-radius: 30px;
+  z-index: 0;
+}
+[data-theme="fifa-world-cup"] .team-logo-img,
+[data-theme="fifa-world-cup"] .team-logo-letter,
+[data-theme="fifa-world-cup"] .team-win-count { position: relative; z-index: 1; }
+[data-theme="fifa-world-cup"] .team-logo-img    { width: 30px !important; height: 30px !important; }
+[data-theme="fifa-world-cup"] .team-logo-letter { font-size: 14px; font-weight: 900; font-style: italic; color: #07091a; }
+[data-theme="fifa-world-cup"] .team-win-count   { display: none; }
+
+/* ── Bloc principal ── */
+[data-theme="fifa-world-cup"] #score-main {
+  flex: none;
+  gap: 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  padding: 0;
+  margin: 0;
+}
+[data-theme="fifa-world-cup"] #score-main::after,
+[data-theme="fifa-world-cup"] #score-main::before { display: none !important; }
+
+/* ── Panneaux équipe : gradient, nom centré vertical
+   Bleu  : de gauche (sombre) vers droite (clair) → #0a2483 → #1e63dc
+   Orange: de gauche (sombre) vers droite (clair) → #f3702b → #ffaa3c
+──────────────────────────────────────────────────────── */
+[data-theme="fifa-world-cup"] .team-panel {
+  min-width: 0;
+  flex: 0 0 230px;
+  width: 230px;
+  padding: 0 18px;
+  gap: 0;
+  border-top: none !important;
+  align-self: stretch;
+  flex-direction: column;
+  justify-content: center;
+}
+[data-theme="fifa-world-cup"] .team-panel.blue {
+  background: linear-gradient(90deg, #0a2483 0%, #1e63dc 100%);
+  border-radius: 0 26px 26px 0;
+  margin-right: 5px;
+  align-items: flex-start;
+}
+[data-theme="fifa-world-cup"] .team-panel.orange {
+  background: linear-gradient(90deg, #ffaa3c 0%, #f3702b 100%);
+  border-radius: 26px 0 0 26px;
+  margin-left: 5px;
+  align-items: flex-end;
+}
+[data-theme="fifa-world-cup"] .team-name-wrap { width: 100%; }
+[data-theme="fifa-world-cup"] .team-name {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 31px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 1.5px;
+  color: #07091a;
+  text-shadow: none;
+  width: 100%;
+}
+[data-theme="fifa-world-cup"] .team-panel.blue  .team-name { text-align: left; position: relative; top: 11px; }
+[data-theme="fifa-world-cup"] .team-panel.orange .team-name { text-align: right; position: relative; top: -2px; }
+[data-theme="fifa-world-cup"] .series-dots-small { display: none !important; }
+[data-theme="fifa-world-cup"] .sdot              { display: none !important; }
+
+/* ── Bloc central ── */
+[data-theme="fifa-world-cup"] #center-block {
+  background: transparent;
+  border-top: none;
+  align-items: center;
+  gap: 0;
+}
+
+/* ── Scores ── */
+[data-theme="fifa-world-cup"] .score-box {
+  width: 62px;
+  flex: 0 0 62px;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  font-style: italic;
+  border-radius: 0;
+  border: none !important;
+  outline: none !important;
+  position: relative;
+  top: -3px;
+}
+[data-theme="fifa-world-cup"] .score-box.blue,
+[data-theme="fifa-world-cup"] .score-box.orange {
+  background: transparent;
+  color: #07091a;
+}
+
+/* ── Timer : fond OR (#fdb745), pleine hauteur, texte SOMBRE ── */
+[data-theme="fifa-world-cup"] #timer-wrap {
+  width: 118px;
+  flex: 0 0 118px;
+  padding: 0 8px;
+  border-left: none;
+  border-right: none;
+  background: #fdb745;
+  border-radius: 0;
+  align-self: stretch;
+  height: auto;
+}
+[data-theme="fifa-world-cup"] #timer {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  font-style: italic;
+  color: #07091a;
+  letter-spacing: 2px;
+  position: relative;
+  top: -3px;
+}
+[data-theme="fifa-world-cup"] #timer.warn { color: rgba(7,9,26,.55); }
+[data-theme="fifa-world-cup"] #timer.ot   { color: rgba(7,9,26,.75); }
+[data-theme="fifa-world-cup"] #timer-sub  { display: none; }
+
+/* ══════════════════════════════════════════════════════════
+   SUB-BAR — pilule BLANCHE, largeur contenu
+
+   align-self: center → largeur = contenu (PAS plein écran)
+
+   ╔═══════════════════════════════════╗
+   ║ ||||  ╔═══════════════════╗  |||| ║
+   ║ bars  ║   SEMIFINAL       ║  bars ║   fond blanc
+   ║       ║  GAME 6 ▶ BEST OF ║       ║   boîte or (#fdb746) pleine hauteur
+   ║       ╚═══════════════════╝       ║
+   ╚═══════════════════════════════════╝
+
+   "SEMIFINAL" = #league-label absolu (top: 73px dans #top-bar)
+   "GAME X ▶ BO Y" = #sub-ser-track (texte en bas)
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #score-sub-bar {
+  order: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 52px;
+  background: #ffffff;
+  border-radius: 26px;
+  overflow: hidden;
+  margin-top: 5px;
+  align-self: center;
+  padding: 0 26px;
+  gap: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.20);
+}
+
+/* Barres bleues */
+[data-theme="fifa-world-cup"] #sub-abbr-blue {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Boîte or PLEINE HAUTEUR du sub-bar
+   align-self: stretch + height: auto → 52px (=sub-bar height)
+   border-radius: 8px → légèrement arrondie côtés gauche/droite
+   Les coins haut/bas sont clippés par overflow:hidden du sub-bar */
+[data-theme="fifa-world-cup"] #sub-ser-track {
+  background: #fdb746;
+  border-radius: 31px;
+  padding: 0 22px 5px;
+  align-self: stretch;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-width: 200px;
+}
+[data-theme="fifa-world-cup"] .sub-game-text {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  font-style: italic;
+  color: #07091a;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Barres oranges */
+[data-theme="fifa-world-cup"] #sub-abbr-orange {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Bâtonnets verticaux — sombres sur fond blanc */
+[data-theme="fifa-world-cup"] #sub-abbr-blue  .vlt-win-pip,
+[data-theme="fifa-world-cup"] #sub-abbr-orange .vlt-win-pip {
+  display: inline-block;
+  width: 7px;
+  height: 28px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.16);
+  border: none;
+  box-shadow: none;
+}
+[data-theme="fifa-world-cup"] #sub-abbr-blue  .vlt-win-pip.won {
+  background: linear-gradient(180deg, #4488ff 0%, #0a2483 100%);
+}
+[data-theme="fifa-world-cup"] #sub-abbr-orange .vlt-win-pip.won {
+  background: linear-gradient(180deg, #ffaa3c 0%, #f3702b 100%);
+}
+[data-theme="fifa-world-cup"] .sub-sdot { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════
+   LEAGUE LABEL = "SEMIFINAL"
+   Positionné en absolu sur #top-bar :
+     scoreboard (62px) + gap (5px) + offset intérieur (6px) = 73px
+
+   Avec la boîte or pleine hauteur (52px commençant à 67px),
+   top 73px = 6px depuis le haut de la boîte or ✓
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #league-label {
+  display: flex;
+  position: absolute;
+  top: 63px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border-radius: 0;
+  height: auto;
+  width: auto;
+  padding: 0;
+  z-index: 20;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  font-style: italic;
+  color: #07091a;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* OVERTIME */
+[data-theme="fifa-world-cup"] #score-sub-bar[data-ot="true"] .sub-game-text {
+  color: rgba(7,9,26,.5);
+  animation: fifaOTPulse 1.2s ease-in-out infinite;
+}
+@keyframes fifaOTPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBARS — PLAYER ROWS EN PILULE BLANCHE
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #left-panel     { top: 20px; left: 0; gap: 0; }
+[data-theme="fifa-world-cup"] #media-banner   { background: linear-gradient(90deg, #ffaa3c 0%, #f3702b 100%); border-radius: 8px; margin-top: 520px; margin-left: -28px; width: 230px; height: 85px; }
+[data-theme="fifa-world-cup"] #sidebar-blue   { width: 220px; gap: 2px; }
+[data-theme="fifa-world-cup"] #sidebar-orange { top: 20px; right: 0; width: 220px; gap: 2px; }
+[data-theme="fifa-world-cup"] .row-wrap       { margin-bottom: 2px; }
+
+/* Barres joueurs : fond blanc (vide), boost en fond absolu */
+[data-theme="fifa-world-cup"] #sidebar-blue .player-row,
+[data-theme="fifa-world-cup"] #sidebar-orange .player-row {
+  background: #ffffff !important;
+  border-radius: 22px;
+  border: none !important;
+  position: relative;
+  overflow: hidden;
+  min-height: 34px;
+}
+[data-theme="fifa-world-cup"] .pr-info { height: 34px; }
+
+/* Boost bar = fond entier de la row */
+[data-theme="fifa-world-cup"] .pr-boost-bar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+[data-theme="fifa-world-cup"] .pr-boost-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+[data-theme="fifa-world-cup"] #sidebar-blue   .pr-boost-fill {
+  background: linear-gradient(90deg, #0a2483 0%, #1e63dc 100%);
+  transform-origin: left center;
+}
+[data-theme="fifa-world-cup"] #sidebar-orange .pr-boost-fill {
+  background: linear-gradient(90deg, #ffaa3c 0%, #f3702b 100%);
+  transform-origin: right center;
+}
+
+/* Info au-dessus du boost */
+[data-theme="fifa-world-cup"] .pr-info {
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  height: 100%;
+}
+[data-theme="fifa-world-cup"] #sidebar-orange .pr-info { justify-content: flex-end; }
+[data-theme="fifa-world-cup"] .pr-accent { display: none !important; }
+
+[data-theme="fifa-world-cup"] .pr-name {
+  color: #07091a;
+  font-size: 22px;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  text-shadow: 0 1px 4px rgba(0,0,0,.35);
+}
+[data-theme="fifa-world-cup"] #sidebar-orange .pr-name { text-align: right; }
+[data-theme="fifa-world-cup"] .pr-val { display: none !important; }
+
+/* Décalage des bords */
+[data-theme="fifa-world-cup"] #left-panel     { left: 25px; }
+[data-theme="fifa-world-cup"] #sidebar-orange { right: 25px; }
+
+[data-theme="fifa-world-cup"] .player-row.spectating {
+  background: #ffffff !important;
+  box-shadow: inset 0 0 0 2px #fdb745;
+}
+[data-theme="fifa-world-cup"] .player-row.spectating .pr-name { color: #07091a !important; }
+[data-theme="fifa-world-cup"] .player-row.spectating .pr-val  { color: #07091a; }
+
+/* ── Icônes statfeed : à l'intérieur de la barre ── */
+[data-theme="fifa-world-cup"] #sidebar-blue .pr-icons {
+  left: auto;
+  right: 28px;
+  height: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: visible;
+  align-items: center;
+  flex-direction: row-reverse;
+  z-index: 2;
+}
+[data-theme="fifa-world-cup"] #sidebar-orange .pr-icons {
+  right: auto;
+  left: 28px;
+  height: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: visible;
+  align-items: center;
+  flex-direction: row;
+  z-index: 2;
+}
+[data-theme="fifa-world-cup"] .pr-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent !important;
+  opacity: 1;
+}
+[data-theme="fifa-world-cup"] #sidebar-blue .pr-icon {
+  filter: drop-shadow(0 0 6px #4c8dff) drop-shadow(0 0 12px #1e63dc);
+}
+[data-theme="fifa-world-cup"] #sidebar-orange .pr-icon {
+  filter: drop-shadow(0 0 6px #ffaa3c) drop-shadow(0 0 12px #f3702b);
+}
+[data-theme="fifa-world-cup"] .pr-icon img {
+  filter: grayscale(100%) brightness(1.2);
+}
+
+/* ══════════════════════════════════════════════════════════
+   STAT BAR
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #stat-bar {
+  left: 50px; right: auto;
+  transform: translateY(100%);
+  width: auto; min-width: 480px;
+  height: 62px;
+  border-radius: 31px;
+  background: transparent;
+  overflow: visible;
+  bottom: 85px;
+  box-shadow: 0 6px 28px rgba(0,0,0,.55);
+}
+[data-theme="fifa-world-cup"] #stat-bar.show {
+  transform: translateY(0);
+}
+
+/* Section gauche : dégradé équipe (défini par JS) */
+[data-theme="fifa-world-cup"] #stat-team-tag {
+  border-radius: 31px 0 0 31px;
+  min-width: 200px;
+  padding: 0 24px 0 14px;
+  gap: 10px;
+  display: flex; align-items: center;
+}
+[data-theme="fifa-world-cup"] #stat-arrows { display: none; }
+
+/* Logo injecté par JS */
+[data-theme="fifa-world-cup"] .sb-logo-wrap {
+  width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.45);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+[data-theme="fifa-world-cup"] .sb-logo-wrap img {
+  width: 28px; height: 28px; object-fit: contain;
+}
+
+[data-theme="fifa-world-cup"] #stat-player-name {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 26px; font-weight: 900; font-style: italic;
+  letter-spacing: 2px; color: #07091a;
+  white-space: nowrap;
+  position: relative; top: -3px;
+}
+
+/* Section droite : fond blanc, bas plat (pas de courbe = pas de trou avec les labels) */
+[data-theme="fifa-world-cup"] #stat-values {
+  background: #ffffff;
+  flex: 1;
+  position: relative;
+  overflow: visible;
+  border-radius: 0 31px 31px 0;
+}
+/* Box colorée — part du top, se cache derrière le blanc, visible dans coin bas-droit + bande labels */
+[data-theme="fifa-world-cup"] #stat-values::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: -18px;
+  left: 0; right: 0;
+  background: #1e63dc;
+  border-radius: 0 31px 10px 10px;
+  z-index: -1;
+}
+[data-theme="fifa-world-cup"] .stat-item {
+  border-right: 1px solid rgba(0,0,0,.08);
+  justify-content: center;
+  padding: 0; gap: 0;
+  position: relative;
+  overflow: visible;
+}
+[data-theme="fifa-world-cup"] .stat-val {
+  color: #07091a;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 24px; font-weight: 900; font-style: italic;
+  flex: 1; display: flex; align-items: center; justify-content: center;
+}
+/* Labels transparents par-dessus le ::after coloré */
+[data-theme="fifa-world-cup"] .stat-lbl {
+  position: absolute;
+  bottom: -18px;
+  left: 0; right: 0;
+  height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: #ffffff;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.2px;
+  z-index: 1;
+}
+[data-theme="fifa-world-cup"] #stat-bar[data-team="0"] #stat-values::after { background: #1e63dc; }
+[data-theme="fifa-world-cup"] #stat-bar[data-team="1"] #stat-values::after { background: #f3702b; }
+
+/* ══════════════════════════════════════════════════════════
+   BOOST METER
+══════════════════════════════════════════════════════════ */
+
+/* Conteneur : fond noir profond, bordure or, overflow:hidden pour clipper les ticks */
+[data-theme="fifa-world-cup"] #boost-meter {
+  background: #090b12;
+  box-shadow: 0 0 0 2px rgba(253,183,69,.22), 0 10px 40px rgba(0,0,0,.75);
+  width: 186px; height: 186px;
+  overflow: hidden;
+}
+
+/* Arc démarre à 7h30 (jauge style tachymètre) — rotation -135° */
+[data-theme="fifa-world-cup"] #boost-svg {
+  transform: rotate(135deg) !important;
+}
+
+/* Track : anneau sombre discret (full circle = fond de jauge) */
+[data-theme="fifa-world-cup"] #boost-track {
+  stroke: rgba(255,255,255,.06) !important;
+  stroke-width: 9;
+}
+[data-theme="fifa-world-cup"] #boost-arc {
+  stroke-width: 10;
+  stroke-linecap: butt;
+}
+
+/* Vitesse masquée */
+[data-theme="fifa-world-cup"] #speed-val,
+[data-theme="fifa-world-cup"] #speed-unit { display: none !important; }
+
+/* Chiffre boost : Bourgeois italic, grand */
+[data-theme="fifa-world-cup"] #boost-big {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  font-size: 60px;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* Label "BOOST" sous le chiffre */
+[data-theme="fifa-world-cup"] #boost-center::after {
+  content: 'BOOST';
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,.25);
+  margin-top: 8px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   REPLAY BAR
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #replay-bar {
+  left: 50px; right: auto;
+  bottom: 85px;
+  width: auto; min-width: 420px;
+  height: 62px;
+  border-radius: 31px;
+  background: linear-gradient(90deg, #0a2483 0%, #1e63dc 100%);
+  border-top: none;
+  overflow: visible;
+  box-shadow: 0 6px 28px rgba(0,0,0,.55);
+  display: flex; align-items: center;
+  gap: 20px; padding: 0 28px 0 18px;
+  filter: none;
+}
+[data-theme="fifa-world-cup"] #replay-bar[data-team="0"] {
+  background: linear-gradient(90deg, #0a2483 0%, #1e63dc 100%);
+}
+[data-theme="fifa-world-cup"] #replay-bar[data-team="1"] {
+  background: linear-gradient(90deg, #ffaa3c 0%, #f3702b 100%);
+}
+
+/* Label REPLAY — fond blanc, texte noir, fond plat en bas */
+[data-theme="fifa-world-cup"] #replay-label {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 0;
+  background: #ffffff;
+  color: #07091a;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 20px; font-weight: 900; font-style: italic;
+  letter-spacing: 3px;
+  padding: 8px 18px;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  height: auto; white-space: nowrap;
+  margin-left: 0;
+}
+/* Bouchon blanc qui comble le vide du border-radius 31px du pill (coin haut-gauche). */
+[data-theme="fifa-world-cup"] #replay-label::after {
+  content: '';
+  position: absolute;
+  bottom: -31px;
+  left: 0;
+  width: 31px;
+  height: 31px;
+  background: #ffffff;
+  clip-path: path('M 0 0 L 31 0 A 31 31 0 0 0 0 31 Z');
+  z-index: -1;
+}
+
+/* Éléments masqués */
+[data-theme="fifa-world-cup"] #replay-goal-tag  { display: none; }
+[data-theme="fifa-world-cup"] #replay-spd-lbl   { display: none; }
+[data-theme="fifa-world-cup"] #replay-assist-lbl { display: none; }
+
+/* Scorer : ⚽ NOM — z-index:2 pour passer au-dessus du ::before (z-index:1) */
+[data-theme="fifa-world-cup"] #replay-scorer {
+  flex: none;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 26px; font-weight: 900; font-style: italic;
+  color: #07091a; letter-spacing: 1px;
+  white-space: nowrap; overflow: visible; text-overflow: unset;
+}
+[data-theme="fifa-world-cup"] #replay-scorer::before {
+  content: '⚽  '; font-style: normal; font-size: 20px;
+}
+
+/* Section droite : vitesse + assist côte à côte — z-index:2 au-dessus du ::before */
+[data-theme="fifa-world-cup"] #replay-right {
+  display: flex; align-items: center;
+  gap: 20px; height: auto;
+}
+
+/* Vitesse : 🔥 68 KM/H */
+[data-theme="fifa-world-cup"] #replay-speed-block {
+  display: flex; flex-direction: row; align-items: center;
+  gap: 0; padding: 0; border-left: none; height: auto;
+}
+[data-theme="fifa-world-cup"] #replay-speed-block::before {
+  content: '🔥'; font-size: 20px; margin-right: 8px;
+}
+[data-theme="fifa-world-cup"] #replay-speed-line {
+  display: flex; align-items: baseline; gap: 3px;
+}
+[data-theme="fifa-world-cup"] #replay-spd {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 26px; font-weight: 900; font-style: italic;
+  color: #07091a; line-height: 1;
+}
+[data-theme="fifa-world-cup"] #replay-spd-unit {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 900; font-style: italic;
+  color: #07091a;
+}
+
+/* Assist : 👏 NOM */
+[data-theme="fifa-world-cup"] #replay-assist-block {
+  display: flex; flex-direction: row; align-items: center;
+  gap: 0; padding: 0; border-left: none; height: auto;
+}
+[data-theme="fifa-world-cup"] #replay-assist-block::before {
+  content: '👏'; font-size: 20px; margin-right: 8px;
+}
+[data-theme="fifa-world-cup"] #replay-assist-name {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-size: 26px; font-weight: 900; font-style: italic;
+  color: #07091a; letter-spacing: 1px; white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════
+   WIPE / GOAL / OT / WIN
+══════════════════════════════════════════════════════════ */
+
+/* Stat-bar masquée pendant tout le replay (wipe actif, replay-bar visible, et fadeout) */
+[data-theme="fifa-world-cup"] body:has(#replay-wipe.rw-active) #stat-bar,
+[data-theme="fifa-world-cup"] body:has(#replay-wipe.rw-fadeout) #stat-bar,
+[data-theme="fifa-world-cup"] body:has(#replay-bar.show) #stat-bar {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Disparition instantanée quand cancelReplayWipe() retire toutes les classes (cas LIVE)
+   → évite le snap-back visible pendant la transition de fade par défaut */
+[data-theme="fifa-world-cup"] #replay-wipe            { transition: none; }
+[data-theme="fifa-world-cup"] #replay-wipe.rw-active  { transition: opacity var(--wipe-fadein-dur) ease; }
+[data-theme="fifa-world-cup"] #replay-wipe.rw-fadeout { transition: opacity var(--wipe-fadeout-dur) ease; }
+
+/* Fige le texte dans l'état étalé pendant le fadeout normal (REPLAY) */
+[data-theme="fifa-world-cup"] #replay-wipe.rw-fadeout #rw-word {
+  letter-spacing: 80px;
+  transform: scale(1.08);
+}
+
+/* — Boîte wipe : bordure or, fond nuit transparent — */
+[data-theme="fifa-world-cup"] #rw-box {
+  border: 2px solid #fdb746;
+  background: var(--wipe-box-bg);
+  box-shadow: 0 0 0 8px rgba(253,183,69,.07), 0 30px 80px rgba(0,0,0,.55);
+  padding: 32px 100px;
+}
+[data-theme="fifa-world-cup"] #rw-box::before {
+  border-color: rgba(253,183,69,.2);
+}
+/* Ligne dorée centrée sous la boîte */
+[data-theme="fifa-world-cup"] #rw-box::after {
+  content: '';
+  position: absolute;
+  bottom: -14px; left: 50%; transform: translateX(-50%);
+  width: 55%; height: 2px;
+  background: linear-gradient(90deg, transparent, #fdb746, transparent);
+  pointer-events: none;
+}
+
+/* — REPLAY / LIVE : texte doré Bourgeois italic — */
+[data-theme="fifa-world-cup"] #rw-word {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #fdb746;
+  letter-spacing: 14px;
+  text-shadow: 0 0 60px rgba(253,183,69,.6), 0 0 120px rgba(253,183,69,.2);
+}
+/* Échos en contour doré */
+[data-theme="fifa-world-cup"] #rw-word::before { -webkit-text-stroke: 3px rgba(253,183,69,.15); }
+[data-theme="fifa-world-cup"] #rw-word::after  { -webkit-text-stroke: 2px rgba(253,183,69,.07); }
+
+/* — GOAL : fond bleu nuit, bords or en haut/bas — */
+[data-theme="fifa-world-cup"] #goal-inner {
+  border-top: 2px solid #fdb746;
+  border-bottom: 2px solid #fdb746;
+  border-left: none; border-right: none;
+  box-shadow: 0 0 80px rgba(253,183,69,.08), 0 20px 60px rgba(0,0,0,.7);
+}
+/* Sweep doré (remplace le blanc du base) */
+[data-theme="fifa-world-cup"] #goal-inner::after {
+  background: linear-gradient(90deg, transparent, rgba(253,183,69,.65), transparent);
+  height: 1px;
+}
+
+/* — GOAL! texte — */
+[data-theme="fifa-world-cup"] #goal-word {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #fdb746;
+  letter-spacing: 6px;
+  text-shadow: 0 0 40px rgba(253,183,69,.7), 0 0 80px rgba(253,183,69,.3);
+}
+
+/* — Scorer sous GOAL! — */
+[data-theme="fifa-world-cup"] #goal-sub {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 4px;
+  opacity: .9;
+}
+
+[data-theme="fifa-world-cup"] #ot-word { color: #fdb746; }
+
+/* ══════════════════════════════════════════════════════════
+   WIN SCREEN (victoire de série)
+══════════════════════════════════════════════════════════ */
+
+/* Barres or haut/bas (override inline team color) */
+[data-theme="fifa-world-cup"] #win-bar-top,
+[data-theme="fifa-world-cup"] #win-bar-bot {
+  background: linear-gradient(90deg, #fdb746, #f3702b) !important;
+  height: 3px;
+}
+
+/* Halo or (override inline team color) */
+[data-theme="fifa-world-cup"] #win-glow {
+  background: radial-gradient(circle, #fdb746 0%, rgba(243,112,43,.3) 60%, transparent 100%) !important;
+}
+
+/* Shimmer doré */
+[data-theme="fifa-world-cup"] #win-shine {
+  background: linear-gradient(90deg, transparent, rgba(253,183,69,.07), transparent);
+}
+
+/* "SERIES WINNER" */
+[data-theme="fifa-world-cup"] #win-label {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #fdb746;
+  font-size: 15px;
+  letter-spacing: 12px;
+  text-shadow: 0 0 20px rgba(253,183,69,.4);
+}
+
+/* Logo : cadre circulaire doré */
+[data-theme="fifa-world-cup"] #win-logo-wrap {
+  border: 2px solid rgba(253,183,69,.45);
+  border-radius: 50%;
+  background: rgba(253,183,69,.05);
+  box-shadow: 0 0 50px rgba(253,183,69,.15), inset 0 0 20px rgba(253,183,69,.04);
+}
+
+/* Nom d'équipe : blanc Bourgeois italic (override inline color JS) */
+[data-theme="fifa-world-cup"] #win-team-name {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #ffffff !important;
+  letter-spacing: 5px;
+  text-shadow: 0 4px 30px rgba(0,0,0,.6);
+}
+
+/* "REMPORTE LA SÉRIE" */
+[data-theme="fifa-world-cup"] #win-subtitle {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: rgba(255,255,255,.45);
+  letter-spacing: 8px;
+  font-size: 14px;
+}
+
+/* Score de série */
+[data-theme="fifa-world-cup"] #win-series-score {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #fdb746;
+  font-size: 52px;
+  letter-spacing: 10px;
+  text-shadow: 0 0 30px rgba(253,183,69,.4);
+}
+
+/* ══════════════════════════════════════════════════════════
+   END SCREEN (stats post-match)
+══════════════════════════════════════════════════════════ */
+
+/* Écran : fond navy + respiration entre les cards */
+[data-theme="fifa-world-cup"] #end-screen {
+  padding: 42px 72px;
+  gap: 16px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* ── HEADER CARD (teams + score) ── */
+[data-theme="fifa-world-cup"] #end-hdr {
+  border-radius: 22px;
+  overflow: hidden;
+  height: 108px;
+  flex-shrink: 0;
+}
+
+/* Side bleue : dégradé pill gauche */
+[data-theme="fifa-world-cup"] .end-side.blue {
+  background: linear-gradient(90deg, #0a2483 0%, rgba(10,36,131,.25) 100%);
+  border: none;
+  border-radius: 22px 0 0 22px;
+  padding: 0 36px;
+}
+/* Side orange : dégradé pill droite */
+[data-theme="fifa-world-cup"] .end-side.orange {
+  background: linear-gradient(270deg, #f3702b 0%, rgba(243,112,43,.25) 100%);
+  border: none;
+  border-radius: 0 22px 22px 0;
+  padding: 0 36px;
+}
+/* Gagnant : dégradé renforcé + éclat */
+[data-theme="fifa-world-cup"] .end-side.winner { animation: fifaWinSideGlow 2.2s ease 1; }
+[data-theme="fifa-world-cup"] .end-side.blue.winner {
+  background: linear-gradient(90deg, #0a2483 0%, rgba(30,99,220,.4) 100%);
+}
+[data-theme="fifa-world-cup"] .end-side.orange.winner {
+  background: linear-gradient(270deg, #f3702b 0%, rgba(255,170,60,.35) 100%);
+}
+@keyframes fifaWinSideGlow {
+  0%,100% { filter: brightness(1); }
+  40%     { filter: brightness(1.3); }
+}
+
+/* Logo carré */
+[data-theme="fifa-world-cup"] .end-side.blue   .end-logo-sq { border-color: rgba(255,255,255,.35); background: rgba(4,10,50,.6); border-radius: 12px; }
+[data-theme="fifa-world-cup"] .end-side.orange .end-logo-sq { border-color: rgba(255,255,255,.35); background: rgba(100,30,0,.4); border-radius: 12px; }
+
+/* Textes côtés */
+[data-theme="fifa-world-cup"] .end-side-name {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: #ffffff;
+  font-size: 32px;
+  letter-spacing: 2px;
+}
+[data-theme="fifa-world-cup"] .end-side-result { color: rgba(255,255,255,.45); letter-spacing: 5px; }
+[data-theme="fifa-world-cup"] .end-side.winner      .end-side-result { color: #fdb746; }
+[data-theme="fifa-world-cup"] .end-side.blue.winner .end-side-result { color: #fdb746; }
+
+/* ── Centre (score) : fond navy, bordures or ── */
+[data-theme="fifa-world-cup"] #end-mid {
+  border-left:  1px solid rgba(253,183,69,.25);
+  border-right: 1px solid rgba(253,183,69,.25);
+  background: rgba(4,8,28,.9);
+}
+[data-theme="fifa-world-cup"] .end-sc-box {
+  border-radius: 12px;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+}
+[data-theme="fifa-world-cup"] .end-sc-box.blue   { background: linear-gradient(135deg, #0a2483, #1e63dc); color: #fff; }
+[data-theme="fifa-world-cup"] .end-sc-box.orange { background: linear-gradient(135deg, #f3702b, #ffaa3c); color: #fff; }
+[data-theme="fifa-world-cup"] .end-vs-sep  { color: rgba(255,255,255,.25); }
+[data-theme="fifa-world-cup"] .end-ser-row {
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: rgba(255,255,255,.65);
+}
+[data-theme="fifa-world-cup"] .end-bo-tag {
+  color: rgba(255,255,255,.4);
+  background: rgba(253,183,69,.08);
+  border: 1px solid rgba(253,183,69,.2);
+  border-radius: 6px;
+}
+
+/* ── TABLE STATS : card arrondie ── */
+[data-theme="fifa-world-cup"] #end-table {
+  border-radius: 18px;
+  overflow: hidden;
+  border-top: none;
+  border-bottom: none;
+  flex-shrink: 0;
+}
+[data-theme="fifa-world-cup"] #end-lbl        { background: rgba(0,0,0,.15); }
+[data-theme="fifa-world-cup"] .end-lbl-text   { color: rgba(255,255,255,.28); letter-spacing: 3px; }
+
+/* En-têtes joueurs : pill couleur équipe */
+[data-theme="fifa-world-cup"] #end-bl .end-p-top {
+  border-top: 3px solid #1e63dc;
+  background: rgba(10,36,131,.35);
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: rgba(255,255,255,.92);
+  letter-spacing: .5px;
+}
+[data-theme="fifa-world-cup"] #end-or .end-p-top {
+  border-top: 3px solid #f3702b;
+  background: rgba(243,112,43,.25);
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  color: rgba(255,255,255,.92);
+  letter-spacing: .5px;
+}
+
+/* Valeurs : couleur équipe, Bourgeois */
+[data-theme="fifa-world-cup"] #end-bl .end-p-cell {
+  color: #7ab4ff;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+}
+[data-theme="fifa-world-cup"] #end-or .end-p-cell {
+  color: #ffaa3c;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+}
+
+/* ── BARRES COMPARAISON : card arrondie ── */
+[data-theme="fifa-world-cup"] #end-bars {
+  border-radius: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(4,6,20,.7);
+}
+[data-theme="fifa-world-cup"] .end-bv.r {
+  color: #7ab4ff;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  font-size: 22px;
+}
+[data-theme="fifa-world-cup"] .end-bv.l {
+  color: #ffaa3c;
+  font-family: 'Bourgeois', 'Barlow Condensed', sans-serif;
+  font-style: italic;
+  font-size: 22px;
+}
+[data-theme="fifa-world-cup"] .end-bl-lbl    { color: rgba(255,255,255,.35); }
+[data-theme="fifa-world-cup"] .end-bar-track { background: rgba(255,255,255,.05); border-radius: 4px; }
+[data-theme="fifa-world-cup"] .end-bf.b { background: linear-gradient(90deg, #0a2483, #1e63dc); }
+[data-theme="fifa-world-cup"] .end-bf.o { background: linear-gradient(90deg, #f3702b, #ffaa3c); }

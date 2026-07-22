@@ -761,6 +761,39 @@ input:checked + .slider:before { transform:translateX(18px); }
           </div>
         </div>
 
+        <!-- FIFA World Cup -->
+        <div class="tc" data-t="fifa-world-cup" onclick="setTheme('fifa-world-cup')">
+          <div class="tc-preview">
+            <div class="tc-bg" style="background:#060913;">
+              <div class="tc-header">
+                <div class="tc-h-blue"   style="background:linear-gradient(90deg,#0a2483,#1e63dc);border-top:none;border-bottom:2px solid #fdb746;"></div>
+                <div class="tc-h-score">
+                  <div class="tc-h-sb" style="background:#0a2483;"></div>
+                  <div style="background:#060913;flex:0.8;display:flex;align-items:center;justify-content:center;"><div style="font-size:5px;color:#fdb746;font-style:italic;font-weight:900;">0:46</div></div>
+                  <div class="tc-h-so" style="background:#f3702b;"></div>
+                </div>
+                <div class="tc-h-orange" style="background:linear-gradient(270deg,#f3702b,#ffaa3c);border-top:none;border-bottom:2px solid #fdb746;"></div>
+              </div>
+              <div class="tc-body">
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;">
+                  <div style="height:5px;width:40px;background:rgba(10,36,131,.6);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                  <div style="height:5px;width:40px;background:rgba(10,36,131,.6);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                  <div style="height:5px;width:40px;background:rgba(10,36,131,.6);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;margin-left:auto;">
+                  <div style="height:5px;width:40px;background:rgba(243,112,43,.25);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                  <div style="height:5px;width:40px;background:rgba(243,112,43,.25);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                  <div style="height:5px;width:40px;background:rgba(243,112,43,.25);border-radius:3px;border:1px solid rgba(253,183,69,.2);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="tc-name">FIFA WC</div>
+            <div class="tc-check">✓</div>
+          </div>
+        </div>
+
         <!-- Amber -->
         <div class="tc" data-t="amber" onclick="setTheme('amber')">
           <div class="tc-preview">
@@ -942,8 +975,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 
 <script>
 /* ══════════ THEME ══════════════════════════════════ */
-let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025'];
-const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025']);
+let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025','fifa-world-cup'];
+const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025','fifa-world-cup']);
 
 /* ── Thèmes réservés aux comptes Premium — tous déverrouillés ── */
 const PREMIUM_THEMES = new Set([]);
