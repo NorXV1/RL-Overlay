@@ -933,42 +933,6 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-utils"></div>
     </div>
 
-    <!-- Simuler joueur -->
-    <div class="card">
-      <div class="card-title white">Simuler — Joueur spectateur</div>
-      <div class="row">
-        <div><label>Nom</label><input type="text" id="spec-name" placeholder="PLAYER1"></div>
-        <div><label>Équipe</label><select id="spec-team"><option value="0">Bleu</option><option value="1">Orange</option></select></div>
-      </div>
-      <div class="row">
-        <div><label>Buts</label><input type="number" id="sp-g" value="0" min="0"></div>
-        <div><label>Passes D.</label><input type="number" id="sp-a" value="0" min="0"></div>
-        <div><label>Tirs</label><input type="number" id="sp-sh" value="0" min="0"></div>
-        <div><label>Arrêts</label><input type="number" id="sp-sv" value="0" min="0"></div>
-        <div><label>Démos</label><input type="number" id="sp-d" value="0" min="0"></div>
-      </div>
-      <div class="row">
-        <div><label>Boost %</label><input type="number" id="sp-boost" value="60" min="0" max="100"></div>
-        <div><label>Vitesse km/h</label><input type="number" id="sp-speed" value="0" min="0"></div>
-      </div>
-      <button class="btn btn-gray" onclick="applySpec()">Envoyer</button>
-      <div class="fb" id="fb-spec"></div>
-    </div>
-
-    <!-- Timer -->
-    <div class="card">
-      <div class="card-title white">Minuteur (Simulation)</div>
-      <div class="row">
-        <div><label>Secondes</label><input type="number" id="t-sec" value="300" min="0" max="600"></div>
-        <div style="display:flex;align-items:flex-end;padding-bottom:8px;">
-          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--muted);">
-            <input type="checkbox" id="t-ot"> Prolongations
-          </label>
-        </div>
-      </div>
-      <button class="btn btn-gray" onclick="applyTime()">Définir</button>
-      <div class="fb" id="fb-time"></div>
-    </div>
 
   </div>
 </div>
@@ -1300,8 +1264,6 @@ async function resetSeries() { document.getElementById('s-blue').value=document.
 function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling; btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1800); }); }
 async function trigGoal(team) { await post('/api/goal',{team}); hFb('⚽ But !'); }
 async function adjScore(team,delta) { const id=team===0?'lp-sb':'lp-so'; const val=Math.max(0,parseInt(document.getElementById(id).textContent)+delta); await post('/api/score',team===0?{blue:val}:{orange:val}); hFb('Score mis à jour'); }
-async function applySpec() { await post('/api/spectate',{name:document.getElementById('spec-name').value||'PLAYER',team:parseInt(document.getElementById('spec-team').value),goals:parseInt(document.getElementById('sp-g').value),assists:parseInt(document.getElementById('sp-a').value),shots:parseInt(document.getElementById('sp-sh').value),saves:parseInt(document.getElementById('sp-sv').value),demos:parseInt(document.getElementById('sp-d').value),boost:parseInt(document.getElementById('sp-boost').value),speed:parseInt(document.getElementById('sp-speed').value)}); fb('fb-spec','✓ Joueur simulé'); }
-async function applyTime() { await post('/api/time',{time:parseInt(document.getElementById('t-sec').value),isOT:document.getElementById('t-ot').checked}); fb('fb-time','✓ Temps mis à jour'); }
 async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await post('/api/reset',{}); }
 async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
@@ -1439,6 +1401,18 @@ document.addEventListener('DOMContentLoaded', () => {
         tierEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;background:linear-gradient(90deg,rgba(146,64,14,.35),rgba(217,119,6,.25));color:#fbbf24;border:1px solid rgba(217,119,6,.45)">★ PREMIUM</span>';
       } else {
         tierEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.14)">○ BASIC</span>';
+        const upgradeBtn = document.createElement('button');
+        upgradeBtn.textContent = '★ Passer Premium';
+        upgradeBtn.style.cssText = 'display:block;width:100%;margin-top:8px;padding:8px 12px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;background:linear-gradient(90deg,rgba(146,64,14,.5),rgba(217,119,6,.4));color:#fbbf24;border:1px solid rgba(217,119,6,.5);transition:filter .15s';
+        upgradeBtn.onmouseenter = () => upgradeBtn.style.filter = 'brightness(1.2)';
+        upgradeBtn.onmouseleave = () => upgradeBtn.style.filter = '';
+        upgradeBtn.onclick = () => {
+          const token = s.token || '';
+          const url = 'https://overlay.rscast.fr/premium' + (token ? '?token=' + encodeURIComponent(token) : '');
+          if (window.electronAPI?.openUrl) window.electronAPI.openUrl(url);
+          else window.open(url, '_blank');
+        };
+        card.appendChild(upgradeBtn);
       }
     }
   } catch {}

@@ -810,6 +810,7 @@ app.get('/api/session', (req, res) => {
     username : _session.username,
     tier     : _session.tier || 'basic',
     license  : _session.license,
+    token    : _session.token,
   });
 });
 

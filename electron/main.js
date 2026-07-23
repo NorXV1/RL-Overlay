@@ -145,6 +145,13 @@ if (!gotLock) { app.exit(0); } else {
     initDiscordRPC();
   });
 
+  /* ── IPC : ouvrir URL dans le navigateur externe ─────────────── */
+  ipcMain.on('open-url', (e, url) => {
+    if (typeof url === 'string' && url.startsWith('https://overlay.rscast.fr')) {
+      shell.openExternal(url);
+    }
+  });
+
   /* ── IPC : déconnexion depuis controls.html ─────────────────── */
   ipcMain.on('auth-logout', () => {
     clearSession();
