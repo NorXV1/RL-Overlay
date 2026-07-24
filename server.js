@@ -31,7 +31,10 @@ function saveSettings() {
 
 let settings = readSettings();
 settings.mediaBanner = settings.mediaBanner ?? { enabled: false };
+settings.playerLinks = {}; // remis à zéro à chaque démarrage de l'application
+settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
 let currentTheme = settings.theme || 'rlcs';
+saveSettings();
 
 function listUtils() {
   try {
@@ -54,7 +57,7 @@ function applySettings() {
   const s = settings;
   if (s.blue?.name)   { gameState.game.teams[0].name = s.blue.name;   gameState.game.teams[0]._nameLocked = true; }
   if (s.orange?.name) { gameState.game.teams[1].name = s.orange.name; gameState.game.teams[1]._nameLocked = true; }
-  if (s.league)       gameState.meta.league        = s.league;
+  if (s.league !== undefined) gameState.meta.league = s.league;
   if (s.bestOf)       gameState.series.bestOf      = s.bestOf;
   if (s.series?.blue   !== undefined) gameState.series.blue   = s.series.blue;
   if (s.series?.orange !== undefined) gameState.series.orange = s.series.orange;
@@ -334,6 +337,7 @@ function handleStatsApiUpdate(data) {
       const ep = gameState.game.players[id];
       ep.name     = name     || ep.name;
       ep.team     = team;
+      ep.link     = settings.playerLinks[ep.name] || '';
       ep.score    = p.Score    ?? ep.score;
       ep.goals    = p.Goals    ?? ep.goals;
       ep.assists  = p.Assists  ?? ep.assists;
@@ -346,6 +350,7 @@ function handleStatsApiUpdate(data) {
     } else {
       gameState.game.players[id] = {
         id, name: name || id, team,
+        link: settings.playerLinks[name || id] || '',
         score: p.Score ?? 0, goals: p.Goals ?? 0, assists: p.Assists ?? 0,
         saves: p.Saves ?? 0, shots: p.Shots ?? 0, demos: p.Demos ?? 0,
         boost: p.Boost ?? 0, speed: p.Speed ?? 0,
@@ -376,6 +381,7 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'utils_updated', data: { files: listUtils() } }));
   ws.send(JSON.stringify({ type: 'overlay_visible', data: { visible: overlayVisible } }));
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
+  ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled } }));
   ws.on('close', () => console.log('[Overlay] Client déconnecté'));
 });
 
@@ -525,11 +531,30 @@ app.post('/api/spectate-clear', (_req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/player-link', (req, res) => {
+  const { name, url } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  if (url) settings.playerLinks[name] = url;
+  else delete settings.playerLinks[name];
+  saveSettings();
+  const p = Object.values(gameState.game.players).find(p => p.name === name);
+  if (p) p.link = url || '';
+  broadcast('update_state', gameState);
+  res.json({ ok: true });
+});
+
+app.post('/api/player-video-toggle', (req, res) => {
+  settings.playerVideoEnabled = !!req.body.enabled;
+  saveSettings();
+  broadcast('player_video_toggle', { enabled: settings.playerVideoEnabled });
+  res.json({ ok: true, enabled: settings.playerVideoEnabled });
+});
+
 app.post('/api/teams', (req, res) => {
   const { blue, orange, league } = req.body;
   if (blue)   { gameState.game.teams[0] = { ...gameState.game.teams[0], ...blue }; if (blue.name) { settings.blue = { ...(settings.blue||{}), name: blue.name }; gameState.game.teams[0]._nameLocked = true; } }
   if (orange) { gameState.game.teams[1] = { ...gameState.game.teams[1], ...orange }; if (orange.name) { settings.orange = { ...(settings.orange||{}), name: orange.name }; gameState.game.teams[1]._nameLocked = true; } }
-  if (league) { gameState.meta.league = league; settings.league = league; }
+  if (league !== undefined) { gameState.meta.league = league; settings.league = league; }
   saveSettings();
   broadcast('update_state', gameState);
   res.json({ ok: true });
@@ -539,7 +564,7 @@ app.post('/api/spectate', (req, res) => {
   const { name, team, goals, assists, shots, saves, demos, boost, speed } = req.body;
   const id = '__manual_spec__';
   Object.keys(gameState.game.players).forEach(k => { if (gameState.game.players[k].isPrimary) gameState.game.players[k].isPrimary = false; });
-  gameState.game.players[id] = { id, name: name || 'PLAYER', team: team ?? 0, score: 0, goals: goals ?? 0, assists: assists ?? 0, shots: shots ?? 0, saves: saves ?? 0, demos: demos ?? 0, boost: boost ?? 0, speed: speed ?? 0, isPrimary: true };
+  gameState.game.players[id] = { id, name: name || 'PLAYER', team: team ?? 0, link: settings.playerLinks[name || 'PLAYER'] || '', score: 0, goals: goals ?? 0, assists: assists ?? 0, shots: shots ?? 0, saves: saves ?? 0, demos: demos ?? 0, boost: boost ?? 0, speed: speed ?? 0, isPrimary: true };
   broadcast('update_state', gameState);
   res.json({ ok: true });
 });

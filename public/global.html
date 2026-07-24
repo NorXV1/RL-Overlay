@@ -418,6 +418,68 @@ body {
 
 
 /* ════════════════════════════════════════════════════
+   FLUX VIDÉO JOUEUR (16:9, au-dessus de la stat bar)
+════════════════════════════════════════════════════ */
+#player-video-box {
+  position: absolute;
+  bottom: 76px;
+  left: 0;
+  width: 320px;
+  height: 180px;
+  background: #000;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity .4s, transform .4s;
+  pointer-events: none;
+  overflow: hidden;
+  filter: drop-shadow(0 -4px 20px rgba(0,0,0,.5));
+}
+#player-video-box.show { opacity: 1; transform: translateY(0); }
+/* Fallback = calque de base permanent, derrière l'iframe si présente. */
+#player-video-fallback {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; z-index: 0;
+}
+/* Chaque iframe du pool vit en permanence dans #video-layer (jamais déplacée
+   dans le DOM) : sa taille/position exacte est appliquée via JS (_placeFrame),
+   donc pas de inset/width/height fixes ici. */
+.pv-frame {
+  position: absolute;
+  border: none; object-fit: cover;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════
+   CAMÉRAS REPLAY (3 par équipe, empilées, slide gauche/droite)
+════════════════════════════════════════════════════ */
+#replay-cams-blue, #replay-cams-orange {
+  position: absolute;
+  top: 340px; /* sous la sidebar des joueurs */
+  width: 230px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 44;
+  transition: transform .5s ease;
+}
+#replay-cams-blue   { left: 0;  transform: translateX(-100%); }
+#replay-cams-orange { right: 0; transform: translateX(100%); }
+#replay-cams-blue.show, #replay-cams-orange.show { transform: translateX(0); }
+/* 16:9 fixe — pas de flex:1 (ça écrasait/étirait l'image, object-fit ne marche
+   de toute façon pas sur une <iframe>, d'où le rendu déformé) */
+.rc-slot {
+  width: 230px; height: 129px;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.rc-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ════════════════════════════════════════════════════
    BARRE DE STATS (bas)
 ════════════════════════════════════════════════════ */
 #stat-bar {
@@ -706,6 +768,8 @@ body {
 /* ════════════════════════════════════════════════════
    END GAME SCREEN (stats post-match)
 ════════════════════════════════════════════════════ */
+#end-bg-video { display: none; }
+
 #end-screen {
   position: absolute; inset: 0; z-index: 25;
   background: var(--end-bg); display: flex; flex-direction: column;
@@ -933,6 +997,25 @@ body {
   <!-- RIGHT SIDEBAR -->
   <div class="sidebar" id="sidebar-orange"></div>
 
+  <!-- FLUX VIDÉO JOUEUR (16:9, au-dessus de la stat bar) — les iframes par joueur
+       sont injectées dynamiquement dans ce conteneur (pool préchargé) -->
+  <div id="player-video-box">
+    <img id="player-video-fallback" src="/img/fallback.jpg" alt="">
+  </div>
+
+  <!-- CAMÉRAS REPLAY : 3 bleues à gauche, 3 oranges à droite, ordre spectateur.
+       Chaque slot a son propre fallback ; masqué dès qu'une caméra y est posée. -->
+  <div id="replay-cams-blue">
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+  </div>
+  <div id="replay-cams-orange">
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+    <div class="rc-slot"><img class="rc-fallback" src="/img/fallback.jpg" alt=""></div>
+  </div>
+
   <!-- STAT BAR -->
   <div id="stat-bar">
     <div id="stat-team-tag">
@@ -1070,6 +1153,7 @@ body {
 </div>
 
 <div id="end-screen">
+  <video id="end-bg-video" autoplay loop muted playsinline preload="auto" src="themes/lysorn-cup/fond.mp4"></video>
   <div id="end-hdr">
     <div class="end-side blue" id="end-side-blue">
       <div class="end-logo-sq" id="end-logo-sq-blue">
@@ -1122,6 +1206,16 @@ body {
 </div><!-- /end-screen -->
 
 </div><!-- /all-overlay -->
+
+<!-- VIDEO TRANSITION — Lysorn Cup -->
+<video id="lc-transition-video"
+       src="themes/lysorn-cup/transition.webm"
+       preload="auto"
+       style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
+<video id="lc-live-video"
+       src="themes/lysorn-cup/LIVE.webm"
+       preload="auto"
+       style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
 
 <!-- BOOST METER — hors overlay-root, visibilité indépendante -->
 <div id="boost-meter">
@@ -1312,6 +1406,7 @@ let pendingReplayData = null;
 let lastPrimaryId = null;
 let overlayForcedOff = false;
 let boostForcedOff   = false;
+let playerVideoEnabled = false;
 let afterPreCountdown = false;
 let collapseScoreT;
 let _wasOT = false;
@@ -1325,10 +1420,44 @@ function cancelReplayWipe() {
   if (w) w.className = '';
 }
 
+let _liveWipeActive = false;
+
 function doReplayWipe(word, onDone, hold = 1600) {
+  if (word === 'LIVE') {
+    /* Deux déclencheurs peuvent appeler LIVE pour le même but (le minuteur scripté
+       et l'événement réel pre_countdown du jeu) : on ignore le doublon. */
+    if (_liveWipeActive) { if (onDone) onDone(); return; }
+    _liveWipeActive = true;
+  } else {
+    _liveWipeActive = false;
+  }
+
   cancelReplayWipe();
   const w   = document.getElementById('replay-wipe');
   const lbl = document.getElementById('rw-word');
+
+  /* ── Lysorn Cup : vidéo WebM pour REPLAY et LIVE ── */
+  if (themeIs('lysorn-cup')) {
+    const vid = document.getElementById(word === 'LIVE' ? 'lc-live-video' : 'lc-transition-video');
+    /* Décalage avant le début de l'animation : LIVE 2200ms, REPLAY 200ms */
+    const startDelay = word === 'LIVE' ? 2200 : 200;
+    if (vid) {
+      _rwAfter(startDelay, () => {
+        vid.style.display = 'block';
+        vid.currentTime = 0;
+        try { vid.play().catch(() => {}); } catch(e) {}
+        /* Appel du callback au milieu du hold : le contenu se charge pendant la vidéo */
+        _rwAfter(Math.floor(hold / 2), () => { if (onDone) onDone(); });
+        /* Masquer quand la vidéo se termine, ou au plus tard après hold + 1500 ms */
+        const hideVid = () => { vid.style.display = 'none'; vid.onended = null; if (word === 'LIVE') _liveWipeActive = false; };
+        vid.onended = hideVid;
+        _rwAfter(hold + 1500, hideVid);
+      });
+      return;
+    }
+    _rwAfter(startDelay, () => { if (word === 'LIVE') _liveWipeActive = false; if (onDone) onDone(); });
+    return;
+  }
 
   if (themeIs('vitality')) {
     /* Animation lettre par lettre : contour jaune → clignotement → plein jaune */
@@ -1359,6 +1488,7 @@ function doReplayWipe(word, onDone, hold = 1600) {
   _rwAfter(hold, () => {
     w.classList.add('rw-fadeout');
     w.classList.remove('rw-active');
+    if (word === 'LIVE') _liveWipeActive = false;
     if (onDone) onDone();
     _rwAfter(1500, () => w.classList.remove('rw-fadeout'));
   });
@@ -1563,9 +1693,11 @@ function connect() {
             }
             replayBarEl.classList.add('show');
             document.getElementById('stat-bar').classList.remove('show');
+            showReplayCams();
             clearTimeout(replayT);
             replayT = setTimeout(() => {
               document.getElementById('replay-bar').classList.remove('show');
+              setTimeout(hideReplayCams, 2000); // les caméras restent 2s de plus à l'écran
               doReplayWipe('LIVE', hideReplay, 2900); // démarre 1s avant, hold allongé pour même fin
             }, 8200); // ajusté pour que LIVE reste au même moment
           }, 2800); // REPLAY dure 1.2s de plus
@@ -1585,6 +1717,7 @@ function connect() {
         if (replayActive) {
           clearTimeout(replayT);
           document.getElementById('replay-bar').classList.remove('show');
+          hideReplayCams();
           doReplayWipe('LIVE', hideReplay);
         } else {
           hideReplay();
@@ -1622,6 +1755,16 @@ function connect() {
         boostForcedOff = !data.visible;
         if (boostForcedOff) document.getElementById('boost-meter').classList.remove('show');
         else if (state) renderBoostMeter(findSpectated(state.game?.players ?? {}));
+        break;
+      case 'player_video_toggle':
+        playerVideoEnabled = !!data.enabled;
+        if (!playerVideoEnabled) {
+          /* Coupe les connexions préchargées en arrière-plan quand la fonction est désactivée */
+          _videoPool.forEach(f => f.remove());
+          _videoPool.clear();
+        }
+        syncVideoPool();
+        renderPlayerVideo(state ? findSpectated(state.game?.players ?? {}) : null);
         break;
       case 'sos_disconnected':
         hideOverlay(0);
@@ -1729,9 +1872,9 @@ function render(data) {
   autoFitTeamName(document.getElementById('orange-name'));
   const _abbrB = document.getElementById('sub-abbr-blue');
   const _abbrO = document.getElementById('sub-abbr-orange');
-  /* Vitality / ENISorail / RLCS 2025 / FIFA WC : #sub-abbr-* contient des vlt-win-pip spans.
+  /* Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup : #sub-abbr-* contient des vlt-win-pip spans.
      Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
-  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup')) {
+  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup') && !themeIs('lysorn-cup')) {
     if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
     if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
   }
@@ -1749,11 +1892,12 @@ function render(data) {
 
   renderTimer(g.time, g.isOT);
 
-  if (data.meta?.league) setLeagueLabel(data.meta.league);
+  if (data.meta) setLeagueLabel(data.meta.league);
   if (data.series)       document.getElementById('bo-num').textContent = data.series.bestOf;
 
   renderSeriesDots();
   renderSidebar(g.players);
+  syncVideoPool();
 
   const spec = findSpectated(g.players);
   renderStatBar(spec);
@@ -1824,19 +1968,19 @@ function buildSubTrack(blue, orange, bo) {
   bo = bo || 5; blue = blue || 0; orange = orange || 0;
   track.innerHTML = '';
 
-  /* Vitality / ENISorail / FIFA WC : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
+  /* Vitality / ENISorail / FIFA WC / Lysorn Cup : affiche "GAME X  ►  BEST OF X" + pips de victoire */
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
-    /* RLCS 2025 : texte OVERTIME si en prolongations, sinon BEST OF X */
-    if (themeIs('rlcs2025') && _wasOT) {
+    /* RLCS 2025 / Lysorn Cup : texte OVERTIME si en prolongations, sinon BEST OF X */
+    if ((themeIs('rlcs2025') || themeIs('lysorn-cup')) && _wasOT) {
       span.textContent = `GAME ${gameNum}  |  OVERTIME`;
       const sb = document.getElementById('score-sub-bar');
       if (sb) sb.dataset.ot = 'true';
     } else {
       span.textContent = `GAME ${gameNum}  ►  BEST OF ${bo}`;
-      if (themeIs('rlcs2025')) {
+      if (themeIs('rlcs2025') || themeIs('lysorn-cup')) {
         const sb = document.getElementById('score-sub-bar');
         if (sb) delete sb.dataset.ot;
       }
@@ -1845,7 +1989,7 @@ function buildSubTrack(blue, orange, bo) {
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
 
-    if (themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
+    if (themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup')) {
       /* ENISorail / FIFA WC : slots vides + remplis selon les wins */
       const total = Math.ceil(bo / 2);
       const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
@@ -2010,9 +2154,9 @@ function findSpectated(players) {
 
 /* ── Stat bar ── */
 function renderStatBar(p) {
-  if (replayActive) return;
+  if (replayActive) { renderPlayerVideo(null); return; }
   const bar = document.getElementById('stat-bar');
-  if (!p || !state?.hasGame) { bar.classList.remove('show'); return; }
+  if (!p || !state?.hasGame) { bar.classList.remove('show'); renderPlayerVideo(null); return; }
   bar.classList.add('show');
   bar.dataset.team = p.team;
 
@@ -2052,6 +2196,159 @@ function renderStatBar(p) {
   document.getElementById('st-shots').textContent   = p.shots   ?? 0;
   document.getElementById('st-saves').textContent   = p.saves   ?? 0;
   document.getElementById('st-demos').textContent   = p.demos   ?? 0;
+
+  renderPlayerVideo(p);
+}
+
+/* ── Flux vidéo joueur ──
+   Pool préchargé : une iframe par joueur ayant un lien, créée UNE SEULE FOIS
+   et jamais déplacée dans le DOM ensuite (déplacer une iframe via appendChild
+   la recharge dans Chromium/Electron — c'était la cause de la latence malgré
+   le préchargement). Elle reste en permanence dans #video-layer et on la
+   POSITIONNE par-dessus la bonne "vitrine" (box preview ou slot replay) en
+   mesurant sa position à l'écran — aucune reconnexion, donc instantané.
+   Mode normal  : joueur spectateur affiché dans #player-video-box (16:9, bas gauche)
+   Mode replay  : jusqu'à 3 caméras bleues empilées à gauche, 3 oranges à droite,
+                  triées par ordre spectateur (shortcut), avec slide d'entrée/sortie */
+const _videoPool = new Map(); // name -> iframe
+let _videoLayer = null;
+let replayCamsActive = false;
+let _activeCams = []; // [{iframe, slot}] pour le suivi pendant le slide
+
+function getVideoLayer() {
+  if (!_videoLayer) {
+    _videoLayer = document.createElement('div');
+    _videoLayer.id = 'video-layer';
+    _videoLayer.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:45;';
+    document.body.appendChild(_videoLayer);
+  }
+  return _videoLayer;
+}
+
+function ensureVideoFrame(name, link) {
+  let iframe = _videoPool.get(name);
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.className = 'pv-frame';
+    iframe.setAttribute('allow', 'autoplay');
+    iframe.setAttribute('frameborder', '0');
+    getVideoLayer().appendChild(iframe); // ajoutée une fois pour toutes, jamais redéplacée
+    _videoPool.set(name, iframe);
+  }
+  if (iframe.dataset.link !== link) {
+    iframe.dataset.link = link;
+    iframe.src = link;
+  }
+  return iframe;
+}
+
+/* Synchronise le pool avec le roster actuel (préchargement dès qu'un lien
+   est connu, pas seulement quand le joueur est spectaté). */
+function syncVideoPool() {
+  if (!playerVideoEnabled || !state?.game?.players) return;
+  const seen = new Set();
+  Object.values(state.game.players).forEach(p => {
+    if (!p.link) return;
+    seen.add(p.name);
+    ensureVideoFrame(p.name, p.link);
+  });
+  for (const [name, iframe] of _videoPool) {
+    if (!seen.has(name)) { iframe.remove(); _videoPool.delete(name); }
+  }
+}
+
+/* Positionne une iframe (position:absolute dans #video-layer) exactement
+   par-dessus targetEl, en mesurant son rectangle à l'écran. */
+function _placeFrame(iframe, targetEl) {
+  const layer = getVideoLayer();
+  const lr = layer.getBoundingClientRect();
+  const r  = targetEl.getBoundingClientRect();
+  iframe.style.left    = (r.left - lr.left) + 'px';
+  iframe.style.top     = (r.top  - lr.top)  + 'px';
+  iframe.style.width   = r.width  + 'px';
+  iframe.style.height  = r.height + 'px';
+  iframe.style.opacity = '1';
+}
+function _hideFrame(iframe) { iframe.style.opacity = '0'; }
+
+function renderPlayerVideo(p) {
+  const box = document.getElementById('player-video-box');
+  if (!box || replayCamsActive) return; // les caméras replay gèrent l'affichage pendant ce mode
+  if (!playerVideoEnabled || !p || replayActive || !state?.hasGame) {
+    box.classList.remove('show');
+    _videoPool.forEach(f => _hideFrame(f));
+    return;
+  }
+  box.classList.add('show');
+  _videoPool.forEach((f, name) => {
+    if (p.link && name === p.name) _placeFrame(f, box);
+    else _hideFrame(f);
+  });
+}
+
+/* Jusqu'à 3 joueurs d'une équipe, triés par ordre de raccourci spectateur (1-9) */
+function orderedTeamPlayers(team) {
+  if (!state?.game?.players) return [];
+  return Object.values(state.game.players)
+    .filter(p => p.team === team)
+    .sort((a, b) => (a.shortcut ?? 99) - (b.shortcut ?? 99))
+    .slice(0, 3);
+}
+
+/* Suit les slots pendant le slide (durationMs) pour que l'iframe reste
+   collée à sa vitrine même si celle-ci est en train de glisser. */
+function _trackActiveCams(durationMs) {
+  const start = performance.now();
+  function tick(now) {
+    _activeCams.forEach(({ iframe, slot }) => _placeFrame(iframe, slot));
+    if (now - start < durationMs) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function showReplayCams() {
+  if (!playerVideoEnabled) return;
+  replayCamsActive = true;
+
+  document.getElementById('player-video-box').classList.remove('show');
+
+  const blueEl    = document.getElementById('replay-cams-blue');
+  const orangeEl  = document.getElementById('replay-cams-orange');
+  const blueSlots   = [...blueEl.querySelectorAll('.rc-slot')];
+  const orangeSlots = [...orangeEl.querySelectorAll('.rc-slot')];
+  [...blueSlots, ...orangeSlots].forEach(slot => { slot.querySelector('.rc-fallback').style.display = ''; });
+
+  _activeCams = [];
+  const fillSlots = (slots, team) => {
+    orderedTeamPlayers(team).forEach((p, i) => {
+      const slot = slots[i];
+      if (!slot || !p?.link) return;
+      const iframe = ensureVideoFrame(p.name, p.link);
+      slot.querySelector('.rc-fallback').style.display = 'none';
+      _activeCams.push({ iframe, slot });
+    });
+  };
+  fillSlots(blueSlots, 0);
+  fillSlots(orangeSlots, 1);
+
+  // Cacher toute iframe du pool qui ne fait pas partie de ce cycle replay
+  _videoPool.forEach(f => { if (!_activeCams.some(a => a.iframe === f)) _hideFrame(f); });
+
+  blueEl.classList.add('show');
+  orangeEl.classList.add('show');
+  _trackActiveCams(550); // durée du slide d'entrée
+}
+
+function hideReplayCams() {
+  if (!replayCamsActive) return;
+  replayCamsActive = false;
+  document.getElementById('replay-cams-blue').classList.remove('show');
+  document.getElementById('replay-cams-orange').classList.remove('show');
+  _trackActiveCams(550); // suit le slide de sortie pour que les caméras restent collées aux slots
+  setTimeout(() => {
+    _activeCams.forEach(({ iframe }) => _hideFrame(iframe));
+    _activeCams = [];
+  }, 550);
 }
 
 /* ── Boost meter ── */
@@ -2103,6 +2400,9 @@ function checkSeriesWin() {
       letter.style.display = '';
     }
 
+    document.getElementById('stat-bar').classList.remove('show');
+    renderPlayerVideo(null);
+    hideReplayCams();
     screen.classList.remove('show');
     void screen.offsetWidth;
     screen.classList.add('show');
@@ -2118,6 +2418,13 @@ function onGoal(data) {
   const word  = document.getElementById('goal-word');
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
+
+  /* Lysorn Cup : pas de notif goal */
+  if (themeIs('lysorn-cup')) {
+    const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
+    if (scoreEl) { scoreEl.classList.add('bump'); setTimeout(() => scoreEl.classList.remove('bump'), 300); }
+    return;
+  }
 
   if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
     /* Vitality / ENISorail / RLCS2025 / FIFA WC : la CSS gère la couleur — reset l'inline style */
@@ -2144,6 +2451,7 @@ function hideReplay() {
   clearTimeout(replayDelayT);
   cancelReplayWipe();
   replayActive = false;
+  hideReplayCams();
   document.getElementById('replay-bar').classList.remove('show');
   setTimeout(() => setScoreboardExpanded(false), 400);
 }
@@ -2373,6 +2681,8 @@ function setEndLogo(side, team) {
 function showEndScreen(data) {
   buildEndScreen(data);
   document.getElementById('stat-bar').classList.remove('show');
+  renderPlayerVideo(null);
+  hideReplayCams();
   hideTopBar(0);
   document.getElementById('win-screen').classList.remove('show');
   document.getElementById('end-screen').classList.add('visible');
@@ -2512,7 +2822,7 @@ if (IS_PREVIEW) {
   // Charger les settings (équipes, thème, ligue, bandeau média)
   fetch('/api/settings').then(r => r.json()).then(s => {
     if (s.theme) applyTheme(s.theme);
-    if (s.league) setLeagueLabel(s.league);
+    setLeagueLabel(s.league);
     if (s.mediaBanner?.enabled) startMediaBanner();
 
     // Noms d'équipes (settings stocke s.blue.name / s.orange.name)
@@ -2632,9 +2942,11 @@ window.addEventListener('message', ({ data }) => {
           document.getElementById('replay-assist-block').style.display = 'none';
         }
         replayBar.classList.add('show');
+        showReplayCams();
         clearTimeout(replayT);
         replayT = setTimeout(() => {
           replayBar.classList.remove('show');
+          setTimeout(hideReplayCams, 2000); // les caméras restent 2s de plus à l'écran
           doReplayWipe('LIVE', () => {
             hideReplay();
             setScoreboardExpanded(false);

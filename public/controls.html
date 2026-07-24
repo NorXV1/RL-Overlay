@@ -455,6 +455,19 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-player"></div>
     </div>
 
+    <!-- Modal lien joueur (prompt() non supporté par Electron) -->
+    <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;width:340px;max-width:90vw;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Lien flux vidéo</div>
+        <div id="link-modal-player" style="font-size:11px;color:var(--muted);margin-bottom:10px;"></div>
+        <input type="text" id="link-modal-input" placeholder="https://..." style="width:100%;box-sizing:border-box;">
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="closeLinkModal()">Annuler</button>
+          <button class="btn" style="flex:1;background:var(--blue);" onclick="confirmLinkModal()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title green">Visibilité</div>
       <div class="toggle-row">
@@ -464,6 +477,10 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="toggle-row">
         <div><div class="toggle-label">Boost Meter</div><div class="toggle-sub">Jauge indépendante en bas à droite</div></div>
         <label class="switch"><input type="checkbox" id="boost-vis-toggle" checked onchange="setBoostVisible(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Flux vidéo joueur</div><div class="toggle-sub">Cadre 16:9 au-dessus de la stat bar (lien par joueur ci-dessous)</div></div>
+        <label class="switch"><input type="checkbox" id="player-video-toggle" onchange="setPlayerVideoEnabled(this.checked)"><span class="slider"></span></label>
       </div>
       <div class="fb" id="fb-visible"></div>
     </div>
@@ -1138,6 +1155,8 @@ async function loadSettings() {
     if(s.series?.orange!==undefined) document.getElementById('s-orange').value = s.series.orange;
     if(s.bestOf)                     document.getElementById('s-bo').value     = s.bestOf;
     document.getElementById('media-toggle').checked = s.mediaBanner?.enabled ?? false;
+    document.getElementById('player-video-toggle').checked = s.playerVideoEnabled ?? false;
+    _playerLinks = s.playerLinks || {};
     renderSeriesDots();
   } catch {}
 }
@@ -1157,7 +1176,9 @@ function renderSeriesDots() {
 renderSeriesDots();
 
 /* ── Player grid ── */
+let _lastPlayers = {};
 function renderPlayerGrid(players) {
+  _lastPlayers = players || {};
   const grid=document.getElementById('player-grid');
   const list=Object.values(players);
   if(!list.length) { grid.innerHTML='<span style="font-size:11px;color:var(--muted);">Aucun joueur en jeu</span>'; return; }
@@ -1169,14 +1190,55 @@ function renderPlayerGrid(players) {
     const boost=Math.floor(p.boost??0);
     const btn=document.createElement('button');
     btn.className='p-btn'+(active?' active':'');
+    btn.dataset.playerName = p.name;
     if(active) { btn.style.borderColor=c; btn.style.background=c+'18'; }
-    btn.innerHTML=`<div class="p-badge" style="background:${c}28;border:1px solid ${c}55;color:${c};">${p.shortcut??'?'}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="boost-bar"><div class="boost-fill" style="width:${boost}%;background:${c};"></div></div></div><div class="p-boost">${boost}%</div>`;
+    const hasLink = !!_playerLinks[p.name];
+    btn.innerHTML=`<div class="p-badge" style="background:${c}28;border:1px solid ${c}55;color:${c};">${p.shortcut??'?'}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="boost-bar"><div class="boost-fill" style="width:${boost}%;background:${c};"></div></div></div><div class="p-boost">${boost}%</div><span class="p-link-icon" data-player-link="${p.name}" title="Lien flux vidéo" style="cursor:pointer;font-size:16px;padding:4px 6px;opacity:${hasLink?'1':'.35'};">🔗</span>`;
     btn.onmouseover=()=>{ if(!active) btn.style.borderColor=c+'55'; };
     btn.onmouseout =()=>{ if(!active) btn.style.borderColor=''; };
-    btn.onclick=()=>selectPlayer(p.name);
     grid.appendChild(btn);
   });
 }
+
+/* Délégation d'événement sur le conteneur STABLE (jamais recréé) plutôt que sur
+   chaque bouton (recréé à ~30 Hz à chaque update_state) — évite de perdre le clic
+   si le DOM est reconstruit entre mousedown et mouseup. */
+document.getElementById('player-grid').addEventListener('mousedown', (e) => {
+  const linkIcon = e.target.closest('[data-player-link]');
+  if (linkIcon) {
+    e.stopPropagation();
+    e.preventDefault();
+    promptPlayerLink(linkIcon.dataset.playerLink);
+    return;
+  }
+  const row = e.target.closest('.p-btn');
+  if (row) selectPlayer(row.dataset.playerName);
+});
+
+let _linkModalPlayer = null;
+function promptPlayerLink(name) {
+  _linkModalPlayer = name;
+  document.getElementById('link-modal-player').textContent = name;
+  document.getElementById('link-modal-input').value = _playerLinks[name] || '';
+  const ov = document.getElementById('link-modal-overlay');
+  ov.style.display = 'flex';
+  setTimeout(() => document.getElementById('link-modal-input').focus(), 50);
+}
+function closeLinkModal() {
+  document.getElementById('link-modal-overlay').style.display = 'none';
+  _linkModalPlayer = null;
+}
+async function confirmLinkModal() {
+  const name = _linkModalPlayer;
+  if (!name) return;
+  const url = document.getElementById('link-modal-input').value.trim();
+  await post('/api/player-link', { name, url });
+  if (url) _playerLinks[name] = url; else delete _playerLinks[name];
+  fb('fb-player', url ? `✓ Lien enregistré pour ${name}` : `✓ Lien retiré pour ${name}`);
+  closeLinkModal();
+  renderPlayerGrid(_lastPlayers || {});
+}
+document.getElementById('link-modal-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') confirmLinkModal(); });
 
 /* ── Logo preview ── */
 function setLogoPreview(side, url) {
@@ -1258,7 +1320,7 @@ async function setMediaBanner(e) {
 async function selectPlayer(name) { await post('/api/spectate-player',{name}); fb('fb-player',`✓ ${name} affiché`); }
 async function clearSpec() { await post('/api/spectate-clear',{}); fb('fb-player','✓ Stat bar masquée'); }
 document.addEventListener('keydown',async e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; const n=parseInt(e.key); if(n>=1&&n<=9){const res=await post('/api/spectate-shortcut',{shortcut:n});if(res.ok) fb('fb-player',`✓ [${n}] ${res.name}`);}});
-async function applyTeams() { const league=document.getElementById('league-input').value.trim(),blue=document.getElementById('blue-name').value.trim(),orange=document.getElementById('orange-name').value.trim(); await post('/api/teams',{blue:blue?{name:blue}:undefined,orange:orange?{name:orange}:undefined,league:league||undefined}); fb('fb-teams','✓ Mis à jour & sauvegardé'); }
+async function applyTeams() { const league=document.getElementById('league-input').value.trim(),blue=document.getElementById('blue-name').value.trim(),orange=document.getElementById('orange-name').value.trim(); await post('/api/teams',{blue:blue?{name:blue}:undefined,orange:orange?{name:orange}:undefined,league}); reloadPreview(); fb('fb-teams','✓ Mis à jour & sauvegardé'); }
 async function applySeries() { await post('/api/series',{blue:parseInt(document.getElementById('s-blue').value),orange:parseInt(document.getElementById('s-orange').value),bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Série mise à jour'); }
 async function resetSeries() { document.getElementById('s-blue').value=document.getElementById('s-orange').value=0; renderSeriesDots(); await post('/api/series',{blue:0,orange:0,bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Reset'); }
 function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling; btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1800); }); }
@@ -1267,6 +1329,7 @@ async function adjScore(team,delta) { const id=team===0?'lp-sb':'lp-so'; const v
 async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await post('/api/reset',{}); }
 async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
+async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); }
 
 function fb(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
 function hFb(msg) { const el=document.getElementById('hdr-fb'); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
@@ -1298,6 +1361,7 @@ async function doUpdate() {
 
 /* ── Aperçu OBS ── */
 let _previewVisible = true;
+let _playerLinks = {};
 
 function updatePreviewScale() {
   const container = document.getElementById('preview-container');
