@@ -365,7 +365,7 @@ body {
 
 /* ── Demo names banner — inside .pr-icons, same system as other events ── */
 .pr-demo-names {
-  height: 40px; width: 100%;
+  height: 40px; width: 210px;
   flex-shrink: 0;
   display: flex; align-items: center;
   padding: 0 10px; gap: 6px;
@@ -379,6 +379,7 @@ body {
   text-shadow: 0 1px 4px rgba(0,0,0,.7);
 }
 .pr-demo-bomb { font-size: 15px; flex-shrink: 0; }
+.pr-demo-bomb img { width: 18px; height: 18px; object-fit: contain; display: block; }
 
 /* Barre de boost EN DESSOUS du nom */
 .pr-boost-bar {
@@ -2615,7 +2616,10 @@ function showDemoIcon(demolisherName, demolisherId, demolishedId, demolishedName
   }
 
   // Ligne de la victime : bannière [demolisherName] 💣 [demolishedName] avec gradient
-  if (victimRow && demolisherName && demolishedName) {
+  // FIFA WC / default / Neon / Onyx / Nord / Amber : uniquement l'icône explosion
+  // sur le tueur, comme les autres événements — pas de bannière côté victime
+  const _noDemoBanner = themeIs('fifa-world-cup') || themeIs('rlcs') || themeIs('neon') || themeIs('onyx') || themeIs('nord') || themeIs('amber');
+  if (victimRow && demolisherName && demolishedName && !_noDemoBanner) {
     const icons = victimRow.querySelector('.pr-icons');
     if (icons) {
       const victimIsBlue = victimRow.classList.contains('blue');

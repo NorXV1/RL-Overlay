@@ -376,6 +376,8 @@
    STAT BAR
 ══════════════════════════════════════════════════════════ */
 [data-theme="rlcs2025"] #stat-bar { height: 50px; border-radius: 0; width: 920px; }
+/* Caméra collée au sommet de la stat bar (50px au lieu des 76px par défaut) */
+[data-theme="rlcs2025"] #player-video-box { bottom: 50px; }
 [data-theme="rlcs2025"] #stat-team-tag {
   min-width: 347px; border: none; transition: background .2s;
   position: relative; flex-direction: column;

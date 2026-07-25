@@ -491,6 +491,17 @@
   bottom: 85px;
   box-shadow: 0 6px 28px rgba(0,0,0,.55);
 }
+/* Caméra au-dessus de la stat bar (85px + 62px de haut), coins arrondis */
+[data-theme="fifa-world-cup"] #player-video-box {
+  left: 50px;
+  bottom: 147px;
+  border-radius: 16px;
+}
+/* Caméras replay (3 par équipe) : coins arrondis */
+[data-theme="fifa-world-cup"] .rc-slot {
+  border-radius: 12px;
+  overflow: hidden;
+}
 [data-theme="fifa-world-cup"] #stat-bar.show {
   transform: translateY(0);
 }

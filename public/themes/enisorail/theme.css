@@ -299,6 +299,23 @@
 [data-theme="enisorail"] #sidebar-blue   .pr-icon { animation: vitalityIconRight 5s forwards; }
 [data-theme="enisorail"] #sidebar-orange .pr-icon { animation: vitalityIconLeft  5s forwards; }
 
+/* Bannière démolition — par-dessus la row (pas à l'extérieur comme les icônes classiques) */
+[data-theme="enisorail"] #sidebar-blue   .pr-icons:has(.pr-demo-names),
+[data-theme="enisorail"] #sidebar-orange .pr-icons:has(.pr-demo-names) {
+  left: 0; right: 0;
+}
+[data-theme="enisorail"] .pr-demo-names {
+  width: 100%; height: 28px;
+  font-size: 13px; font-weight: 900; font-style: italic;
+  letter-spacing: .5px;
+}
+[data-theme="enisorail"] .pr-demo-bomb { font-size: 0; line-height: 0; }
+[data-theme="enisorail"] .pr-demo-bomb img {
+  width: 20px; height: 20px; object-fit: contain;
+  filter: brightness(0) invert(1);
+  vertical-align: middle;
+}
+
 /* ══════════════════════════════════════════════════════════
    STAT BAR
 ══════════════════════════════════════════════════════════ */
@@ -306,6 +323,8 @@
   height: 60px; border-radius: 0; width: 560px;
   filter: drop-shadow(0 -3px 14px rgba(0,0,0,.7));
 }
+/* Caméra collée au sommet de la stat bar (60px au lieu des 76px par défaut) */
+[data-theme="enisorail"] #player-video-box { bottom: 60px; }
 [data-theme="enisorail"] #stat-team-tag {
   min-width: 130px; padding: 0 30px 0 18px;
   border: none; transition: background .2s;

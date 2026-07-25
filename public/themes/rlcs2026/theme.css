@@ -153,6 +153,8 @@
   height: 44px; border-radius: 0; width: 980px;
   filter: drop-shadow(0 -4px 12px rgba(0,0,0,.7));
 }
+/* Caméra collée au sommet de la stat bar (44px au lieu des 76px par défaut) */
+[data-theme="rlcs2026"] #player-video-box { bottom: 44px; }
 [data-theme="rlcs2026"] #stat-team-tag {
   min-width: 200px; padding: 0 18px;
   clip-path: none; border: none;
