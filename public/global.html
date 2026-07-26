@@ -1309,6 +1309,11 @@ function applyTheme(t) {
     const _reColor = () => {
       if (_lastSpecPlayer) { renderBoostMeter(_lastSpecPlayer); renderStatBar(_lastSpecPlayer); }
       if (_lastPlayers)    renderSidebar(_lastPlayers);
+      /* Le panel/police de nom d'équipe change de taille selon le thème : invalider
+         le cache d'autoFitTeamName pour forcer une remesure sous le nouveau layout. */
+      const bn = document.getElementById('blue-name'), on = document.getElementById('orange-name');
+      _fitNames.delete(bn); _fitNames.delete(on);
+      autoFitTeamName(bn); autoFitTeamName(on);
     };
     if (link && link.href) {
       link.addEventListener('load', () => setTimeout(_reColor, 20), { once: true });
@@ -1856,11 +1861,21 @@ function autoFitTeamName(el) {
   const text = el.textContent;
   if (_fitNames.get(el) === text) return;   // nom inchangé → pas de reflow
   _fitNames.set(el, text);
-  el.style.fontSize = '';
-  void el.offsetWidth;
-  if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
-    const fs = parseFloat(getComputedStyle(el).fontSize);
-    el.style.fontSize = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth)) + 'px';
+  const doFit = () => {
+    el.style.fontSize = '';
+    void el.offsetWidth;
+    if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      el.style.fontSize = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth)) + 'px';
+    }
+  };
+  /* Attendre le chargement effectif des polices (Bourgeois etc.) : mesurer avant
+     qu'elles ne soient prêtes donne des métriques provisoires (police de repli)
+     qui ne correspondent plus une fois la vraie police appliquée. */
+  if (document.fonts && document.fonts.status !== 'loaded') {
+    document.fonts.ready.then(doFit);
+  } else {
+    doFit();
   }
 }
 

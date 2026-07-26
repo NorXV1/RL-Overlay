@@ -8,6 +8,7 @@ public/utils/
 public/themes/da/
 public/themes/ds/
 public/themes/rscast/
+public/themes/lysorn-cup/
 *.log
 .DS_Store
 Thumbs.db

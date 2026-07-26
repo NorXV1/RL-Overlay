@@ -143,8 +143,15 @@
   gap: 0;
   border-top: none !important;
   align-self: stretch;
-  flex-direction: column;
-  justify-content: center;
+  /* !important nécessaire : <link id="theme-stylesheet"> est placé AVANT le
+     <style> de base dans le HTML, donc à spécificité égale (.team-panel.blue
+     du CSS de base = 2 classes, tout comme [data-theme] .team-panel), c'est le
+     CSS de base qui gagne en étant déclaré après → flex-direction restait en
+     row-reverse (base) au lieu de column, et align-items flex-start/flex-end
+     s'appliquait donc à l'axe VERTICAL au lieu de l'horizontal → texte collé
+     en haut au lieu d'être centré. */
+  flex-direction: column !important;
+  justify-content: center !important;
 }
 [data-theme="fifa-world-cup"] .team-panel.blue {
   background: linear-gradient(90deg, #0a2483 0%, #1e63dc 100%);
@@ -168,9 +175,12 @@
   color: #07091a;
   text-shadow: none;
   width: 100%;
+  position: relative;
+  top: -1px;
 }
-[data-theme="fifa-world-cup"] .team-panel.blue  .team-name { text-align: left; position: relative; top: 11px; }
-[data-theme="fifa-world-cup"] .team-panel.orange .team-name { text-align: right; position: relative; top: -2px; }
+/* Centrage vertical géré par .team-panel (flex-direction:column + justify-content:center) */
+[data-theme="fifa-world-cup"] .team-panel.blue  .team-name { text-align: left; }
+[data-theme="fifa-world-cup"] .team-panel.orange .team-name { text-align: right; }
 [data-theme="fifa-world-cup"] .series-dots-small { display: none !important; }
 [data-theme="fifa-world-cup"] .sdot              { display: none !important; }
 
