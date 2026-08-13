@@ -78,7 +78,7 @@ app.use(express.json());
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 200 * 1024 * 1024 }
+  limits: { fileSize: 1024 * 1024 * 1024 } // 1 Go — les thèmes avec vidéos (fond.mp4) peuvent dépasser 200 Mo
 });
 
 const server = http.createServer(app);
