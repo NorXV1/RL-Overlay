@@ -1154,7 +1154,7 @@ body {
 </div>
 
 <div id="end-screen">
-  <video id="end-bg-video" autoplay loop muted playsinline preload="auto" src="themes/lysorn-cup/fond.mp4"></video>
+  <video id="end-bg-video" autoplay loop muted playsinline preload="auto"></video>
   <div id="end-hdr">
     <div class="end-side blue" id="end-side-blue">
       <div class="end-logo-sq" id="end-logo-sq-blue">
@@ -1215,6 +1215,16 @@ body {
        style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
 <video id="lc-live-video"
        src="themes/lysorn-cup/LIVE.webm"
+       preload="auto"
+       style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
+
+<!-- VIDEO TRANSITION — RS Cup -->
+<video id="rs-transition-video"
+       src="themes/rs-cup/REPLAY.webm"
+       preload="auto"
+       style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
+<video id="rs-live-video"
+       src="themes/rs-cup/LIVE.webm"
        preload="auto"
        style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:9999;pointer-events:none;"></video>
 
@@ -1286,6 +1296,12 @@ function setLeagueLabel(text) {
   el.textContent = (currentTheme === 'rlcs2026' && t.length > 52) ? t.slice(0, 51) + '…' : t;
 }
 
+/* Vidéo de fond de l'écran de fin : un fichier fond.mp4 différent par thème */
+const END_BG_VIDEOS = {
+  'lysorn-cup': 'themes/lysorn-cup/fond.mp4',
+  'rs-cup':     'themes/rs-cup/fond.mp4',
+};
+
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   currentThemeBase = currentTheme;
@@ -1293,6 +1309,11 @@ function applyTheme(t) {
   const link = document.getElementById('theme-stylesheet');
   if (link) {
     link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
+  }
+  const endBgVideo = document.getElementById('end-bg-video');
+  if (endBgVideo) {
+    const src = END_BG_VIDEOS[currentTheme] || '';
+    if (src && !endBgVideo.src.endsWith(src)) endBgVideo.src = src;
   }
   _lastSerKey = '';
   /* Résoudre l'héritage multi-niveaux AVANT de reconstruire les pips et les ticks.
@@ -1455,6 +1476,26 @@ function doReplayWipe(word, onDone, hold = 1600) {
         /* Appel du callback au milieu du hold : le contenu se charge pendant la vidéo */
         _rwAfter(Math.floor(hold / 2), () => { if (onDone) onDone(); });
         /* Masquer quand la vidéo se termine, ou au plus tard après hold + 1500 ms */
+        const hideVid = () => { vid.style.display = 'none'; vid.onended = null; if (word === 'LIVE') _liveWipeActive = false; };
+        vid.onended = hideVid;
+        _rwAfter(hold + 1500, hideVid);
+      });
+      return;
+    }
+    _rwAfter(startDelay, () => { if (word === 'LIVE') _liveWipeActive = false; if (onDone) onDone(); });
+    return;
+  }
+
+  /* ── RS Cup : vidéo REPLAY.webm / LIVE.webm ── */
+  if (themeIs('rs-cup')) {
+    const vid = document.getElementById(word === 'LIVE' ? 'rs-live-video' : 'rs-transition-video');
+    const startDelay = word === 'LIVE' ? 700 : 200;
+    if (vid) {
+      _rwAfter(startDelay, () => {
+        vid.style.display = 'block';
+        vid.currentTime = 0;
+        try { vid.play().catch(() => {}); } catch(e) {}
+        _rwAfter(Math.floor(hold / 2), () => { if (onDone) onDone(); });
         const hideVid = () => { vid.style.display = 'none'; vid.onended = null; if (word === 'LIVE') _liveWipeActive = false; };
         vid.onended = hideVid;
         _rwAfter(hold + 1500, hideVid);
@@ -1890,7 +1931,7 @@ function render(data) {
   const _abbrO = document.getElementById('sub-abbr-orange');
   /* Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup : #sub-abbr-* contient des vlt-win-pip spans.
      Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
-  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup') && !themeIs('lysorn-cup')) {
+  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup') && !themeIs('lysorn-cup') && !themeIs('rs-cup')) {
     if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
     if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
   }
@@ -1985,18 +2026,18 @@ function buildSubTrack(blue, orange, bo) {
   track.innerHTML = '';
 
   /* Vitality / ENISorail / FIFA WC / Lysorn Cup : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup')) {
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
-    /* RLCS 2025 / Lysorn Cup : texte OVERTIME si en prolongations, sinon BEST OF X */
-    if ((themeIs('rlcs2025') || themeIs('lysorn-cup')) && _wasOT) {
+    /* RLCS 2025 / Lysorn Cup / RS Cup : texte OVERTIME si en prolongations, sinon BEST OF X */
+    if ((themeIs('rlcs2025') || themeIs('lysorn-cup') || themeIs('rs-cup')) && _wasOT) {
       span.textContent = `GAME ${gameNum}  |  OVERTIME`;
       const sb = document.getElementById('score-sub-bar');
       if (sb) sb.dataset.ot = 'true';
     } else {
       span.textContent = `GAME ${gameNum}  ►  BEST OF ${bo}`;
-      if (themeIs('rlcs2025') || themeIs('lysorn-cup')) {
+      if (themeIs('rlcs2025') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
         const sb = document.getElementById('score-sub-bar');
         if (sb) delete sb.dataset.ot;
       }
@@ -2005,7 +2046,7 @@ function buildSubTrack(blue, orange, bo) {
     const abbrB = document.getElementById('sub-abbr-blue');
     const abbrO = document.getElementById('sub-abbr-orange');
 
-    if (themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup')) {
+    if (themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
       /* ENISorail / FIFA WC : slots vides + remplis selon les wins */
       const total = Math.ceil(bo / 2);
       const mkPip = (won) => `<span class="vlt-win-pip${won ? ' won' : ''}"></span>`;
@@ -2633,7 +2674,7 @@ function showDemoIcon(demolisherName, demolisherId, demolishedId, demolishedName
   // Ligne de la victime : bannière [demolisherName] 💣 [demolishedName] avec gradient
   // FIFA WC / default / Neon / Onyx / Nord / Amber : uniquement l'icône explosion
   // sur le tueur, comme les autres événements — pas de bannière côté victime
-  const _noDemoBanner = themeIs('fifa-world-cup') || themeIs('rlcs') || themeIs('neon') || themeIs('onyx') || themeIs('nord') || themeIs('amber');
+  const _noDemoBanner = themeIs('fifa-world-cup') || themeIs('rlcs') || themeIs('neon') || themeIs('onyx') || themeIs('nord') || themeIs('amber') || themeIs('rs-cup');
   if (victimRow && demolisherName && demolishedName && !_noDemoBanner) {
     const icons = victimRow.querySelector('.pr-icons');
     if (icons) {

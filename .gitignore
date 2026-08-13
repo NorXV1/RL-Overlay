@@ -9,6 +9,8 @@ public/themes/da/
 public/themes/ds/
 public/themes/rscast/
 public/themes/lysorn-cup/
+public/themes/snir-theme/
+public/themes/rs-cup/
 *.log
 .DS_Store
 Thumbs.db

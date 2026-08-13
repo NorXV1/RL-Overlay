@@ -671,7 +671,7 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
   return new Promise((resolve, reject) => {
     yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
       if (err) return reject(err);
-      const ALLOWED = /\.(css|json|png|jpe?g|webp|gif|svg)$/i;
+      const ALLOWED = /\.(css|json|png|jpe?g|webp|gif|svg|ico|webm|mp4|mov|mp3|wav|ogg|ttf|otf|woff2?)$/i;
       const files = {}; // basename → Buffer
 
       zipfile.readEntry();
