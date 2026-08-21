@@ -468,6 +468,25 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
     </div>
 
+    <!-- Modal gestion des liens joueurs (config à l'avance, sans attendre que le joueur soit en jeu) -->
+    <div id="player-links-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;width:420px;max-width:92vw;max-height:82vh;display:flex;flex-direction:column;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Liens vidéo joueurs</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Le pseudo doit correspondre <strong style="color:var(--text);">exactement</strong> au nom en jeu. Configurable à l'avance, ça s'applique dès que le joueur rejoint la partie.</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input type="text" id="pl-modal-name" placeholder="Pseudo exact en jeu" style="flex:1;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" id="pl-modal-url" placeholder="https://..." style="flex:1;box-sizing:border-box;">
+          <button class="btn" style="width:auto;padding:6px 14px;background:var(--blue);white-space:nowrap;" onclick="applyManualPlayerLink()">Appliquer</button>
+        </div>
+        <div class="fb" id="fb-pl-modal" style="margin-bottom:6px;"></div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:8px 0 6px;">Déjà enregistrés</div>
+        <div id="pl-modal-list" style="overflow-y:auto;flex:1;min-height:40px;display:flex;flex-direction:column;gap:5px;"></div>
+        <button class="btn btn-gray" style="margin-top:14px;" onclick="closePlayerLinksManager()">Fermer</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title green">Visibilité</div>
       <div class="toggle-row">
@@ -482,6 +501,7 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div><div class="toggle-label">Flux vidéo joueur</div><div class="toggle-sub">Cadre 16:9 au-dessus de la stat bar (lien par joueur ci-dessous)</div></div>
         <label class="switch"><input type="checkbox" id="player-video-toggle" onchange="setPlayerVideoEnabled(this.checked)"><span class="slider"></span></label>
       </div>
+      <button class="btn btn-gray btn-sm" style="margin-top:6px;width:auto;padding:6px 14px;" onclick="openPlayerLinksManager()">⚙ Configurer les liens joueurs</button>
       <div class="fb" id="fb-visible"></div>
     </div>
 
@@ -1239,6 +1259,59 @@ async function confirmLinkModal() {
   renderPlayerGrid(_lastPlayers || {});
 }
 document.getElementById('link-modal-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') confirmLinkModal(); });
+
+/* ── Gestion des liens joueurs à l'avance (avant même que le joueur soit en jeu) ── */
+function openPlayerLinksManager() {
+  document.getElementById('pl-modal-name').value = '';
+  document.getElementById('pl-modal-url').value = '';
+  renderPlayerLinksModalList();
+  document.getElementById('player-links-modal-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('pl-modal-name').focus(), 50);
+}
+function closePlayerLinksManager() {
+  document.getElementById('player-links-modal-overlay').style.display = 'none';
+}
+function renderPlayerLinksModalList() {
+  const el = document.getElementById('pl-modal-list');
+  const names = Object.keys(_playerLinks).sort((a, b) => a.localeCompare(b));
+  if (!names.length) { el.innerHTML = '<span style="font-size:11px;color:var(--muted);">Aucun lien enregistré</span>'; return; }
+  el.innerHTML = names.map(n => `
+    <div style="display:flex;align-items:center;gap:8px;background:var(--subtle);border:1px solid var(--border);border-radius:5px;padding:6px 8px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;">${n}</div>
+        <div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_playerLinks[n]}</div>
+      </div>
+      <button class="btn btn-gray btn-sm" style="width:auto;padding:4px 8px;font-size:10px;" onclick="editManualPlayerLink('${n.replace(/'/g, "\\'")}')">✎</button>
+      <button class="btn btn-danger btn-sm" style="width:auto;padding:4px 8px;font-size:10px;" onclick="deleteManualPlayerLink('${n.replace(/'/g, "\\'")}')">✕</button>
+    </div>
+  `).join('');
+}
+function editManualPlayerLink(name) {
+  document.getElementById('pl-modal-name').value = name;
+  document.getElementById('pl-modal-url').value = _playerLinks[name] || '';
+  document.getElementById('pl-modal-name').focus();
+}
+async function applyManualPlayerLink() {
+  const name = document.getElementById('pl-modal-name').value.trim();
+  const url  = document.getElementById('pl-modal-url').value.trim();
+  if (!name) { fb('fb-pl-modal', '⚠ Entre un pseudo exact'); return; }
+  if (!url)  { fb('fb-pl-modal', '⚠ Entre une URL'); return; }
+  await post('/api/player-link', { name, url });
+  _playerLinks[name] = url;
+  fb('fb-pl-modal', `✓ Lien appliqué pour ${name}`);
+  document.getElementById('pl-modal-name').value = '';
+  document.getElementById('pl-modal-url').value = '';
+  renderPlayerLinksModalList();
+  renderPlayerGrid(_lastPlayers || {});
+}
+async function deleteManualPlayerLink(name) {
+  await post('/api/player-link', { name, url: '' });
+  delete _playerLinks[name];
+  fb('fb-pl-modal', `✓ Lien retiré pour ${name}`);
+  renderPlayerLinksModalList();
+  renderPlayerGrid(_lastPlayers || {});
+}
+document.getElementById('pl-modal-url')?.addEventListener('keydown', e => { if (e.key === 'Enter') applyManualPlayerLink(); });
 
 /* ── Logo preview ── */
 function setLogoPreview(side, url) {
