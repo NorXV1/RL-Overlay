@@ -1261,7 +1261,16 @@ let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' p
 /* Vérifie si le thème actif (ou son thème source) correspond à name */
 function themeIs(name) { return currentTheme === name || currentThemeBase === name; }
 
+/* Cache du résultat de tc() : invalidé uniquement au changement de thème
+   (applyTheme/_invalidateTc). tc() est appelée en continu (stat bar, boost
+   meter, sidebars…) jusqu'à ~30x/s — sans cache, getComputedStyle() forçait
+   un recalcul de style synchrone à chaque appel, de plus en plus coûteux au
+   fil d'une longue session (source de la latence croissante sur le boost). */
+let _tcCache = null;
+function _invalidateTc() { _tcCache = null; }
+
 function tc() {
+  if (_tcCache) return _tcCache;
   /* Les variables CSS --blue / --orange définies par le thème (ou un override doré)
      priment sur les valeurs JS hardcodées dans THEME_COLS.
      Ainsi un CSS externe qui redéfinit --blue/#--orange change TOUTES les couleurs
@@ -1272,7 +1281,7 @@ function tc() {
   const bL = cs.getPropertyValue('--blue-light').trim()   || base.bL;
   const o  = cs.getPropertyValue('--orange').trim()       || base.o;
   const oL = cs.getPropertyValue('--orange-light').trim() || base.oL;
-  return { b, bL, o, oL };
+  return (_tcCache = { b, bL, o, oL });
 }
 
 /* Résout la chaîne d'héritage complète d'un thème importé.
@@ -1305,6 +1314,7 @@ const END_BG_VIDEOS = {
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   currentThemeBase = currentTheme;
+  _invalidateTc();
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
   if (link) {
@@ -1328,6 +1338,8 @@ function applyTheme(t) {
        (2) chaque theme_change remplace le CSS mais les inline styles restent de l'ancien thème.
        On déclenche via l'event 'load' du stylesheet ET un timeout de secours (si load déjà parti). */
     const _reColor = () => {
+      _invalidateTc();
+      _refreshBoostTrackCssVars();
       if (_lastSpecPlayer) { renderBoostMeter(_lastSpecPlayer); renderStatBar(_lastSpecPlayer); }
       if (_lastPlayers)    renderSidebar(_lastPlayers);
       /* Le panel/police de nom d'équipe change de taille selon le thème : invalider
@@ -1386,42 +1398,66 @@ function initBoostTicks() {
 const ARC_R = 46, ARC_CIRC = 2 * Math.PI * ARC_R;
 const boostArc = document.getElementById('boost-arc');
 boostArc.style.strokeDasharray = ARC_CIRC;
-setBoostArc(0);
+
+/* Cache des variables CSS --boost-track-b/-o : lues une seule fois par thème
+   (pas à chaque appel de setBoostArc, qui tourne jusqu'à 30x/s — getComputedStyle
+   force un recalcul de style synchrone, très coûteux répété à cette fréquence
+   sur une session de plusieurs heures). Rafraîchi depuis applyTheme(). */
+let _boostTrackCssB = '', _boostTrackCssO = '';
+function _refreshBoostTrackCssVars() {
+  const _cs = getComputedStyle(document.body);
+  _boostTrackCssB = _cs.getPropertyValue('--boost-track-b').trim();
+  _boostTrackCssO = _cs.getPropertyValue('--boost-track-o').trim();
+}
+
+/* Évite de réécrire les mêmes styles à chaque frame (30x/s) quand rien n'a
+   changé — seul strokeDashoffset (dépend du %) doit bouger en continu. */
+let _lastArcTeam = null, _lastArcIs34 = null, _lastArcTheme = null, _lastArcHighBoost = null;
 
 function setBoostArc(pct, team) {
-  const theme  = document.body.dataset.theme;
-  const is34   = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup');
+  const theme = document.body.dataset.theme;
+  const is34  = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup');
+  const themeOrTeamChanged = theme !== _lastArcTheme || team !== _lastArcTeam || is34 !== _lastArcIs34;
+
   /* Vitality / ENISorail : 100 % = 3/4 du cercle */
-  const total  = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
-  /* un seul dash de 270°, gap assez grand pour pas répéter */
-  boostArc.style.strokeDasharray  = is34 ? `${total} ${ARC_CIRC}` : total;
-  boostArc.style.strokeDashoffset = total * (1 - Math.min(pct, 100) / 100);
-  const cols = tc();
-  if (team === 1) boostArc.style.stroke = pct >= 95 ? cols.oL : cols.o;
-  else            boostArc.style.stroke = pct >= 95 ? cols.bL : cols.b;
-  /* Track : couleur équipe semi-transparente selon le thème */
-  if (is34) {
-    const bt = document.getElementById('boost-track');
-    if (bt) {
-      const _cs    = getComputedStyle(document.body);
-      const _cssTB = _cs.getPropertyValue('--boost-track-b').trim();
-      const _cssTО = _cs.getPropertyValue('--boost-track-o').trim();
-      if (themeIs('fifa-world-cup'))
-        bt.style.stroke = 'rgba(255,255,255,.07)';
-      else if (themeIs('vitality'))
-        bt.style.stroke = team === 1 ? (_cssTО || 'rgba(250,213,0,.6)')   : (_cssTB || 'rgba(26,172,230,.6)');
-      else if (themeIs('rlcs2025'))
-        bt.style.stroke = team === 1 ? (_cssTО || 'rgba(232,74,0,.45)')   : (_cssTB || 'rgba(0,152,234,.45)');
-      else
-        bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'   : 'rgba(26,88,200,.5)';
-    }
+  const total = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
+  if (themeOrTeamChanged) {
+    boostArc.style.strokeDasharray = is34 ? `${total} ${ARC_CIRC}` : total;
   }
-  /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
-  if (themeIs('enisorail')) {
-    const meter = document.getElementById('boost-meter');
-    if (meter) meter.dataset.boostTeam = team === 1 ? 'orange' : 'blue';
+  boostArc.style.strokeDashoffset = total * (1 - Math.min(pct, 100) / 100);
+
+  const highBoost = pct >= 95;
+  if (themeOrTeamChanged || highBoost !== _lastArcHighBoost) {
+    const cols = tc();
+    if (team === 1) boostArc.style.stroke = highBoost ? cols.oL : cols.o;
+    else            boostArc.style.stroke = highBoost ? cols.bL : cols.b;
+    _lastArcHighBoost = highBoost;
+  }
+
+  if (themeOrTeamChanged) {
+    /* Track : couleur équipe semi-transparente selon le thème */
+    if (is34) {
+      const bt = document.getElementById('boost-track');
+      if (bt) {
+        if (themeIs('fifa-world-cup'))
+          bt.style.stroke = 'rgba(255,255,255,.07)';
+        else if (themeIs('vitality'))
+          bt.style.stroke = team === 1 ? (_boostTrackCssO || 'rgba(250,213,0,.6)')   : (_boostTrackCssB || 'rgba(26,172,230,.6)');
+        else if (themeIs('rlcs2025'))
+          bt.style.stroke = team === 1 ? (_boostTrackCssO || 'rgba(232,74,0,.45)')   : (_boostTrackCssB || 'rgba(0,152,234,.45)');
+        else
+          bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'   : 'rgba(26,88,200,.5)';
+      }
+    }
+    /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
+    if (themeIs('enisorail')) {
+      const meter = document.getElementById('boost-meter');
+      if (meter) meter.dataset.boostTeam = team === 1 ? 'orange' : 'blue';
+    }
+    _lastArcTheme = theme; _lastArcTeam = team; _lastArcIs34 = is34;
   }
 }
+setBoostArc(0);
 
 /* ── State ── */
 let ws, reconT, goalT, hideT;
@@ -1434,6 +1470,7 @@ let lastPrimaryId = null;
 let overlayForcedOff = false;
 let boostForcedOff   = false;
 let playerVideoEnabled = false;
+let animSettings = { goal: true, replay: true, live: true };
 let afterPreCountdown = false;
 let collapseScoreT;
 let _wasOT = false;
@@ -1457,6 +1494,17 @@ function doReplayWipe(word, onDone, hold = 1600) {
     _liveWipeActive = true;
   } else {
     _liveWipeActive = false;
+  }
+
+  /* Animation REPLAY/LIVE désactivée via les réglages : on saute le wipe visuel
+     mais on garde le flux (barre replay, caméras, retour au direct) intact en
+     appelant onDone tout de suite. */
+  const animEnabled = word === 'LIVE' ? animSettings.live : animSettings.replay;
+  if (!animEnabled) {
+    cancelReplayWipe();
+    if (word === 'LIVE') _liveWipeActive = false;
+    if (onDone) onDone();
+    return;
   }
 
   cancelReplayWipe();
@@ -1812,6 +1860,9 @@ function connect() {
         }
         syncVideoPool();
         renderPlayerVideo(state ? findSpectated(state.game?.players ?? {}) : null);
+        break;
+      case 'animations_settings':
+        animSettings = { goal: true, replay: true, live: true, ...data };
         break;
       case 'sos_disconnected':
         hideOverlay(0);
@@ -2476,12 +2527,12 @@ function onGoal(data) {
   const sub   = document.getElementById('goal-sub');
   const team  = data.scorer?.team_num ?? -1;
 
-  /* Lysorn Cup : pas de notif goal */
-  if (themeIs('lysorn-cup')) {
-    const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
-    if (scoreEl) { scoreEl.classList.add('bump'); setTimeout(() => scoreEl.classList.remove('bump'), 300); }
-    return;
-  }
+  /* Le bump du score reste indépendant de la notif GOAL (toujours visible) */
+  const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
+  if (scoreEl) { scoreEl.classList.add('bump'); setTimeout(() => scoreEl.classList.remove('bump'), 300); }
+
+  /* Lysorn Cup : pas de notif goal — pareil si l'animation GOAL est désactivée */
+  if (themeIs('lysorn-cup') || !animSettings.goal) return;
 
   if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
     /* Vitality / ENISorail / RLCS2025 / FIFA WC : la CSS gère la couleur — reset l'inline style */
@@ -2494,9 +2545,6 @@ function onGoal(data) {
   }
 
   sub.textContent = data.scorer?.name ? `⚽  ${data.scorer.name}` : '';
-
-  const scoreEl = document.getElementById(team === 0 ? 'score-blue' : 'score-orange');
-  if (scoreEl) { scoreEl.classList.add('bump'); setTimeout(() => scoreEl.classList.remove('bump'), 300); }
 
   notif.classList.add('show');
   goalT = setTimeout(() => notif.classList.remove('show'), 4000);

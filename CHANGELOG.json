@@ -1,0 +1,13 @@
+{
+  "1.6.7": {
+    "date": "2026-09-14",
+    "notes": [
+      "Nouveau : système d'avis intégré — notez l'overlay et laissez vos suggestions directement depuis le panneau de contrôle",
+      "Nouveau : notification affichant les notes de version après chaque mise à jour (celle-ci !)",
+      "Nouveau : interrupteurs pour activer/désactiver les animations GOAL, REPLAY et LIVE indépendamment",
+      "Nouveau : gestion des liens vidéo joueurs à l'avance, avant même qu'ils rejoignent la partie",
+      "Amélioration : refonte visuelle complète du panneau de contrôle (design plus épuré et fluide)",
+      "Correction : latence croissante du boost meter et de la stat bar sur les sessions longues"
+    ]
+  }
+}

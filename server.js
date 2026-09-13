@@ -29,10 +29,13 @@ function saveSettings() {
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
 }
 
+const _isFreshInstall = !fs.existsSync(SETTINGS_PATH); // avant toute écriture de settings.json
 let settings = readSettings();
 settings.mediaBanner = settings.mediaBanner ?? { enabled: false };
 settings.playerLinks = {}; // remis à zéro à chaque démarrage de l'application
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
+settings.animations = { goal: true, replay: true, live: true, ...(settings.animations || {}) };
+settings.reviewSubmitted = settings.reviewSubmitted ?? false;
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
 
@@ -382,6 +385,8 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'overlay_visible', data: { visible: overlayVisible } }));
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
   ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled } }));
+  ws.send(JSON.stringify({ type: 'animations_settings', data: settings.animations }));
+  ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
   ws.on('close', () => console.log('[Overlay] Client déconnecté'));
 });
 
@@ -548,6 +553,96 @@ app.post('/api/player-video-toggle', (req, res) => {
   saveSettings();
   broadcast('player_video_toggle', { enabled: settings.playerVideoEnabled });
   res.json({ ok: true, enabled: settings.playerVideoEnabled });
+});
+
+app.post('/api/animations', (req, res) => {
+  const { goal, replay, live } = req.body;
+  if (goal   !== undefined) settings.animations.goal   = !!goal;
+  if (replay !== undefined) settings.animations.replay = !!replay;
+  if (live   !== undefined) settings.animations.live   = !!live;
+  saveSettings();
+  broadcast('animations_settings', settings.animations);
+  res.json({ ok: true, animations: settings.animations });
+});
+
+/* Relaie l'avis vers overlay.rscast.fr (identifié via la clé de licence de la session) */
+function postJSON(url, body) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const data = Buffer.from(JSON.stringify(body));
+    const u = new URL(url);
+    const req = https.request({
+      hostname: u.hostname, path: u.pathname + u.search, method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': data.length },
+    }, res => {
+      let raw = '';
+      res.on('data', c => raw += c);
+      res.on('end', () => {
+        let parsed = {};
+        try { parsed = JSON.parse(raw); } catch {}
+        resolve({ status: res.statusCode, body: parsed });
+      });
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+app.post('/api/submit-review', async (req, res) => {
+  if (settings.reviewSubmitted) return res.status(409).json({ error: 'Vous avez déjà laissé un avis' });
+  if (!_session?.license) return res.status(401).json({ error: 'Non connecté' });
+
+  const rating = parseInt(req.body?.rating, 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: 'Note invalide' });
+  const review = String(req.body?.review || '').trim().slice(0, 600);
+  if (!review) return res.status(400).json({ error: 'Merci de décrire votre avis' });
+  const suggestion = String(req.body?.suggestion || '').trim().slice(0, 600);
+
+  try {
+    const r = await postJSON('https://overlay.rscast.fr/api/reviews', { license: _session.license, rating, review, suggestion });
+    if (r.status !== 200 || !r.body?.ok) return res.status(r.status || 500).json({ error: r.body?.error || 'Erreur serveur' });
+    settings.reviewSubmitted = true;
+    saveSettings();
+    broadcast('review_status', { submitted: true });
+    res.json({ ok: true });
+  } catch {
+    res.status(502).json({ error: 'Impossible de contacter le serveur' });
+  }
+});
+
+function getJSON(url) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    https.get(url, res => {
+      let raw = '';
+      res.on('data', c => raw += c);
+      res.on('end', () => {
+        let parsed = {};
+        try { parsed = JSON.parse(raw); } catch {}
+        resolve({ status: res.statusCode, body: parsed });
+      });
+    }).on('error', reject);
+  });
+}
+
+/* Si l'avis a été refusé (ou supprimé) par l'admin, on ré-autorise l'utilisateur à en
+   soumettre un nouveau (le bouton réapparaît). Appelé à l'ouverture du panneau de contrôle.
+   On ne garde le bouton masqué que si un avis est encore actif (pending/approved) côté
+   serveur — tout autre statut (rejected, ou null si la ligne a été supprimée) le réaffiche. */
+app.get('/api/review-status/refresh', async (req, res) => {
+  if (settings.reviewSubmitted && _session?.license) {
+    try {
+      const r = await getJSON(`https://overlay.rscast.fr/api/reviews/mine?license=${encodeURIComponent(_session.license)}`);
+      const stillActive = r.status === 200 && (r.body?.status === 'pending' || r.body?.status === 'approved');
+      if (r.status === 200 && !stillActive) {
+        settings.reviewSubmitted = false;
+        saveSettings();
+        broadcast('review_status', { submitted: false });
+      }
+    } catch {}
+  }
+  res.json({ submitted: settings.reviewSubmitted });
 });
 
 app.post('/api/teams', (req, res) => {
@@ -817,11 +912,52 @@ app.post('/api/goal', (req, res) => {
   res.json({ ok: true });
 });
 
+function getLocalVersion() {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version; }
+  catch { return '0.0.0'; }
+}
+
 app.get('/api/version', (req, res) => {
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-    res.json({ version: pkg.version });
-  } catch { res.json({ version: '?' }); }
+  res.json({ version: getLocalVersion() });
+});
+
+/* ── Notes de version : affichées une seule fois après chaque mise à jour ── */
+function readChangelog() {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'CHANGELOG.json'), 'utf8')); }
+  catch { return {}; }
+}
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d; }
+  return 0;
+}
+/* Première exécution après l'ajout de cette fonctionnalité :
+   - toute nouvelle installation (settings.json inexistant avant ce lancement) → base silencieuse,
+     rien à raconter à quelqu'un qui découvre l'app.
+   - utilisateur déjà existant (settings.json présent mais sans lastSeenVersion, car plus ancien
+     que cette fonctionnalité) → base à '0.0.0' pour que le prochain contrôle affiche bien les
+     notes de la version qui vient d'arriver sur sa machine (celle qui inclut cette fonctionnalité). */
+if (settings.lastSeenVersion === undefined) {
+  settings.lastSeenVersion = _isFreshInstall ? getLocalVersion() : '0.0.0';
+  saveSettings();
+}
+
+app.get('/api/changelog/unseen', (req, res) => {
+  const current = getLocalVersion();
+  if (compareVersions(settings.lastSeenVersion, current) >= 0) return res.json({ show: false });
+  const changelog = readChangelog();
+  const entries = Object.entries(changelog)
+    .filter(([v]) => compareVersions(v, settings.lastSeenVersion) > 0 && compareVersions(v, current) <= 0)
+    .sort((a, b) => compareVersions(a[0], b[0]))
+    .map(([version, data]) => ({ version, date: data.date || '', notes: data.notes || [] }));
+  if (!entries.length) return res.json({ show: false });
+  res.json({ show: true, current, entries });
+});
+
+app.post('/api/changelog/seen', (req, res) => {
+  settings.lastSeenVersion = getLocalVersion();
+  saveSettings();
+  res.json({ ok: true });
 });
 
 /* ── Session auth (set by Electron main) ── */
