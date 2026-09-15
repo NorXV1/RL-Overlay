@@ -9,5 +9,12 @@
       "Amélioration : refonte visuelle complète du panneau de contrôle (design plus épuré et fluide)",
       "Correction : latence croissante du boost meter et de la stat bar sur les sessions longues"
     ]
+  },
+  "1.6.8": {
+    "date": "2026-09-15",
+    "notes": [
+      "Nouveau : interrupteur pour conserver les liens vidéo joueurs après un redémarrage de l'application",
+      "Nouveau : photo de profil affichée dans le panneau de contrôle (à définir sur votre compte via le site)"
+    ]
   }
 }

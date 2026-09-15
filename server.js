@@ -32,7 +32,8 @@ function saveSettings() {
 const _isFreshInstall = !fs.existsSync(SETTINGS_PATH); // avant toute écriture de settings.json
 let settings = readSettings();
 settings.mediaBanner = settings.mediaBanner ?? { enabled: false };
-settings.playerLinks = {}; // remis à zéro à chaque démarrage de l'application
+settings.keepPlayerLinks = settings.keepPlayerLinks ?? false;
+settings.playerLinks = settings.keepPlayerLinks ? (settings.playerLinks || {}) : {}; // remis à zéro à chaque démarrage sauf si "Conserver au redémarrage" est activé
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
 settings.animations = { goal: true, replay: true, live: true, ...(settings.animations || {}) };
 settings.reviewSubmitted = settings.reviewSubmitted ?? false;
@@ -548,6 +549,12 @@ app.post('/api/player-link', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/keep-player-links', (req, res) => {
+  settings.keepPlayerLinks = !!req.body.enabled;
+  saveSettings();
+  res.json({ ok: true, enabled: settings.keepPlayerLinks });
+});
+
 app.post('/api/player-video-toggle', (req, res) => {
   settings.playerVideoEnabled = !!req.body.enabled;
   saveSettings();
@@ -972,6 +979,7 @@ app.get('/api/session', (req, res) => {
     tier     : _session.tier || 'basic',
     license  : _session.license,
     token    : _session.token,
+    avatarUrl: _session.avatar_url || null,
   });
 });
 

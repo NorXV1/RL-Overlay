@@ -582,6 +582,10 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="modal-box" style="width:420px;max-height:82vh;display:flex;flex-direction:column;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Liens vidéo joueurs</div>
         <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Le pseudo doit correspondre <strong style="color:var(--text);">exactement</strong> au nom en jeu. Configurable à l'avance, ça s'applique dès que le joueur rejoint la partie.</div>
+        <div class="toggle-row" style="margin-bottom:8px;">
+          <div><div class="toggle-label">Conserver au redémarrage</div><div class="toggle-sub">Garde les joueurs enregistrés après avoir relancé l'app</div></div>
+          <label class="switch"><input type="checkbox" id="keep-player-links-toggle" onchange="setKeepPlayerLinks(this.checked)"><span class="slider"></span></label>
+        </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input type="text" id="pl-modal-name" placeholder="Pseudo exact en jeu" style="flex:1;box-sizing:border-box;">
         </div>
@@ -1348,6 +1352,7 @@ async function loadSettings() {
     document.getElementById('anim-replay-toggle').checked = anim.replay ?? true;
     document.getElementById('anim-live-toggle').checked   = anim.live   ?? true;
     document.getElementById('review-btn').style.display = s.reviewSubmitted ? 'none' : '';
+    document.getElementById('keep-player-links-toggle').checked = s.keepPlayerLinks ?? false;
     _playerLinks = s.playerLinks || {};
     renderSeriesDots();
   } catch {}
@@ -1575,6 +1580,7 @@ async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await 
 async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
 async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); }
+async function setKeepPlayerLinks(v) { await post('/api/keep-player-links', {enabled:v}); fb('fb-pl-modal', v?'✓ Les liens seront conservés au redémarrage':'✓ Les liens seront réinitialisés au redémarrage'); }
 const ANIM_LABELS = { goal: 'GOAL', replay: 'REPLAY', live: 'LIVE' };
 async function setAnimation(key, v) { await post('/api/animations', {[key]:v}); fb('fb-anim', `✓ Animation ${ANIM_LABELS[key]} ${v?'activée':'désactivée'}`); }
 
@@ -1772,7 +1778,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (card) {
       card.style.display = 'block';
       document.getElementById('acc-name').textContent    = s.username;
-      document.getElementById('acc-avatar').textContent  = s.username.charAt(0).toUpperCase();
+      const avatarEl = document.getElementById('acc-avatar');
+      if (s.avatarUrl) {
+        avatarEl.style.overflow = 'hidden';
+        avatarEl.innerHTML = `<img src="${s.avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+      } else {
+        avatarEl.style.overflow = '';
+        avatarEl.textContent = s.username.charAt(0).toUpperCase();
+      }
 
       const tierEl = document.getElementById('acc-tier');
       if (isPrem) {

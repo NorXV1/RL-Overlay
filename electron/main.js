@@ -330,8 +330,8 @@ if (!gotLock) { app.exit(0); } else {
       // Valider la clé en ligne
       const result = await validateKey(session.license);
       if (result.valid) {
-        // Mettre à jour le tier depuis le serveur
-        const updatedSession = { ...session, tier: result.tier || session.tier || 'basic' };
+        // Mettre à jour le tier et l'avatar depuis le serveur
+        const updatedSession = { ...session, tier: result.tier || session.tier || 'basic', avatar_url: result.avatar_url ?? session.avatar_url ?? null };
         saveSession(updatedSession);
         createMainWindow(updatedSession);
         createTray();

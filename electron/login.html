@@ -90,10 +90,11 @@ async function doLogin() {
     if (r.ok) {
       showMsg('Connecté ! Ouverture...', true);
       window.electronAPI.authSuccess({
-        token   : r.token,
-        license : r.license,
-        username: r.username,
-        tier    : r.tier || 'basic'
+        token     : r.token,
+        license   : r.license,
+        username  : r.username,
+        tier      : r.tier || 'basic',
+        avatar_url: r.avatar_url ?? null
       });
     } else {
       showMsg(r.error || 'Identifiants incorrects.', false);
