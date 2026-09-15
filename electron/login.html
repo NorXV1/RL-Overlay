@@ -51,23 +51,47 @@ input:focus { border-color: #1a58c8; background: rgba(26,88,200,.07); }
     <p>CONNEXION REQUISE</p>
   </div>
 
-  <label>Identifiant ou Email</label>
-  <input type="text" id="user" placeholder="votre identifiant" autocomplete="username">
+  <div id="step-login">
+    <label>Identifiant ou Email</label>
+    <input type="text" id="user" placeholder="votre identifiant" autocomplete="username">
 
-  <label>Mot de passe</label>
-  <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password"
-         onkeydown="if(event.key==='Enter') doLogin()">
+    <label>Mot de passe</label>
+    <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password"
+           onkeydown="if(event.key==='Enter') doLogin()">
 
-  <button class="btn" id="btn" onclick="doLogin()">SE CONNECTER</button>
+    <button class="btn" id="btn" onclick="doLogin()">SE CONNECTER</button>
+
+    <div class="link">
+      Pas de compte ? <a href="https://overlay.rscast.fr" target="_blank">S'inscrire</a>
+    </div>
+  </div>
+
+  <div id="step-2fa" style="display:none">
+    <p id="tfa-hint" style="font-size:12px;color:rgba(255,255,255,.5);text-align:center;line-height:1.5"></p>
+    <label>Code à 6 chiffres</label>
+    <input type="text" id="tfa-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code"
+           onkeydown="if(event.key==='Enter') doVerify2fa()">
+    <button class="btn" id="tfa-btn" onclick="doVerify2fa()">VÉRIFIER</button>
+    <div class="link"><a href="#" onclick="event.preventDefault();backToLoginStep()">← Retour</a></div>
+  </div>
 
   <div class="msg" id="msg"></div>
-
-  <div class="link">
-    Pas de compte ? <a href="https://overlay.rscast.fr" target="_blank">S'inscrire</a>
-  </div>
 </div>
 
 <script>
+let pending2faUserId = null;
+
+function finishAuth(r) {
+  showMsg('Connecté ! Ouverture...', true);
+  window.electronAPI.authSuccess({
+    token     : r.token,
+    license   : r.license,
+    username  : r.username,
+    tier      : r.tier || 'basic',
+    avatar_url: r.avatar_url ?? null
+  });
+}
+
 async function doLogin() {
   const btn  = document.getElementById('btn');
   const msg  = document.getElementById('msg');
@@ -87,15 +111,17 @@ async function doLogin() {
       body: JSON.stringify({ username: user, password: pass })
     }).then(r => r.json());
 
-    if (r.ok) {
-      showMsg('Connecté ! Ouverture...', true);
-      window.electronAPI.authSuccess({
-        token     : r.token,
-        license   : r.license,
-        username  : r.username,
-        tier      : r.tier || 'basic',
-        avatar_url: r.avatar_url ?? null
-      });
+    if (r.ok && r.requires2fa) {
+      pending2faUserId = r.userId;
+      document.getElementById('tfa-hint').textContent = r.method === 'email'
+        ? 'Un code vient de t’être envoyé par email (valable 1h).'
+        : 'Entre le code affiché dans ton application d’authentification.';
+      document.getElementById('step-login').style.display = 'none';
+      document.getElementById('step-2fa').style.display = 'block';
+      document.getElementById('tfa-code').value = '';
+      setTimeout(() => document.getElementById('tfa-code').focus(), 50);
+    } else if (r.ok) {
+      finishAuth(r);
     } else {
       showMsg(r.error || 'Identifiants incorrects.', false);
     }
@@ -105,6 +131,34 @@ async function doLogin() {
 
   btn.disabled = false;
   btn.textContent = 'SE CONNECTER';
+}
+
+function backToLoginStep() {
+  pending2faUserId = null;
+  document.getElementById('step-2fa').style.display = 'none';
+  document.getElementById('step-login').style.display = 'block';
+  document.getElementById('msg').style.display = 'none';
+}
+
+async function doVerify2fa() {
+  const btn  = document.getElementById('tfa-btn');
+  const code = document.getElementById('tfa-code').value.trim();
+  if (!code) { showMsg('Entre le code.', false); return; }
+  btn.disabled = true;
+  btn.textContent = 'VÉRIFICATION...';
+  try {
+    const r = await fetch('https://overlay.rscast.fr/api/login/2fa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: pending2faUserId, code })
+    }).then(r => r.json());
+    if (r.ok) finishAuth(r);
+    else showMsg(r.error || 'Code incorrect.', false);
+  } catch (e) {
+    showMsg('Impossible de joindre le serveur.', false);
+  }
+  btn.disabled = false;
+  btn.textContent = 'VÉRIFIER';
 }
 
 function showMsg(text, ok) {

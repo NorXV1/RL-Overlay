@@ -16,5 +16,11 @@
       "Nouveau : interrupteur pour conserver les liens vidéo joueurs après un redémarrage de l'application",
       "Nouveau : photo de profil affichée dans le panneau de contrôle (à définir sur votre compte via le site)"
     ]
+  },
+  "1.6.9": {
+    "date": "2026-09-15",
+    "notes": [
+      "Nouveau : double authentification (2FA) activable depuis votre profil sur le site, par email ou application d'authentification (Google Authenticator, Authy...)"
+    ]
   }
 }
