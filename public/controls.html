@@ -1049,6 +1049,28 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div class="fb" id="fb-import"></div>
       </div>
 
+      <!-- Télécharger par code -->
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
+        <div style="font-size:10px;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px;">TÉLÉCHARGER UN THÈME PAR CODE</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:10px;color:var(--text-dim);">CODE (site → page Thèmes)</label>
+            <input type="text" id="theme-code-input" placeholder="XJ4K9P" maxlength="6" style="width:100%;text-transform:uppercase;letter-spacing:2px;font-family:monospace;" onkeydown="if(event.key==='Enter')downloadThemeByCode()">
+          </div>
+          <button class="btn btn-blue" onclick="downloadThemeByCode()" id="theme-code-btn" style="white-space:nowrap;">⬇ Télécharger</button>
+        </div>
+        <div id="theme-download-progress-wrap" style="display:none;margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;">
+            <span id="theme-download-label">Téléchargement…</span>
+            <span id="theme-download-percent">0%</span>
+          </div>
+          <div style="width:100%;height:6px;background:var(--btnbg);border-radius:3px;overflow:hidden;">
+            <div id="theme-download-bar" style="height:100%;width:0%;background:var(--blue);border-radius:3px;transition:width .2s var(--ease);"></div>
+          </div>
+        </div>
+        <div class="fb" id="fb-theme-code"></div>
+      </div>
+
     </div>
 
     <!-- Équipes & Ligue -->
@@ -1245,6 +1267,61 @@ async function importTheme() {
   } else { fb.textContent = r.error || 'Erreur'; fb.style.color = '#e05'; }
 }
 
+/* ── Téléchargement d'un thème par code (site → app) ── */
+async function downloadThemeByCode() {
+  const code = document.getElementById('theme-code-input').value.trim().toUpperCase();
+  const fbEl = document.getElementById('fb-theme-code');
+  if (!code) { fbEl.style.color = '#e05'; fbEl.textContent = '⚠ Entre un code'; return; }
+  fbEl.textContent = '';
+  document.getElementById('theme-code-btn').disabled = true;
+  document.getElementById('theme-download-progress-wrap').style.display = 'block';
+  document.getElementById('theme-download-bar').style.width = '0%';
+  document.getElementById('theme-download-percent').textContent = '0%';
+  document.getElementById('theme-download-label').textContent = 'Résolution du code…';
+  try {
+    const r = await post('/api/themes/download-by-id', { shareId: code });
+    if (!r.ok) {
+      fbEl.style.color = '#e05'; fbEl.textContent = '✗ ' + (r.error || 'Erreur');
+      document.getElementById('theme-code-btn').disabled = false;
+      document.getElementById('theme-download-progress-wrap').style.display = 'none';
+    }
+    // Le succès est géré par le message WS 'theme_download_progress' (status:'done')
+  } catch {
+    fbEl.style.color = '#e05'; fbEl.textContent = '✗ Erreur réseau';
+    document.getElementById('theme-code-btn').disabled = false;
+    document.getElementById('theme-download-progress-wrap').style.display = 'none';
+  }
+}
+
+function onThemeDownloadProgress(data) {
+  const wrap  = document.getElementById('theme-download-progress-wrap');
+  const bar   = document.getElementById('theme-download-bar');
+  const pct   = document.getElementById('theme-download-percent');
+  const label = document.getElementById('theme-download-label');
+  const btn   = document.getElementById('theme-code-btn');
+  wrap.style.display = 'block';
+  if (data.status === 'resolving') {
+    label.textContent = 'Résolution du code…';
+  } else if (data.status === 'downloading') {
+    label.textContent = `Téléchargement de "${data.name || ''}"…`;
+    bar.style.width = data.percent + '%';
+    pct.textContent = data.percent + '%';
+  } else if (data.status === 'extracting') {
+    label.textContent = 'Installation…';
+    bar.style.width = '100%'; pct.textContent = '100%';
+  } else if (data.status === 'done') {
+    label.textContent = `✓ "${data.name || ''}" installé !`;
+    btn.disabled = false;
+    document.getElementById('theme-code-input').value = '';
+    loadImportedThemes();
+    setTimeout(() => { wrap.style.display = 'none'; }, 3000);
+  } else if (data.status === 'error') {
+    label.textContent = '✗ ' + (data.error || 'Erreur');
+    btn.disabled = false;
+    setTimeout(() => { wrap.style.display = 'none'; }, 4000);
+  }
+}
+
 /* Auto-remplissage NOM + BASÉ SUR quand on choisit un ZIP */
 document.getElementById('import-theme-file').addEventListener('change', async function () {
   const file = this.files[0];
@@ -1334,6 +1411,7 @@ ws.onmessage = e => {
   }
   if (type === 'review_status') document.getElementById('review-btn').style.display = data.submitted ? 'none' : '';
   if (type === 'logo_updated') { const img=document.querySelector(`#prev-${data.side} img`); if(img) img.dataset.url=''; setLogoPreview(data.side, data.url); }
+  if (type === 'theme_download_progress') onThemeDownloadProgress(data);
 };
 
 /* ── Settings ── */

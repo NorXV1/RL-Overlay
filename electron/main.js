@@ -11,6 +11,43 @@ let loginWindow = null;
 let tray        = null;
 let srv         = null;  // référence au module server
 
+/* ── Protocole rloverlay:// (lien "Installer sur l'application" du site) ── */
+let pendingProtocolShareId = null;
+
+function parseProtocolUrl(url) {
+  const m = /^rloverlay:\/\/install-theme\/([A-Za-z0-9]+)/i.exec(url || '');
+  return m ? m[1].toUpperCase() : null;
+}
+
+/* Déclenche le téléchargement dans le serveur local déjà en cours d'exécution
+   (même processus, requête HTTP interne vers 127.0.0.1) */
+function triggerThemeDownload(shareId) {
+  const http = require('http');
+  const data = Buffer.from(JSON.stringify({ shareId }));
+  const req = http.request({
+    hostname: '127.0.0.1', port: 3000, path: '/api/themes/download-by-id', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': data.length },
+  });
+  req.on('error', () => {});
+  req.write(data);
+  req.end();
+}
+
+/* Extrait un éventuel lien rloverlay:// des arguments de lancement et, si l'app
+   est déjà prête (fenêtre principale ouverte), lance le téléchargement tout de
+   suite ; sinon on le garde en attente jusqu'à ce que l'utilisateur soit connecté. */
+function handleProtocolArgv(argv) {
+  const url = (argv || []).find(a => a.startsWith('rloverlay://'));
+  const shareId = parseProtocolUrl(url);
+  if (!shareId) return;
+  if (mainWindow) {
+    mainWindow.show(); mainWindow.focus();
+    triggerThemeDownload(shareId);
+  } else {
+    pendingProtocolShareId = shareId;
+  }
+}
+
 /* ── Session ───────────────────────────────────────────────── */
 const SESSION_FILE = path.join(app.getPath('userData'), 'session.json');
 
@@ -62,13 +99,21 @@ function destroyDiscordRPC() {
   if (rpc) { try { rpc.destroy(); } catch {} rpc = null; }
 }
 
+/* ── Protocole rloverlay:// ──────────────────────────────────── */
+if (process.defaultApp) {
+  if (process.argv.length >= 2) app.setAsDefaultProtocolClient('rloverlay', process.execPath, [path.resolve(process.argv[1])]);
+} else {
+  app.setAsDefaultProtocolClient('rloverlay');
+}
+
 /* ── Instance unique ─────────────────────────────────────────── */
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.exit(0); } else {
 
-  app.on('second-instance', () => {
+  app.on('second-instance', (event, argv) => {
     const win = mainWindow || loginWindow;
     if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
+    handleProtocolArgv(argv);
   });
 
   /* ── Serveur Express/WebSocket ─────────────────────────────── */
@@ -129,6 +174,16 @@ if (!gotLock) { app.exit(0); } else {
       });
     }
     tryLoad();
+
+    // Un lien rloverlay:// reçu avant que la fenêtre/le panneau soit prêt est
+    // rejoué une fois la page chargée (le temps que le WebSocket se connecte).
+    mainWindow.webContents.once('did-finish-load', () => {
+      if (pendingProtocolShareId) {
+        const shareId = pendingProtocolShareId;
+        pendingProtocolShareId = null;
+        setTimeout(() => triggerThemeDownload(shareId), 800);
+      }
+    });
 
     mainWindow.on('close', e => {
       if (!app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
@@ -310,6 +365,10 @@ if (!gotLock) { app.exit(0); } else {
     }
     return fixed;
   }
+
+  // Lancement initial via rloverlay:// (l'app n'était pas encore ouverte) —
+  // mis en attente ici, traité une fois la fenêtre principale prête.
+  handleProtocolArgv(process.argv);
 
   /* ── Démarrage ──────────────────────────────────────────────── */
   app.whenReady().then(async () => {

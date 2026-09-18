@@ -633,6 +633,33 @@ function getJSON(url) {
   });
 }
 
+/* Télécharge un fichier en mémoire en suivant la progression (0-100) via callback.
+   Suit les redirections (302) puisque le téléchargement passe par un CDN/proxy. */
+function downloadWithProgress(url, onProgress) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const get = (u) => {
+      https.get(u, res => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return get(res.headers.location);
+        }
+        if (res.statusCode !== 200) return reject(new Error('Téléchargement échoué (HTTP ' + res.statusCode + ')'));
+        const total = parseInt(res.headers['content-length'] || '0', 10);
+        let received = 0;
+        const chunks = [];
+        res.on('data', c => {
+          chunks.push(c);
+          received += c.length;
+          if (total > 0) onProgress(Math.min(99, Math.floor(received / total * 100)));
+        });
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+        res.on('error', reject);
+      }).on('error', reject);
+    };
+    get(url);
+  });
+}
+
 /* Si l'avis a été refusé (ou supprimé) par l'admin, on ré-autorise l'utilisateur à en
    soumettre un nouveau (le bouton réapparaît). Appelé à l'ouverture du panneau de contrôle.
    On ne garde le bouton masqué que si un avis est encore actif (pending/approved) côté
@@ -887,6 +914,42 @@ app.post('/api/themes/import-zip', upload.single('zip'), async (req, res) => {
   } catch (e) {
     try { fs.rmSync(themeDir, { recursive: true, force: true }); } catch {}
     res.status(400).json({ error: e.message || 'Erreur extraction ZIP' });
+  }
+});
+
+/* Télécharge et installe un thème custom depuis le site via son code court —
+   progression diffusée en WebSocket ('theme_download_progress') pour la barre
+   de progression du panneau de contrôle. */
+app.post('/api/themes/download-by-id', async (req, res) => {
+  const shareId = String(req.body?.shareId || '').trim().toUpperCase();
+  if (!shareId) return res.status(400).json({ error: 'Code requis' });
+
+  broadcast('theme_download_progress', { status: 'resolving', percent: 0 });
+  try {
+    const resolved = await getJSON(`https://overlay.rscast.fr/api/themes/resolve/${encodeURIComponent(shareId)}`);
+    if (resolved.status !== 200 || !resolved.body?.ok) {
+      broadcast('theme_download_progress', { status: 'error', error: 'Code invalide' });
+      return res.status(404).json({ error: 'Code invalide' });
+    }
+    const { id, name } = resolved.body;
+    const localName = id.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || ('theme' + Date.now());
+
+    broadcast('theme_download_progress', { status: 'downloading', percent: 0, name });
+    const zipBuffer = await downloadWithProgress(
+      `https://overlay.rscast.fr/download/theme/by-code/${shareId}/zip`,
+      (percent) => broadcast('theme_download_progress', { status: 'downloading', percent, name })
+    );
+
+    broadcast('theme_download_progress', { status: 'extracting', percent: 100, name });
+    const themeDir = path.join(THEMES_DIR, localName);
+    fs.mkdirSync(themeDir, { recursive: true });
+    await extractThemeZip(zipBuffer, themeDir, localName, null);
+
+    broadcast('theme_download_progress', { status: 'done', percent: 100, name, id: localName });
+    res.json({ ok: true, id: localName, name });
+  } catch (e) {
+    broadcast('theme_download_progress', { status: 'error', error: e.message || 'Erreur de téléchargement' });
+    res.status(500).json({ error: e.message || 'Erreur de téléchargement' });
   }
 });
 

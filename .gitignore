@@ -11,6 +11,7 @@ public/themes/rscast/
 public/themes/lysorn-cup/
 public/themes/snir-theme/
 public/themes/rs-cup/
+public/themes/rscupseason1/
 *.log
 .DS_Store
 Thumbs.db

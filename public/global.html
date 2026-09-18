@@ -1305,11 +1305,9 @@ function setLeagueLabel(text) {
   el.textContent = (currentTheme === 'rlcs2026' && t.length > 52) ? t.slice(0, 51) + '…' : t;
 }
 
-/* Vidéo de fond de l'écran de fin : un fichier fond.mp4 différent par thème */
-const END_BG_VIDEOS = {
-  'lysorn-cup': 'themes/lysorn-cup/fond.mp4',
-  'rs-cup':     'themes/rs-cup/fond.mp4',
-};
+/* Vidéo de fond de l'écran de fin : thèmes (ou thèmes dont hérite un import/
+   téléchargement custom) qui embarquent un fond.mp4 dans leur propre dossier */
+const FOND_VIDEO_BASES = new Set(['lysorn-cup', 'rs-cup']);
 
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
@@ -1320,17 +1318,22 @@ function applyTheme(t) {
   if (link) {
     link.href = currentTheme === 'rlcs' ? '' : `/themes/${currentTheme}/theme.css?v=${Date.now()}`;
   }
-  const endBgVideo = document.getElementById('end-bg-video');
-  if (endBgVideo) {
-    const src = END_BG_VIDEOS[currentTheme] || '';
-    if (src && !endBgVideo.src.endsWith(src)) endBgVideo.src = src;
-  }
   _lastSerKey = '';
   /* Résoudre l'héritage multi-niveaux AVANT de reconstruire les pips et les ticks.
      Pour un thème built-in, la promesse résout en microtask (~0ms).
      Pour ds→da→rlcs2025, deux fetches locaux s'enchaînent (~5-20ms). */
   _resolveThemeBase(currentTheme, 5).then(base => {
     currentThemeBase = base;
+    /* Le fond.mp4 vit dans le dossier RÉEL du thème actif (currentTheme), pas dans
+       celui du thème d'origine (currentThemeBase) — seul le nom du dossier compte
+       ici, themeIs() sert uniquement à savoir SI ce thème (ou son ancêtre importé)
+       doit afficher cette vidéo. */
+    const endBgVideo = document.getElementById('end-bg-video');
+    if (endBgVideo) {
+      const usesFondVideo = FOND_VIDEO_BASES.has(currentTheme) || FOND_VIDEO_BASES.has(currentThemeBase);
+      const src = usesFondVideo ? `themes/${currentTheme}/fond.mp4` : '';
+      if (endBgVideo.getAttribute('src') !== src) endBgVideo.src = src;
+    }
     setTimeout(initBoostTicks, 50);
     if (state) setTimeout(renderSeriesDots, 120);
     /* Re-render les couleurs inline (boost arc stroke, stat bar bg) qui dépendent de tc().
@@ -1517,6 +1520,10 @@ function doReplayWipe(word, onDone, hold = 1600) {
     /* Décalage avant le début de l'animation : LIVE 2200ms, REPLAY 200ms */
     const startDelay = word === 'LIVE' ? 2200 : 200;
     if (vid) {
+      /* Le fichier vit dans le dossier RÉEL du thème actif (currentTheme) — un thème
+         importé/téléchargé sous un autre nom que "lysorn-cup" garde ses vidéos. */
+      const expectedSrc = `themes/${currentTheme}/${word === 'LIVE' ? 'LIVE' : 'transition'}.webm`;
+      if (vid.getAttribute('src') !== expectedSrc) vid.src = expectedSrc;
       _rwAfter(startDelay, () => {
         vid.style.display = 'block';
         vid.currentTime = 0;
@@ -1539,6 +1546,10 @@ function doReplayWipe(word, onDone, hold = 1600) {
     const vid = document.getElementById(word === 'LIVE' ? 'rs-live-video' : 'rs-transition-video');
     const startDelay = word === 'LIVE' ? 700 : 200;
     if (vid) {
+      /* Le fichier vit dans le dossier RÉEL du thème actif (currentTheme) — un thème
+         importé/téléchargé sous un autre nom que "rs-cup" garde ses vidéos. */
+      const expectedSrc = `themes/${currentTheme}/${word === 'LIVE' ? 'LIVE' : 'REPLAY'}.webm`;
+      if (vid.getAttribute('src') !== expectedSrc) vid.src = expectedSrc;
       _rwAfter(startDelay, () => {
         vid.style.display = 'block';
         vid.currentTime = 0;

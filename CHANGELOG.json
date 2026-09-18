@@ -22,5 +22,13 @@
     "notes": [
       "Nouveau : double authentification (2FA) activable depuis votre profil sur le site, par email ou application d'authentification (Google Authenticator, Authy...)"
     ]
+  },
+  "1.7.0": {
+    "date": "2026-09-16",
+    "notes": [
+      "Nouveau : téléchargement d'un thème custom directement via son code (page Thèmes du site → panneau de contrôle), avec barre de progression",
+      "Nouveau : bouton \"Installer sur l'application\" sur la page Thèmes du site — ouvre l'app (ou la lance) et installe le thème automatiquement",
+      "Correction : certains thèmes custom téléchargés sous un autre nom perdaient leurs animations spécifiques (vidéos replay/live, écran de fin, pips de série)"
+    ]
   }
 }

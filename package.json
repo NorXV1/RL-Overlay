@@ -41,6 +41,10 @@
       "settings.json",
       "package.json"
     ],
+    "protocols": {
+      "name": "RL Overlay Protocol",
+      "schemes": ["rloverlay"]
+    },
     "win": {
       "target": "nsis",
       "icon": "public/logos/logo.png"
