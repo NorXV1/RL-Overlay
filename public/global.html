@@ -1257,9 +1257,13 @@ const THEME_COLS = {
 };
 let currentTheme = 'rlcs';
 let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' pour un thème copié)
+/* Identités supplémentaires déclarées par le meta.json du thème ("alias": "rs-cup") —
+   permet à un thème renommé (import / téléchargement) de garder ses comportements
+   spécifiques EN PLUS de l'héritage "basedOn" (qui ne peut désigner qu'un seul parent). */
+let currentThemeAliases = [];
 
-/* Vérifie si le thème actif (ou son thème source) correspond à name */
-function themeIs(name) { return currentTheme === name || currentThemeBase === name; }
+/* Vérifie si le thème actif (ou son thème source / ses alias) correspond à name */
+function themeIs(name) { return currentTheme === name || currentThemeBase === name || currentThemeAliases.includes(name); }
 
 /* Cache du résultat de tc() : invalidé uniquement au changement de thème
    (applyTheme/_invalidateTc). tc() est appelée en continu (stat bar, boost
@@ -1296,6 +1300,15 @@ function _resolveThemeBase(theme, depth) {
     .catch(() => Promise.resolve(theme));
 }
 
+/* Lit les alias déclarés dans le meta.json du thème actif ("alias": "rs-cup" ou [..]) */
+function _loadThemeAliases(theme) {
+  if (!theme || theme === 'rlcs' || THEME_COLS[theme]) return Promise.resolve([]);
+  return fetch(`/themes/${theme}/meta.json`)
+    .then(r => r.json())
+    .then(m => [].concat(m.alias || []))
+    .catch(() => []);
+}
+
 /* Écrit le texte du league-label en tronquant à 52 chars pour rlcs2026
    (au-delà, le top-bar déborde et décale le layout) */
 function setLeagueLabel(text) {
@@ -1312,6 +1325,7 @@ const FOND_VIDEO_BASES = new Set(['lysorn-cup', 'rs-cup']);
 function applyTheme(t) {
   currentTheme = t || 'rlcs';
   currentThemeBase = currentTheme;
+  currentThemeAliases = [];
   _invalidateTc();
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
@@ -1322,15 +1336,16 @@ function applyTheme(t) {
   /* Résoudre l'héritage multi-niveaux AVANT de reconstruire les pips et les ticks.
      Pour un thème built-in, la promesse résout en microtask (~0ms).
      Pour ds→da→rlcs2025, deux fetches locaux s'enchaînent (~5-20ms). */
-  _resolveThemeBase(currentTheme, 5).then(base => {
+  Promise.all([_resolveThemeBase(currentTheme, 5), _loadThemeAliases(currentTheme)]).then(([base, aliases]) => {
     currentThemeBase = base;
+    currentThemeAliases = aliases;
     /* Le fond.mp4 vit dans le dossier RÉEL du thème actif (currentTheme), pas dans
        celui du thème d'origine (currentThemeBase) — seul le nom du dossier compte
        ici, themeIs() sert uniquement à savoir SI ce thème (ou son ancêtre importé)
        doit afficher cette vidéo. */
     const endBgVideo = document.getElementById('end-bg-video');
     if (endBgVideo) {
-      const usesFondVideo = FOND_VIDEO_BASES.has(currentTheme) || FOND_VIDEO_BASES.has(currentThemeBase);
+      const usesFondVideo = [...FOND_VIDEO_BASES].some(themeIs);
       const src = usesFondVideo ? `themes/${currentTheme}/fond.mp4` : '';
       if (endBgVideo.getAttribute('src') !== src) endBgVideo.src = src;
     }

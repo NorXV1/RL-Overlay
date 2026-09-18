@@ -30,5 +30,12 @@
       "Nouveau : bouton \"Installer sur l'application\" sur la page Thèmes du site — ouvre l'app (ou la lance) et installe le thème automatiquement",
       "Correction : certains thèmes custom téléchargés sous un autre nom perdaient leurs animations spécifiques (vidéos replay/live, écran de fin, pips de série)"
     ]
+  },
+  "1.7.1": {
+    "date": "2026-09-18",
+    "notes": [
+      "Amélioration : un thème téléchargé ou importé garde désormais son identité d'origine (champ \"alias\" du meta.json) en plus de son thème parent — plus de perte d'animations ou de réglages du boost meter après un renommage",
+      "Correction : thème RS Cup — un nom d'équipe trop long ne décale plus le scoreboard, la taille du texte s'ajuste à la place"
+    ]
   }
 }

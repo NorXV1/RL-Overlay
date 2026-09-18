@@ -830,9 +830,15 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
           basedOn = refs.length ? Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0] : null;
         }
 
-        // meta.json du ZIP peut préciser/corriger basedOn
-        if (!forcedBasedOn && files['meta.json']) {
-          try { const m = JSON.parse(files['meta.json'].toString('utf8')); if (m.basedOn) basedOn = m.basedOn; } catch {}
+        // meta.json du ZIP peut préciser/corriger basedOn, et déclarer un "alias"
+        // (identité d'origine du thème, ex: "rs-cup") à conserver après renommage
+        let alias = null;
+        if (files['meta.json']) {
+          try {
+            const m = JSON.parse(files['meta.json'].toString('utf8'));
+            if (!forcedBasedOn && m.basedOn) basedOn = m.basedOn;
+            if (m.alias) alias = m.alias;
+          } catch {}
         }
 
         const finalBasedOn = forcedBasedOn || basedOn;
@@ -856,9 +862,12 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
 
         fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
 
-        // Écrire meta.json
-        if (finalBasedOn && finalBasedOn !== name)
-          fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn: finalBasedOn }, null, 2));
+        // Écrire meta.json (basedOn + alias éventuel)
+        const metaOut = {};
+        if (finalBasedOn && finalBasedOn !== name) metaOut.basedOn = finalBasedOn;
+        if (alias) metaOut.alias = alias;
+        if (Object.keys(metaOut).length)
+          fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify(metaOut, null, 2));
 
         // Écrire les images et autres fichiers
         for (const [fname, content] of Object.entries(files)) {
