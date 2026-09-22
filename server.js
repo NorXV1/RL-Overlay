@@ -835,9 +835,11 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
         // et des vidéos replay/live propres au thème ("wipeVideos")
         let alias = null;
         let wipeVideos = null;
+        let originalMeta = null;
         if (files['meta.json']) {
           try {
             const m = JSON.parse(files['meta.json'].toString('utf8'));
+            originalMeta = m;
             if (!forcedBasedOn && m.basedOn) basedOn = m.basedOn;
             if (m.alias) alias = m.alias;
             if (m.wipeVideos && typeof m.wipeVideos === 'object') wipeVideos = m.wipeVideos;
@@ -865,8 +867,13 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
 
         fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
 
-        // Écrire meta.json (basedOn + alias + wipeVideos éventuels)
-        const metaOut = {};
+        // Écrire meta.json : on repart du meta.json d'origine (préserve tout champ que cette
+        // fonction ne connaît pas explicitement, ex: "endBackground") et on ne réécrit que
+        // basedOn/alias/wipeVideos, dont la valeur finale peut différer de celle du fichier
+        // source (détection depuis le CSS, forcedBasedOn) — avant, meta.json était reconstruit
+        // de zéro avec seulement ces 3 champs, ce qui effaçait silencieusement tout le reste.
+        const metaOut = { ...(originalMeta || {}) };
+        delete metaOut.basedOn; delete metaOut.alias; delete metaOut.wipeVideos;
         if (finalBasedOn && finalBasedOn !== name) metaOut.basedOn = finalBasedOn;
         if (alias) metaOut.alias = alias;
         if (wipeVideos) metaOut.wipeVideos = wipeVideos;

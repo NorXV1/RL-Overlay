@@ -56,5 +56,11 @@
     "notes": [
       "Nouveau : un thème custom peut désormais choisir le fond de son écran de fin, en vidéo ou en image (champ \"endBackground\" du meta.json), sans modification de l'application"
     ]
+  },
+  "1.7.5": {
+    "date": "2026-09-22",
+    "notes": [
+      "Correction : l'import d'un thème (ZIP ou par code) effaçait les champs du meta.json non reconnus par l'application (ex : \"endBackground\")"
+    ]
   }
 }
