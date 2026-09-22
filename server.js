@@ -939,17 +939,32 @@ app.post('/api/themes/download-by-id', async (req, res) => {
 
   broadcast('theme_download_progress', { status: 'resolving', percent: 0 });
   try {
-    const resolved = await getJSON(`https://overlay.rscast.fr/api/themes/resolve/${encodeURIComponent(shareId)}`);
+    // Deux systèmes de code côté site : le code court permanent d'un thème public
+    // (shareId, /resolve + /download/theme/by-code) et le code temporaire (1h) d'un
+    // thème privé (downloadCode, /resolve-private + /download/theme/by-private-code).
+    // On essaie d'abord le code permanent, puis on retombe sur le code temporaire.
+    let resolved = await getJSON(`https://overlay.rscast.fr/api/themes/resolve/${encodeURIComponent(shareId)}`);
+    let downloadUrl = `https://overlay.rscast.fr/download/theme/by-code/${shareId}/zip`;
+
     if (resolved.status !== 200 || !resolved.body?.ok) {
-      broadcast('theme_download_progress', { status: 'error', error: 'Code invalide' });
-      return res.status(404).json({ error: 'Code invalide' });
+      const priv = await getJSON(`https://overlay.rscast.fr/api/themes/resolve-private/${encodeURIComponent(shareId)}`);
+      if (priv.status === 200 && priv.body?.ok) {
+        resolved = priv;
+        downloadUrl = `https://overlay.rscast.fr/download/theme/by-private-code/${shareId}/zip`;
+      } else if (priv.status === 410) {
+        broadcast('theme_download_progress', { status: 'error', error: 'Code expiré' });
+        return res.status(410).json({ error: 'Code expiré' });
+      } else {
+        broadcast('theme_download_progress', { status: 'error', error: 'Code invalide' });
+        return res.status(404).json({ error: 'Code invalide' });
+      }
     }
     const { id, name } = resolved.body;
     const localName = id.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || ('theme' + Date.now());
 
     broadcast('theme_download_progress', { status: 'downloading', percent: 0, name });
     const zipBuffer = await downloadWithProgress(
-      `https://overlay.rscast.fr/download/theme/by-code/${shareId}/zip`,
+      downloadUrl,
       (percent) => broadcast('theme_download_progress', { status: 'downloading', percent, name })
     );
 

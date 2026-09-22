@@ -44,5 +44,11 @@
       "Nouveau : un thème custom peut désormais embarquer ses propres vidéos REPLAY et LIVE (champ \"wipeVideos\" du meta.json), sans modification de l'application",
       "Amélioration : adaptation pour un thème personnalisé"
     ]
+  },
+  "1.7.3": {
+    "date": "2026-09-22",
+    "notes": [
+      "Correction : téléchargement par code refusé (\"Code invalide\") pour un thème privé du site avec un code temporaire"
+    ]
   }
 }
