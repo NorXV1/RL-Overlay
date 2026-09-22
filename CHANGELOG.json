@@ -37,5 +37,12 @@
       "Amélioration : un thème téléchargé ou importé garde désormais son identité d'origine (champ \"alias\" du meta.json) en plus de son thème parent — plus de perte d'animations ou de réglages du boost meter après un renommage",
       "Correction : thème RS Cup — un nom d'équipe trop long ne décale plus le scoreboard, la taille du texte s'ajuste à la place"
     ]
+  },
+  "1.7.2": {
+    "date": "2026-09-22",
+    "notes": [
+      "Nouveau : un thème custom peut désormais embarquer ses propres vidéos REPLAY et LIVE (champ \"wipeVideos\" du meta.json), sans modification de l'application",
+      "Amélioration : adaptation pour un thème personnalisé"
+    ]
   }
 }
