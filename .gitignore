@@ -13,6 +13,7 @@ public/themes/snir-theme/
 public/themes/rs-cup/
 public/themes/rscupseason1/
 public/themes/txr/
+public/themes/bsk/
 *.log
 .DS_Store
 Thumbs.db

@@ -769,7 +769,17 @@ body {
 /* ════════════════════════════════════════════════════
    END GAME SCREEN (stats post-match)
 ════════════════════════════════════════════════════ */
-#end-bg-video { display: none; }
+/* Fond de l'écran de fin, en vidéo (webm/mp4/mov) ou en image (png/jpg/webp/gif) — déclaré par le
+   thème via "endBackground" dans son meta.json (voir _loadThemeMeta) : le thème n'a besoin d'aucune
+   CSS pour ça, la mise en page (plein cadre, derrière le contenu) est fournie ici. Les thèmes plus
+   anciens (Lysorn Cup / RS Cup) gardent leur propre CSS pour #end-bg-video, plus prioritaire que
+   ces règles génériques (sélecteur [data-theme="…"] #end-bg-video, spécificité plus forte). */
+#end-bg-video, #end-bg-img {
+  display: none;
+  position: absolute; inset: 0; z-index: -1;
+  width: 100%; height: 100%; object-fit: cover;
+  pointer-events: none;
+}
 
 #end-screen {
   position: absolute; inset: 0; z-index: 25;
@@ -1155,6 +1165,8 @@ body {
 
 <div id="end-screen">
   <video id="end-bg-video" autoplay loop muted playsinline preload="auto"></video>
+  <!-- image de fond générique de l'écran de fin — voir "endBackground" du meta.json -->
+  <img id="end-bg-img" alt="">
   <div id="end-hdr">
     <div class="end-side blue" id="end-side-blue">
       <div class="end-logo-sq" id="end-logo-sq-blue">
@@ -1273,6 +1285,9 @@ let currentThemeAliases = [];
 /* Vidéos replay/live propres au thème ("wipeVideos" du meta.json), null si aucune :
    { replay: 'REPLAY.webm', live: 'LIVE.webm' [, replayDelay, replayCut, liveDelay, liveCut en ms] } */
 let currentThemeWipe = null;
+/* Fond de l'écran de fin propre au thème ("endBackground" du meta.json), null si aucun :
+   { file: 'fond.webm', kind: 'video' } ou { file: 'fond.png', kind: 'image' } */
+let currentThemeEndBg = null;
 
 /* Vérifie si le thème actif (ou son thème source / ses alias) correspond à name */
 function themeIs(name) { return currentTheme === name || currentThemeBase === name || currentThemeAliases.includes(name); }
@@ -1314,15 +1329,27 @@ function _resolveThemeBase(theme, depth) {
 
 /* Lit le meta.json du thème actif : alias ("alias": "rs-cup" ou [..]) et vidéos
    replay/live propres au thème ("wipeVideos") */
+const END_BG_VIDEO_EXT = new Set(['webm', 'mp4', 'mov']);
+const END_BG_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']);
+
 function _loadThemeMeta(theme) {
-  const none = { aliases: [], wipe: null };
+  const none = { aliases: [], wipe: null, endBg: null };
   if (!theme || theme === 'rlcs' || THEME_COLS[theme]) return Promise.resolve(none);
   return fetch(`/themes/${theme}/meta.json`)
     .then(r => r.json())
     .then(m => {
       const w = m && m.wipeVideos;
       const wipe = (w && typeof w === 'object' && (w.replay || w.live)) ? w : null;
-      return { aliases: [].concat(m.alias || []), wipe };
+      /* "endBackground": "fond.webm" | "fond.png" — fond de l'écran de fin, en vidéo ou en image
+         selon l'extension du fichier déclaré (n'importe quel nom, vit dans le dossier du thème). */
+      let endBg = null;
+      const ebFile = m && typeof m.endBackground === 'string' ? m.endBackground.split(/[\\/]/).pop() : '';
+      if (ebFile) {
+        const ext = (ebFile.split('.').pop() || '').toLowerCase();
+        const kind = END_BG_VIDEO_EXT.has(ext) ? 'video' : (END_BG_IMAGE_EXT.has(ext) ? 'image' : null);
+        if (kind) endBg = { file: ebFile, kind };
+      }
+      return { aliases: [].concat(m.alias || []), wipe, endBg };
     })
     .catch(() => none);
 }
@@ -1340,6 +1367,36 @@ function _syncThemeWipeVideos() {
       else { v.removeAttribute('src'); try { v.load(); } catch (e) {} }
     }
   });
+}
+
+/* Pose (ou retire) le fond générique de l'écran de fin (currentThemeEndBg, posé par applyTheme
+   depuis "endBackground" du meta.json) : bascule entre <video> et <img> selon le type déclaré, et
+   ne touche à rien si le thème n'en déclare pas (le système historique fond.mp4 / FOND_VIDEO_BASES
+   reste alors seul maître de #end-bg-video, via sa propre CSS scopée au thème). */
+function _syncThemeEndBackground() {
+  const video = document.getElementById('end-bg-video');
+  const img   = document.getElementById('end-bg-img');
+  if (!video || !img) return;
+  const eb  = currentThemeEndBg;
+  const src = eb ? `themes/${currentTheme}/${eb.file}` : '';
+
+  if (eb && eb.kind === 'video') {
+    if (video.getAttribute('src') !== src) video.src = src;
+    video.style.display = 'block';
+    img.style.display = 'none';
+    if (img.getAttribute('src')) img.removeAttribute('src');
+  } else if (eb && eb.kind === 'image') {
+    if (img.getAttribute('src') !== src) img.src = src;
+    img.style.display = 'block';
+    video.style.display = 'none';
+    if (video.getAttribute('src')) { video.removeAttribute('src'); try { video.load(); } catch (e) {} }
+  } else {
+    /* Pas de "endBackground" déclaré : on efface tout override inline pour ne pas gêner
+       l'ancien système (fond.mp4 / FOND_VIDEO_BASES) qui gère #end-bg-video via sa propre CSS. */
+    video.style.display = '';
+    img.style.display = 'none';
+    if (img.getAttribute('src')) img.removeAttribute('src');
+  }
 }
 
 /* Écrit le texte du league-label en tronquant à 52 chars pour rlcs2026
@@ -1360,6 +1417,7 @@ function applyTheme(t) {
   currentThemeBase = currentTheme;
   currentThemeAliases = [];
   currentThemeWipe = null;
+  currentThemeEndBg = null;
   _invalidateTc();
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
@@ -1374,16 +1432,23 @@ function applyTheme(t) {
     currentThemeBase = base;
     currentThemeAliases = meta.aliases;
     currentThemeWipe = meta.wipe;
+    currentThemeEndBg = meta.endBg;
     _syncThemeWipeVideos();
-    /* Le fond.mp4 vit dans le dossier RÉEL du thème actif (currentTheme), pas dans
-       celui du thème d'origine (currentThemeBase) — seul le nom du dossier compte
-       ici, themeIs() sert uniquement à savoir SI ce thème (ou son ancêtre importé)
-       doit afficher cette vidéo. */
-    const endBgVideo = document.getElementById('end-bg-video');
-    if (endBgVideo) {
-      const usesFondVideo = [...FOND_VIDEO_BASES].some(themeIs);
-      const src = usesFondVideo ? `themes/${currentTheme}/fond.mp4` : '';
-      if (endBgVideo.getAttribute('src') !== src) endBgVideo.src = src;
+    if (meta.endBg) {
+      /* Nouveau système générique ("endBackground" du meta.json) : prioritaire s'il est déclaré. */
+      _syncThemeEndBackground();
+    } else {
+      /* Ancien système (Lysorn Cup / RS Cup) : fond.mp4 fixe, mise en page fournie par le thème
+         lui-même. Le fond.mp4 vit dans le dossier RÉEL du thème actif (currentTheme), pas dans
+         celui du thème d'origine (currentThemeBase) — seul le nom du dossier compte ici, themeIs()
+         sert uniquement à savoir SI ce thème (ou son ancêtre importé) doit afficher cette vidéo. */
+      const endBgVideo = document.getElementById('end-bg-video');
+      if (endBgVideo) {
+        const usesFondVideo = [...FOND_VIDEO_BASES].some(themeIs);
+        const src = usesFondVideo ? `themes/${currentTheme}/fond.mp4` : '';
+        if (endBgVideo.getAttribute('src') !== src) endBgVideo.src = src;
+      }
+      _syncThemeEndBackground(); // efface un éventuel override inline laissé par le thème précédent
     }
     setTimeout(initBoostTicks, 50);
     if (state) setTimeout(renderSeriesDots, 120);

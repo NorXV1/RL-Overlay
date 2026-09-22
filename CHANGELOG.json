@@ -50,5 +50,11 @@
     "notes": [
       "Correction : téléchargement par code refusé (\"Code invalide\") pour un thème privé du site avec un code temporaire"
     ]
+  },
+  "1.7.4": {
+    "date": "2026-09-22",
+    "notes": [
+      "Nouveau : un thème custom peut désormais choisir le fond de son écran de fin, en vidéo ou en image (champ \"endBackground\" du meta.json), sans modification de l'application"
+    ]
   }
 }
