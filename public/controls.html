@@ -619,7 +619,7 @@ input:checked + .slider:before { transform:translateX(18px); }
         <textarea id="review-suggestion-input" rows="3" maxlength="600" placeholder="Une fonctionnalité qui vous manque ?" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;margin-bottom:4px;outline:none;"></textarea>
         <div class="fb" id="fb-review-modal" style="margin-bottom:6px;"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="btn btn-gray" style="flex:1;" onclick="closeReviewModal()">Annuler</button>
+          <button id="review-skip-btn" class="btn btn-gray" style="flex:1;" onclick="closeReviewModal()">Annuler</button>
           <button class="btn" style="flex:1;background:var(--blue);" onclick="submitReview()">Envoyer</button>
         </div>
       </div>
@@ -1430,6 +1430,7 @@ async function loadSettings() {
     document.getElementById('anim-replay-toggle').checked = anim.replay ?? true;
     document.getElementById('anim-live-toggle').checked   = anim.live   ?? true;
     document.getElementById('review-btn').style.display = s.reviewSubmitted ? 'none' : '';
+    if (!s.reviewSubmitted) scheduleAutoReviewPopup();
     document.getElementById('keep-player-links-toggle').checked = s.keepPlayerLinks ?? false;
     _playerLinks = s.playerLinks || {};
     renderSeriesDots();
@@ -1672,15 +1673,60 @@ function renderReviewStars(n) {
 }
 function setReviewRating(v) { _reviewRating = v; renderReviewStars(v); }
 function previewReviewStars(v) { renderReviewStars(v || _reviewRating); }
-function openReviewModal() {
+
+/* ── Ouverture manuelle (bouton "⭐ Laisser un avis") vs automatique (popup au chargement) ──
+   En mode auto, le bouton "Passer" reste désactivé 10s (le temps de retenir l'attention),
+   affichant un compte à rebours, avant de redevenir cliquable comme un "Annuler" normal. */
+let _reviewSkipTimer = null;
+function openReviewModal(auto) {
   _reviewRating = 0;
   renderReviewStars(0);
   document.getElementById('review-text-input').value = '';
   document.getElementById('review-suggestion-input').value = '';
   document.getElementById('fb-review-modal').textContent = '';
   document.getElementById('review-modal-overlay').style.display = 'flex';
+
+  const skipBtn = document.getElementById('review-skip-btn');
+  clearInterval(_reviewSkipTimer);
+  if (auto) {
+    let remaining = 10;
+    skipBtn.disabled = true; skipBtn.style.opacity = '0.4'; skipBtn.style.cursor = 'not-allowed';
+    skipBtn.textContent = `Passer (${remaining})`;
+    _reviewSkipTimer = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(_reviewSkipTimer);
+        skipBtn.disabled = false; skipBtn.style.opacity = ''; skipBtn.style.cursor = '';
+        skipBtn.textContent = 'Passer';
+      } else {
+        skipBtn.textContent = `Passer (${remaining})`;
+      }
+    }, 1000);
+  } else {
+    skipBtn.disabled = false; skipBtn.style.opacity = ''; skipBtn.style.cursor = '';
+    skipBtn.textContent = 'Annuler';
+  }
 }
-function closeReviewModal() { document.getElementById('review-modal-overlay').style.display = 'none'; }
+function closeReviewModal() {
+  clearInterval(_reviewSkipTimer);
+  document.getElementById('review-modal-overlay').style.display = 'none';
+}
+
+/* Popup automatique : une seule fois par ouverture du panneau, seulement si aucun avis
+   n'a encore été envoyé (reviewSubmitted false). Un petit délai laisse le panneau se charger
+   avant de la faire apparaître. */
+let _autoReviewShown = false;
+function scheduleAutoReviewPopup() {
+  if (_autoReviewShown) return;
+  _autoReviewShown = true;
+  setTimeout(function tryShow() {
+    // Ne pas superposer au popup "Quoi de neuf" (notes de version, affiché lui aussi au
+    // chargement) — on attend qu'il soit fermé avant de proposer l'avis.
+    const cl = document.getElementById('changelog-modal-overlay');
+    if (cl && getComputedStyle(cl).display !== 'none') { setTimeout(tryShow, 500); return; }
+    openReviewModal(true);
+  }, 4000);
+}
 async function submitReview() {
   const fbEl = document.getElementById('fb-review-modal');
   const review = document.getElementById('review-text-input').value.trim();

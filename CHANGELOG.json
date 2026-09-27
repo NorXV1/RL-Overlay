@@ -62,5 +62,11 @@
     "notes": [
       "Correction : l'import d'un thème (ZIP ou par code) effaçait les champs du meta.json non reconnus par l'application (ex : \"endBackground\")"
     ]
+  },
+  "1.7.6": {
+    "date": "2026-09-27",
+    "notes": [
+      "Nouveau : popup invitant à laisser un avis si ce n'est pas déjà fait, avec un bouton \"Passer\" activé après 10 secondes — ne réapparaît plus une fois l'avis envoyé"
+    ]
   }
 }
