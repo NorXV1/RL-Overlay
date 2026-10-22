@@ -68,5 +68,12 @@
     "notes": [
       "Nouveau : popup invitant à laisser un avis si ce n'est pas déjà fait, avec un bouton \"Passer\" activé après 10 secondes — ne réapparaît plus une fois l'avis envoyé"
     ]
+  },
+  "1.7.7": {
+    "date": "2026-10-22",
+    "notes": [
+      "Amélioration : refonte complète du thème Vitality (scoreboard, sidebars, stat bar, boost meter, barre replay, nouvelle transition REPLAY / LIVE)",
+      "Correction : l'arc du boost meter gardait la couleur de l'ancien thème après un changement de thème"
+    ]
   }
 }

@@ -1272,7 +1272,7 @@ const THEME_COLS = {
   nord:     { b:'#5e81ac', bL:'#88c0d0', o:'#d08770', oL:'#ebcb8b' },
   amber:    { b:'#f59e0b', bL:'#fbbf24', o:'#ef4444', oL:'#f87171' },
   rlcs2026: { b:'#1FAFDA', bL:'#23AEDE', o:'#FD5B00', oL:'#FE5901' },
-  vitality:  { b:'#1AACE6', bL:'#50CCFF', o:'#FAD500', oL:'#FFE840' },
+  vitality:  { b:'#00AAFE', bL:'#4CC4FF', o:'#FEFF02', oL:'#FFFF66' },
   enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
   rlcs2025:  { b:'#0098EA', bL:'#33B9FF', o:'#E84A00', oL:'#FF7040' },
 };
@@ -1459,6 +1459,9 @@ function applyTheme(t) {
     const _reColor = () => {
       _invalidateTc();
       _refreshBoostTrackCssVars();
+      /* Force setBoostArc à réappliquer les couleurs : sans ça, l'arc gardait la couleur lue
+         avant le chargement du CSS tant que le joueur suivi ne changeait pas d'équipe. */
+      _lastArcTheme = null;
       if (_lastSpecPlayer) { renderBoostMeter(_lastSpecPlayer); renderStatBar(_lastSpecPlayer); }
       if (_lastPlayers)    renderSidebar(_lastPlayers);
       /* Le panel/police de nom d'équipe change de taille selon le thème : invalider
@@ -2166,8 +2169,8 @@ function render(data) {
 
 function fmtTimer(s) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-  /* rlcs2025 : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
-  if (themeIs('rlcs2025')) return `${m}:${String(sec).padStart(2, '0')}`;
+  /* rlcs2025 / Vitality : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
+  if (themeIs('rlcs2025') || themeIs('vitality')) return `${m}:${String(sec).padStart(2, '0')}`;
   return fmt(s);
 }
 

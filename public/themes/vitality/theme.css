@@ -1,298 +1,282 @@
 /* ══════════════════════════════════════════════════════════
-   VITALITY THEME
-   Bleu : #1AACE6   |   Jaune : #FAD500
-   Inspiré du TMS Overlay (screenshots RLCS 2026)
+   VITALITY THEME — reprise de l'overlay Vitality (RLCS)
+   Cyan : #00AAFE   |   Jaune : #FEFF02   |   Anthracite : #262626
+   Police : Rajdhani (chargée par global.html)
+
+   Comportements propres au thème gérés par global.html (themeIs('vitality')) :
+   boost en 3/4 de cercle, texte "GAME X ► BEST OF X" de la sous-barre,
+   lettres du wipe REPLAY/LIVE découpées en <span class="vlt-letter">.
 ══════════════════════════════════════════════════════════ */
 
 /* ── Variables ── */
 [data-theme="vitality"] {
-  --blue:        #1AACE6;
-  --blue-light:  #50CCFF;
-  --orange:      #FAD500;
-  --orange-light:#FFE840;
-  --panel-bg:    #0c1828;
-  --panel-text:  #ffffff;
-  --dot-bg:      rgba(255,255,255,.15);
-  --center-bg:   #080c14;
-  --row-bg:      #111620;
-  --stat-vals-bg:#080c14;
-  --replay-bg:   #080c14;
-  --replay-text: #ffffff;
-  --end-bg:      #060910;
-  --end-mid-bg:  #050810;
-  --end-tbl-bg:  #080c12;
+  font-family: 'Rajdhani', 'Barlow Condensed', 'Arial Narrow', sans-serif;
 
-  /* Replay bar */
-  --replay-bar-h:          72px;
-  --replay-label-size:     20px;
-  --replay-scorer-size:    32px;
-  --replay-spd-size:       26px;
+  --blue:        #00AAFE;
+  --blue-light:  #4CC4FF;
+  --orange:      #FEFF02;
+  --orange-light:#FFFF66;
+  --vlt-dark:    #262626;
+  --vlt-dark-2:  #2f2f2f;
+  --vlt-ink:     #1e1e1e;
+  --vlt-grey:    #5a5a5a;
+
+  --panel-bg:    #262626;
+  --panel-text:  #ffffff;
+  --dot-bg:      #5a5a5a;
+  --center-bg:   transparent;
+  --row-bg:      transparent;
+  --stat-vals-bg:#272928;
+  --replay-bg:   transparent;
+  --replay-text: #ffffff;
+  --end-bg:      #18181a;
+  --end-mid-bg:  #1e1e1e;
+  --end-tbl-bg:  #1e1e1e;
+
+  /* couleur du trait de graduation du boost (lue par global.html) */
+  --boost-track-b: #00AAFE;
+  --boost-track-o: #FEFF02;
 
   /* Goal notif */
-  --goal-bg:               #060910;
+  --goal-bg:               #1e1e1e;
   --goal-word-size:        80px;
   --goal-sub-size:         20px;
 
-  /* Wipe */
-  --wipe-bg:               #050810;
-  --wipe-box-bg:           rgba(5,8,16,.92);
-  --wipe-word-size:        140px;
-  --wipe-duration:         2.8s;
-  --wipe-fadein-dur:       .4s;
-  --wipe-fadeout-dur:      1.2s;
-
   /* Win screen */
-  --win-bg:                rgba(4,6,12,.97);
-  --win-bar-h:             3px;
+  --win-bg:                rgba(20,20,22,.97);
+  --win-bar-h:             5px;
   --win-logo-sz:           140px;
-  --win-team-size:         72px;
+  --win-team-size:         80px;
 }
 
 /* ══════════════════════════════════════════════════════════
-   TOP BAR
+   TOP BAR — scoreboard + sous-barre "GAME X ► BEST OF X"
+   Cotes mesurées sur l'overlay d'origine (px, en haut du scoreboard) :
+   logo 82 | nom 239 | score 81 | chrono 198 | score 81 | nom 239 | logo 82 = 1002
+   Scores et chrono penchés de 0,548 px/px (38,4 px sur 70) : bleu et jaune en
+   parallélogrammes, chrono en trapèze plus étroit en bas.
 ══════════════════════════════════════════════════════════ */
 [data-theme="vitality"] #top-bar {
-  position: absolute;
-  align-items: stretch;
-  transition: opacity .6s ease, width .45s ease;
+  top: 13px;
+  align-items: center;
+  transition: opacity .6s ease;
 }
-[data-theme="vitality"] #top-bar::after { content: none; }
+[data-theme="vitality"] #league-label { display: none; }
 
-[data-theme="vitality"] #league-label {
-  background: #080c14;
-  border-radius: 0; text-align: center;
-  font-style: italic; color: rgba(255,255,255,.45);
-  font-size: 10px; padding: 4px 22px; letter-spacing: 3px;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-}
-
-/* ══════════════════════════════════════════════════════════
-   SCOREBOARD
-══════════════════════════════════════════════════════════ */
+/* z-index : les fanions de manches (qui débordent du scoreboard) passent sur la sous-barre */
 [data-theme="vitality"] #scoreboard {
-  height: 76px; gap: 0;
-  filter: drop-shadow(0 6px 22px rgba(0,0,0,.85));
+  position: relative; z-index: 2;
+  height: 70px; gap: 0;
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,.45));
 }
-[data-theme="vitality"] #score-main { border-radius: 0; }
-
-/* Logos */
-[data-theme="vitality"] .team-logo-outer {
-  width: 76px; height: 76px;
-  border-radius: 0; border-top: none !important;
-}
-[data-theme="vitality"] .team-logo-outer.blue {
-  background: #08111e;
-  border-bottom: 3px solid #1AACE6 !important;
-}
-[data-theme="vitality"] .team-logo-outer.orange {
-  background: #14110a;
-  border-bottom: 3px solid #FAD500 !important;
-}
-[data-theme="vitality"] .team-logo-img    { width: 54px; height: 54px; }
-[data-theme="vitality"] .team-logo-letter { font-size: 26px; }
-[data-theme="vitality"] .team-logo-outer.blue   .team-logo-letter { color: #1AACE6; }
-[data-theme="vitality"] .team-logo-outer.orange .team-logo-letter { color: #FAD500; }
-[data-theme="vitality"] .team-win-count   { font-size: 13px; bottom: 2px; }
-
-/* tlo-names : masqués */
-[data-theme="vitality"] .tlo-name {
-  display: none !important; width: 0 !important; overflow: hidden !important;
-}
-
-/* Panneaux équipe : rectangles fixes */
-[data-theme="vitality"] .team-panel {
-  width: 300px; flex: 0 0 300px; overflow: hidden;
-  border-radius: 0; border-top: none !important; padding: 0 24px;
-}
-[data-theme="vitality"] .team-panel.blue   { background: #0c1828; }
-[data-theme="vitality"] .team-panel.orange { background: #1a1500; }
-
-[data-theme="vitality"] .team-name {
-  font-size: 28px; font-weight: 900;
-  font-style: italic; letter-spacing: 3px; color: #fff;
-  white-space: nowrap; overflow: hidden; /* autoFitTeamName peut réduire la font */
-}
-[data-theme="vitality"] .series-dots-small { display: none; }
-
-/* Score boxes : trapézoïdes — côté intérieur coupé en diagonale vers le timer */
-[data-theme="vitality"] .score-box {
-  width: 72px; font-size: 52px; font-weight: 900;
-  font-style: italic; border-radius: 0; position: relative;
-}
-/* Score boxes : rectangles colorés simples */
-[data-theme="vitality"] .score-box.blue   { background: #1AACE6; color: #111; }
-[data-theme="vitality"] .score-box.orange { background: #FAD500; color: #111; }
-
-/* Suppression du triangle décoratif (conflicte avec la sub-bar) */
+[data-theme="vitality"] #score-main { border-radius: 0; overflow: visible; }
 [data-theme="vitality"] #score-main::after { display: none; }
 
-/* Timer : fond BLANC, rectangle simple */
-[data-theme="vitality"] #center-block { background: #ffffff; border-top: none; }
+/* Logos : fond anthracite, filet couleur d'équipe en haut, coin bas extérieur coupé */
+[data-theme="vitality"] .team-logo-outer {
+  width: 82px; height: 70px;
+  border-radius: 0; border: none !important;
+  background: #26262b !important;
+}
+[data-theme="vitality"] .team-logo-outer.blue {
+  box-shadow: inset 0 3px 0 #5fc2f2;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 39px 100%, 0 calc(100% - 8px));
+}
+[data-theme="vitality"] .team-logo-outer.orange {
+  box-shadow: inset 0 3px 0 #f9fc72;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 39px) 100%, 0 100%);
+}
+[data-theme="vitality"] .team-logo-img    { width: 54px; height: 54px; margin-top: 4px; }
+[data-theme="vitality"] .team-logo-letter { font-size: 30px; font-weight: 700; margin-top: 4px; }
+[data-theme="vitality"] .team-logo-outer.blue   .team-logo-letter { color: var(--blue); }
+[data-theme="vitality"] .team-logo-outer.orange .team-logo-letter { color: var(--orange); }
+[data-theme="vitality"] .team-win-count { display: none; }
+[data-theme="vitality"] .tlo-name { display: none !important; width: 0 !important; overflow: hidden !important; }
+
+/* Panneaux : anthracite (279 px dont 40 sous le bloc central), motif de triangles
+   espacés couleur d'équipe côté logo, qui s'estompe sur ~7 colonnes avant le nom */
+[data-theme="vitality"] .team-panel {
+  position: relative; overflow: visible;
+  width: 279px; flex: 0 0 279px; min-width: 0;
+  border-radius: 0; border-top: none !important;
+  background: var(--vlt-dark);
+}
+[data-theme="vitality"] .team-panel.blue   { padding: 0 38px 0 18px; box-shadow: inset 0 3px 0 #5fc2f2; }
+[data-theme="vitality"] .team-panel.orange { padding: 0 18px 0 38px; box-shadow: inset 0 3px 0 #f9fc72; }
+[data-theme="vitality"] .team-panel.blue.win-flash,
+[data-theme="vitality"] .team-panel.orange.win-flash,
+[data-theme="vitality"] .team-panel.win-flash .team-name { animation: none; }
+[data-theme="vitality"] .team-panel::before {
+  content: ''; position: absolute; top: 4px; bottom: 0; width: 100px;
+  background-size: 28px 15px;
+}
+[data-theme="vitality"] .team-panel.blue::before {
+  left: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%2300AAFE' d='M0 1L10 7.5L0 14ZM14 -6.5L24 0L14 6.5ZM14 8.5L24 15L14 21.5Z'/%3E%3C/svg%3E"); background-position: 2px 2px;
+  -webkit-mask: linear-gradient(90deg, #000 0%, rgba(0,0,0,.75) 25%, rgba(0,0,0,.35) 60%, transparent 100%);
+          mask: linear-gradient(90deg, #000 0%, rgba(0,0,0,.75) 25%, rgba(0,0,0,.35) 60%, transparent 100%);
+}
+[data-theme="vitality"] .team-panel.orange::before {
+  right: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%23FEFF02' d='M28 1L18 7.5L28 14ZM14 -6.5L4 0L14 6.5ZM14 8.5L4 15L14 21.5Z'/%3E%3C/svg%3E"); background-position: right 2px top 2px;
+  -webkit-mask: linear-gradient(270deg, #000 0%, rgba(0,0,0,.75) 25%, rgba(0,0,0,.35) 60%, transparent 100%);
+          mask: linear-gradient(270deg, #000 0%, rgba(0,0,0,.75) 25%, rgba(0,0,0,.35) 60%, transparent 100%);
+}
+
+[data-theme="vitality"] .team-name-wrap {
+  position: relative; z-index: 1;
+  flex: 1 1 0; min-width: 0; height: 100%;
+  justify-content: center; padding-top: 4px;
+}
+/* bloc pleine largeur : autoFitTeamName réduit la police d'un nom trop long */
+[data-theme="vitality"] .team-name {
+  display: block; align-self: stretch; text-align: center;
+  font-size: 38px; font-weight: 700; font-style: normal; letter-spacing: .5px;
+  color: #fff; line-height: 1;
+  white-space: nowrap; overflow: hidden;
+}
+
+/* Manches : fanions sous le panneau, dans la sous-barre, remplis depuis le centre.
+   Forme relevée au pixel : bord haut, flanc extérieur droit jusqu'à la pointe,
+   flanc intérieur cassé (cran à 45 % / 44 %) puis quasi vertical. */
+[data-theme="vitality"] .series-dots-small {
+  display: flex !important;
+  position: absolute; top: 100%; height: 28px;
+  gap: 21px; align-items: flex-start;
+}
+[data-theme="vitality"] .team-panel.blue   .series-dots-small { left: 49px;  flex-direction: row-reverse; justify-content: flex-start; }
+[data-theme="vitality"] .team-panel.orange .series-dots-small { right: 49px; justify-content: flex-start; }
+[data-theme="vitality"] .sdot {
+  width: 32px; height: 28px; border-radius: 0;
+  background: var(--vlt-grey); outline: none; box-shadow: none;
+  clip-path: polygon(0 0, 100% 0, 52% 100%, 48% 100%, 45% 44%);
+}
+[data-theme="vitality"] .sdot.won.blue   { background: var(--blue);   box-shadow: none; }
+[data-theme="vitality"] .sdot.won.orange { background: var(--orange); box-shadow: none; }
+
+/* Bloc central (360 px, déborde de 40 px sur chaque panneau) — formes dessinées en SVG ;
+   chaque texte est centré sur sa forme à mi-hauteur (bleu 59 / chrono 180 / jaune 301) */
+[data-theme="vitality"] #center-block {
+  position: relative; z-index: 1;
+  width: 360px; flex: 0 0 360px;
+  margin: 0 -40px;
+  background: transparent; border-top: none;
+}
+[data-theme="vitality"] #center-block::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 70' preserveAspectRatio='none'%3E%3Cpolygon fill='%2300AAFE' points='0,0 81,0 119.4,70 38.4,70'/%3E%3Cpolygon fill='%23ffffff' points='81,0 279,0 240.6,70 119.4,70'/%3E%3Cpolygon fill='%23FEFF02' points='279,0 360,0 321.6,70 240.6,70'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+[data-theme="vitality"] .score-box {
+  font-size: 52px; font-weight: 700; font-style: normal; line-height: 1;
+  color: var(--vlt-ink); background: transparent !important;
+  border-radius: 0; padding-top: 3px;
+}
+[data-theme="vitality"] .score-box.blue   { width: 118px; flex: 0 0 118px; }
+[data-theme="vitality"] .score-box.orange { width: 118px; flex: 0 0 118px; }
 [data-theme="vitality"] #timer-wrap {
-  min-width: 144px; padding: 0 14px;
-  border-left-color:  transparent;
-  border-right-color: transparent;
+  width: 124px; flex: 0 0 124px; min-width: 0; padding: 0;
+  border: none; background: transparent;
 }
 [data-theme="vitality"] #timer {
-  font-size: 40px; font-weight: 900; color: #111;
-  letter-spacing: 2px; font-variant-numeric: tabular-nums;
+  font-size: 41px; font-weight: 700; color: var(--vlt-ink);
+  letter-spacing: 0; line-height: 1; padding-top: 2px;
+  font-variant-numeric: tabular-nums;
 }
-[data-theme="vitality"] #timer.warn { color: #cc1a00; }
-[data-theme="vitality"] #timer.ot   { color: #c87900; }
-[data-theme="vitality"] #timer-sub  { font-size: 9px; letter-spacing: 2px; color: rgba(0,0,0,.4); }
+[data-theme="vitality"] #timer.warn { color: #d81e1e; }
+[data-theme="vitality"] #timer.ot   { color: var(--vlt-ink); }
+[data-theme="vitality"] #timer-sub  { display: none; }
 
-/* Sub-barre série (dots) */
+/* Sous-barre sous le scoreboard (709 px) : bouts presque droits, texte "GAME X ➤ BEST OF X".
+   Les traits bleu / jaune ont la pente des scores mais NE prolongent PAS leur bord :
+   ils sont décalés d'environ 5 px vers l'extérieur (relevé sur l'overlay d'origine). */
 [data-theme="vitality"] #score-sub-bar {
   display: flex; align-items: center; justify-content: center;
-  background: #080c14; height: 28px;
-  border-top: 1px solid rgba(255,255,255,.05);
+  position: relative;
+  width: 709px; height: 28px;
+  background: var(--vlt-dark-2);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 5px) 100%, 5px 100%);
+  border: none;
 }
-/* Victoires série : pips colorés (blocs) */
-[data-theme="vitality"] #sub-abbr-blue {
-  display: flex; align-items: center; justify-content: flex-end;
-  gap: 5px; padding: 0 14px; min-width: 70px;
+[data-theme="vitality"] #sub-abbr-blue,
+[data-theme="vitality"] #sub-abbr-orange { display: none; }
+[data-theme="vitality"] #score-sub-bar::before,
+[data-theme="vitality"] #score-sub-bar::after {
+  content: ''; position: absolute; top: 0; width: 25px; height: 28px;
 }
-[data-theme="vitality"] #sub-abbr-orange {
-  display: flex; align-items: center; justify-content: flex-start;
-  gap: 5px; padding: 0 14px; min-width: 70px;
+[data-theme="vitality"] #score-sub-bar::before {
+  left: 199.5px; background: var(--blue);
+  clip-path: polygon(0 0, 9px 0, 100% 100%, 16px 100%);
 }
-[data-theme="vitality"] #sub-abbr-blue .vlt-win-pip {
-  display: block; width: 14px; height: 14px; flex-shrink: 0;
-  background: #1AACE6; border-radius: 2px;
-  box-shadow: 0 0 8px rgba(26,172,230,.9), 0 0 16px rgba(26,172,230,.4);
+[data-theme="vitality"] #score-sub-bar::after {
+  right: 199.5px; background: var(--orange);
+  clip-path: polygon(16px 0, 100% 0, 9px 100%, 0 100%);
 }
-[data-theme="vitality"] #sub-abbr-orange .vlt-win-pip {
-  display: block; width: 14px; height: 14px; flex-shrink: 0;
-  background: #FAD500; border-radius: 2px;
-  box-shadow: 0 0 8px rgba(250,213,0,.9), 0 0 16px rgba(250,213,0,.4);
-}
-[data-theme="vitality"] #sub-ser-track {
-  display: flex; align-items: center; justify-content: center;
-}
+[data-theme="vitality"] #sub-ser-track { display: flex; align-items: center; justify-content: center; }
 [data-theme="vitality"] .sub-sdot { display: none !important; }
+/* Le "►" du texte de l'app est rendu invisible (dégradé transparent à sa position) et
+   remplacé par une fléchette jaune à dos creusé, comme sur l'original */
 [data-theme="vitality"] .sub-game-text {
-  font-size: 11px; font-weight: 900; font-style: italic;
-  letter-spacing: 3px; color: rgba(255,255,255,.75);
-  text-transform: uppercase;
+  position: relative;
+  white-space: pre;
+  font-size: 20px; font-weight: 700; font-style: normal; letter-spacing: .6px;
+  color: transparent;
+  background: linear-gradient(90deg, #fff 0 74px, transparent 74px 95px, #fff 95px);
+  -webkit-background-clip: text; background-clip: text;
+}
+[data-theme="vitality"] .sub-game-text::before {
+  content: ''; position: absolute; top: 50%;
+  left: calc((74px + 95px) / 2 - 8px);
+  width: 16px; height: 13px; margin-top: -7px;
+  background: var(--orange);
+  clip-path: polygon(0 0, 100% 50%, 0 100%, 34% 50%);
 }
 
 /* ══════════════════════════════════════════════════════════
-   SIDEBARS — lignes solides bleu / jaune
+   SIDEBARS — ligne anthracite, nom et boost couleur d'équipe, barre de boost dessous
 ══════════════════════════════════════════════════════════ */
-[data-theme="vitality"] #left-panel     { top: 110px; left: 0; gap: 0; }
-[data-theme="vitality"] #sidebar-blue   { width: 252px; gap: 2px; }
-[data-theme="vitality"] #sidebar-orange { top: 110px; right: 0; width: 252px; gap: 2px; }
-[data-theme="vitality"] .row-wrap { margin-bottom: 2px; }
+[data-theme="vitality"] #left-panel     { top: 12px; left: 0; gap: 11px; }
+[data-theme="vitality"] #sidebar-blue   { width: 300px; gap: 11px; }
+[data-theme="vitality"] #sidebar-orange { top: 12px; right: 0; width: 300px; gap: 11px; }
+[data-theme="vitality"] .row-wrap { margin-bottom: 0; }
 
-/* ── Lignes joueurs : fond SOMBRE + bordure couleur (pas fond plein) ── */
-[data-theme="vitality"] #sidebar-blue .player-row {
-  border-radius: 0;
-  background: #080f18 !important;
-  border-left: 3px solid #1AACE6;
-  transform: none !important;
-  transition: opacity .15s !important;
-}
+[data-theme="vitality"] #sidebar-blue .player-row,
 [data-theme="vitality"] #sidebar-orange .player-row {
-  border-radius: 0;
-  background: #100d00 !important;
-  border-right: 3px solid #FAD500;
+  border: none; border-radius: 0;
+  background: transparent !important; box-shadow: none;
   transform: none !important;
   transition: opacity .15s !important;
 }
+[data-theme="vitality"] .pr-info { height: 32px; background: rgba(38,38,38,.95); transition: background-color .2s; }
+[data-theme="vitality"] .pr-accent { display: none; }
+[data-theme="vitality"] .pr-name,
+[data-theme="vitality"] .pr-val {
+  font-size: 22px; font-weight: 700; letter-spacing: .5px; line-height: 1;
+}
+[data-theme="vitality"] #sidebar-blue .pr-name   { color: var(--blue);   padding: 2px 6px 0 32px; }
+[data-theme="vitality"] #sidebar-blue .pr-val    { color: var(--blue);   padding: 2px 12px 0 0; min-width: 44px; text-align: right; }
+[data-theme="vitality"] #sidebar-orange .pr-name { color: var(--orange); padding: 2px 30px 0 6px; text-align: right; }
+[data-theme="vitality"] #sidebar-orange .pr-val  { color: var(--orange); padding: 2px 0 0 12px; min-width: 44px; text-align: left; }
 
-/* Hauteur des éléments internes */
-[data-theme="vitality"] .pr-info       { height: 28px; }
-[data-theme="vitality"] .pr-boost-bar  { height: 3px; background: rgba(255,255,255,.10); }
-[data-theme="vitality"] .pr-accent     { display: none; }
+[data-theme="vitality"] .pr-boost-bar { height: 6px; margin-top: 1px; background: #504950; }
+[data-theme="vitality"] #sidebar-blue   .pr-boost-fill { background: var(--blue); }
+[data-theme="vitality"] #sidebar-orange .pr-boost-fill { background: var(--orange); transform-origin: right center; }
 
-/* Textes : couleur équipe sur fond sombre */
-/* BLEU : nom GAUCHE / valeur DROITE (ordre par défaut) */
-[data-theme="vitality"] #sidebar-blue .pr-name {
-  font-size: 13px; font-weight: 800; color: #ffffff;
-  padding-left: 8px; padding-right: 6px; letter-spacing: .8px;
-}
-[data-theme="vitality"] #sidebar-blue .pr-val {
-  font-size: 16px; font-weight: 900; color: #1AACE6;
-  padding-right: 10px; min-width: 36px; text-align: right;
-}
-/* ORANGE : valeur GAUCHE / nom DROITE — aligné à droite */
-[data-theme="vitality"] #sidebar-orange .pr-name {
-  font-size: 13px; font-weight: 800; color: #FAD500;
-  padding-right: 10px; padding-left: 6px; letter-spacing: .8px;
-  text-align: right;
-}
-[data-theme="vitality"] #sidebar-orange .pr-val {
-  font-size: 16px; font-weight: 900; color: #FAD500; padding-left: 10px; min-width: 36px;
-}
+/* Joueur suivi : ligne pleine couleur d'équipe, texte sombre */
+[data-theme="vitality"] #sidebar-blue   .player-row.spectating .pr-info { background: var(--blue); }
+[data-theme="vitality"] #sidebar-orange .player-row.spectating .pr-info { background: var(--orange); }
+[data-theme="vitality"] .player-row.spectating .pr-name,
+[data-theme="vitality"] .player-row.spectating .pr-val { color: var(--vlt-ink) !important; }
 
-/* Barre boost : couleur équipe */
-[data-theme="vitality"] #sidebar-blue   .pr-boost-fill { background: #1AACE6; }
-[data-theme="vitality"] #sidebar-orange .pr-boost-fill { background: #FAD500; }
-
-/* Joueur specté : BLEU sur sidebar bleue, JAUNE sur sidebar orange */
-[data-theme="vitality"] #sidebar-blue .player-row.spectating {
-  background: rgba(26,172,230,.88) !important;
-  border-left-color: #0e80b8;
-  box-shadow: 3px 0 18px rgba(26,172,230,.5);
-}
-[data-theme="vitality"] #sidebar-orange .player-row.spectating {
-  background: rgba(250,213,0,.88) !important;
-  border-right-color: #c8ab00;
-  box-shadow: -3px 0 18px rgba(250,213,0,.5);
-}
-/* Textes : blanc sur fond bleu, sombre sur fond jaune */
-[data-theme="vitality"] #sidebar-blue   .player-row.spectating .pr-name { color: #fff !important; }
-[data-theme="vitality"] #sidebar-blue   .player-row.spectating .pr-val  { color: #fff !important; }
-[data-theme="vitality"] #sidebar-orange .player-row.spectating .pr-name { color: #111 !important; }
-[data-theme="vitality"] #sidebar-orange .player-row.spectating .pr-val  { color: #111 !important; }
-/* Barre boost specté : blanche sur fond bleu, sombre sur fond jaune */
-[data-theme="vitality"] #sidebar-blue   .player-row.spectating .pr-boost-bar  { background: rgba(255,255,255,.18) !important; }
-[data-theme="vitality"] #sidebar-blue   .player-row.spectating .pr-boost-fill { background: rgba(255,255,255,.85) !important; }
-[data-theme="vitality"] #sidebar-orange .player-row.spectating .pr-boost-bar  { background: rgba(0,0,0,.18) !important; }
-[data-theme="vitality"] #sidebar-orange .player-row.spectating .pr-boost-fill { background: rgba(0,0,0,.55) !important; }
-
-/* Icônes statfeed — EN DEHORS de la row (droite pour bleu, gauche pour orange) */
-[data-theme="vitality"] .pr-icons         { height: 28px !important; }
-[data-theme="vitality"] #sidebar-blue   .pr-icons {
-  left: 100%; right: auto;       /* extérieur droit de la row */
-}
-[data-theme="vitality"] #sidebar-orange .pr-icons {
-  right: 100%; left: auto;       /* extérieur gauche de la row */
-  flex-direction: row-reverse;
-}
-/* Pas de fond dégradé : les icônes ont déjà leur fond couleur */
-[data-theme="vitality"] .row-wrap.blue   .pr-icons:not(:empty) { background: none; }
+/* Icônes statfeed : à l'extérieur de la ligne, carrés couleur d'équipe */
+[data-theme="vitality"] .pr-icons { height: 32px !important; gap: 3px; }
+[data-theme="vitality"] #sidebar-blue   .pr-icons { left: 100%; right: auto; }
+[data-theme="vitality"] #sidebar-orange .pr-icons { right: 100%; left: auto; flex-direction: row-reverse; }
+[data-theme="vitality"] .row-wrap.blue   .pr-icons:not(:empty),
 [data-theme="vitality"] .row-wrap.orange .pr-icons:not(:empty) { background: none; }
-/* Icône individuelle : fond plein équipe */
-[data-theme="vitality"] .row-wrap.blue   .pr-icon {
-  background: #1AACE6 !important; opacity: 1 !important; width: 28px; height: 28px;
-}
-[data-theme="vitality"] .row-wrap.orange .pr-icon {
-  background: #FAD500 !important; opacity: 1 !important; width: 28px; height: 28px;
-}
-/* Icones blanches sur bleu, noires sur jaune */
-[data-theme="vitality"] .row-wrap.blue   .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="vitality"] .row-wrap.orange .pr-icon img { filter: brightness(0); }
+[data-theme="vitality"] .pr-icon { width: 32px; height: 32px; border-radius: 0; overflow: hidden; }
+[data-theme="vitality"] .row-wrap.blue   .pr-icon { background: var(--blue)   !important; opacity: 1 !important; }
+[data-theme="vitality"] .row-wrap.orange .pr-icon { background: var(--orange) !important; opacity: 1 !important; }
+[data-theme="vitality"] .pr-icon img { width: 46px; height: 46px; max-width: none; flex-shrink: 0; object-fit: contain; filter: brightness(0); }
 [data-theme="vitality"] #sidebar-blue   .pr-icon { animation: vitalityIconRight 5s forwards; }
 [data-theme="vitality"] #sidebar-orange .pr-icon { animation: vitalityIconLeft  5s forwards; }
-
-/* Bannière démolition — par-dessus la row (pas à l'extérieur comme les icônes classiques) */
-[data-theme="vitality"] #sidebar-blue   .pr-icons:has(.pr-demo-names),
-[data-theme="vitality"] #sidebar-orange .pr-icons:has(.pr-demo-names) {
-  left: 0; right: 0;
-}
-[data-theme="vitality"] .pr-demo-names {
-  width: 100%; height: 28px;
-  font-size: 13px; font-weight: 900; font-style: italic;
-  letter-spacing: .5px;
-}
-[data-theme="vitality"] .pr-demo-bomb { font-size: 0; line-height: 0; }
-[data-theme="vitality"] .pr-demo-bomb img {
-  width: 20px; height: 20px; object-fit: contain;
-  filter: brightness(0) invert(1);
-  vertical-align: middle;
-}
-
 @keyframes vitalityIconLeft {
   0%   { transform: translateX(-110%); opacity: 0; }
   10%  { transform: translateX(0);     opacity: 1; }
@@ -306,99 +290,251 @@
   100% { transform: translateX(110%);  opacity: 0; }
 }
 
+/* Bannière démolition — par-dessus la ligne */
+[data-theme="vitality"] #sidebar-blue   .pr-icons:has(.pr-demo-names),
+[data-theme="vitality"] #sidebar-orange .pr-icons:has(.pr-demo-names) { left: 0; right: 0; }
+[data-theme="vitality"] .pr-demo-names {
+  width: 100%; height: 32px;
+  font-size: 18px; font-weight: 700; font-style: normal; letter-spacing: .5px;
+}
+[data-theme="vitality"] .pr-demo-bomb { font-size: 0; line-height: 0; }
+[data-theme="vitality"] .pr-demo-bomb img {
+  width: 26px; height: 26px; object-fit: contain;
+  filter: brightness(0) invert(1); vertical-align: middle;
+}
+
+/* Bandeau média */
+[data-theme="vitality"] #media-banner { width: 300px; border-radius: 0; background: rgba(38,38,38,.8); }
+
 /* ══════════════════════════════════════════════════════════
-   STAT BAR
+   STAT BAR — bannière couleur d'équipe en queue d'aronde (nom), panneau stats dessous
 ══════════════════════════════════════════════════════════ */
 [data-theme="vitality"] #stat-bar {
-  height: 60px; border-radius: 0; width: 560px;
-  filter: drop-shadow(0 -3px 14px rgba(0,0,0,.7));
+  left: 51px; bottom: 57px;
+  width: 565px; height: auto;
+  flex-direction: column;
+  border-radius: 0; overflow: visible;
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,.45));
 }
-/* Caméra collée au sommet de la stat bar (60px au lieu des 76px par défaut) */
-[data-theme="vitality"] #player-video-box { bottom: 60px; }
+[data-theme="vitality"] #player-video-box { left: 51px; bottom: 176px; }
+
+/* Bannière : queue d'aronde sombre aux deux bouts, essaim de fléchettes sombres
+   (vers la gauche à gauche ; vers la droite + éclats à droite) */
 [data-theme="vitality"] #stat-team-tag {
-  min-width: 130px; padding: 0 30px 0 18px;
-  border: none; transition: background .2s;
+  height: 35px; min-width: 0; padding: 0;
+  justify-content: center;
+  border: none; transition: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 29px) 50%, 100% 100%, 0 100%, 29px 50%);
+}
+[data-theme="vitality"] #stat-bar[data-team="0"] #stat-team-tag,
+[data-theme="vitality"] #stat-bar:not([data-team]) #stat-team-tag {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='35' viewBox='0 0 130 35'%3E%3Cg fill='%231e1e1e'%3E%3Cpath transform='translate(66 6) rotate(-20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(44 17) rotate(0) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(58 26) rotate(15) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(78 16) rotate(-10) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(96 9) rotate(-25) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(114 7) rotate(-15) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(92 26) rotate(10) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(111 23) rotate(-5) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(75 34) rotate(20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(58 -1) rotate(-30) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(86 1.5) rotate(-20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3C/g%3E%3C/svg%3E") left top / 130px 35px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='35' viewBox='0 0 130 35'%3E%3Cg fill='%231e1e1e'%3E%3Cpath transform='translate(42 11) rotate(190) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(64 12.5) rotate(175) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(83 24) rotate(195) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(33 28.5) rotate(170) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(55 32) rotate(185) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(93 2) rotate(165) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(33 0) rotate(200) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Crect x='5.8' y='0.8' width='2.4' height='2.4'/%3E%3Crect x='19' y='8' width='2' height='2'/%3E%3Crect x='5.7' y='13.7' width='2.6' height='2.6'/%3E%3Crect x='17.9' y='17.9' width='2.2' height='2.2'/%3E%3Crect x='15.8' y='27.3' width='2.4' height='2.4'/%3E%3Crect x='25.1' y='21.1' width='1.8' height='1.8'/%3E%3Crect x='11.2' y='24.2' width='1.6' height='1.6'/%3E%3C/g%3E%3C/svg%3E") right top / 130px 35px no-repeat, var(--blue) !important;
+}
+[data-theme="vitality"] #stat-bar[data-team="1"] #stat-team-tag {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='35' viewBox='0 0 130 35'%3E%3Cg fill='%231e1e1e'%3E%3Cpath transform='translate(66 6) rotate(-20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(44 17) rotate(0) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(58 26) rotate(15) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(78 16) rotate(-10) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(96 9) rotate(-25) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(114 7) rotate(-15) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(92 26) rotate(10) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(111 23) rotate(-5) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(75 34) rotate(20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(58 -1) rotate(-30) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(86 1.5) rotate(-20) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3C/g%3E%3C/svg%3E") left top / 130px 35px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='35' viewBox='0 0 130 35'%3E%3Cg fill='%231e1e1e'%3E%3Cpath transform='translate(42 11) rotate(190) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(64 12.5) rotate(175) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(83 24) rotate(195) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(33 28.5) rotate(170) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(55 32) rotate(185) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(93 2) rotate(165) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Cpath transform='translate(33 0) rotate(200) scale(1.6)' d='M-5 0L4 -4.2L1.6 0L4 4.2Z'/%3E%3Crect x='5.8' y='0.8' width='2.4' height='2.4'/%3E%3Crect x='19' y='8' width='2' height='2'/%3E%3Crect x='5.7' y='13.7' width='2.6' height='2.6'/%3E%3Crect x='17.9' y='17.9' width='2.2' height='2.2'/%3E%3Crect x='15.8' y='27.3' width='2.4' height='2.4'/%3E%3Crect x='25.1' y='21.1' width='1.8' height='1.8'/%3E%3Crect x='11.2' y='24.2' width='1.6' height='1.6'/%3E%3C/g%3E%3C/svg%3E") right top / 130px 35px no-repeat, var(--orange) !important;
 }
 [data-theme="vitality"] #stat-arrows { display: none; }
 [data-theme="vitality"] #stat-player-name {
-  font-size: 22px; font-weight: 900; font-style: italic; letter-spacing: 2px;
+  font-size: 23px; font-weight: 700; font-style: normal; letter-spacing: .5px;
+  color: var(--vlt-ink); line-height: 1; padding-top: 2px;
 }
-[data-theme="vitality"] #stat-values { background: #080c14; }
+
+[data-theme="vitality"] #stat-values {
+  height: 76px; flex: 0 0 auto; padding: 0 20px;
+  background: #272928;
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.06), inset -1px 0 0 rgba(255,255,255,.06);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px));
+}
+/* ordre de l'overlay d'origine : GOALS, SHOTS, ASSISTS, SAVES, DEMOS ; libellé au-dessus du chiffre */
 [data-theme="vitality"] .stat-item {
-  flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  border-right: 1px solid rgba(255,255,255,.07);
+  position: relative;
+  flex-direction: column-reverse; justify-content: flex-end; gap: 0;   /* (inversé : en haut) */
+  padding-top: 12px;
+  border-right: none;
 }
-[data-theme="vitality"] .stat-item:last-child { border-right: none; }
-[data-theme="vitality"] .stat-val { font-size: 22px; font-style: italic; font-weight: 900; color: #fff; min-width: auto; }
-[data-theme="vitality"] .stat-lbl { font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,.4); padding-top: 0; }
+[data-theme="vitality"] .stat-item:nth-child(2) { order: 3; }
+[data-theme="vitality"] .stat-item:nth-child(3) { order: 2; }
+[data-theme="vitality"] .stat-item:nth-child(4) { order: 4; }
+[data-theme="vitality"] .stat-item:nth-child(5) { order: 5; }
+/* séparateur : fléchette ‹ au-dessus, fléchette › en dessous, à hauteur des chiffres */
+[data-theme="vitality"] .stat-item:not(:nth-child(5))::after {
+  content: ''; position: absolute; right: -7px; top: 36px;
+  width: 14px; height: 26px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='26' viewBox='0 -1 12 22'%3E%3Cg fill='%235a5a5a'%3E%3Cpath d='M1.5 5L10.5 0.8L8.3 5L10.5 9.2Z'/%3E%3Cpath d='M10.5 15L1.5 10.8L3.7 15L1.5 19.2Z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+}
+[data-theme="vitality"] .stat-lbl {
+  margin: 0 0 4px; padding: 0;
+  font-size: 17px; font-weight: 600; letter-spacing: .8px; line-height: 1; color: #c8c8c8;
+}
+[data-theme="vitality"] .stat-val {
+  font-size: 46px; font-weight: 700; font-style: normal; line-height: .8;
+  color: var(--blue); min-width: auto;
+}
+[data-theme="vitality"] #stat-bar[data-team="1"] .stat-val { color: var(--orange); }
 
 /* ══════════════════════════════════════════════════════════
-   REPLAY BAR
-   Gauche : trapèze bleu "<< REPLAY"
-   Centre : nom du scoreur (grand) + vitesse/assist
-   Droite  : trapèze jaune "REPLAY >>"
+   BOOST METER — anneau extérieur fin, arc 3/4 épais (6h → 3h), graduations sur la
+   partie vide, disque sombre avec couronne de points, chiffre blanc
+══════════════════════════════════════════════════════════ */
+/* Rayons relevés sur l'original (px) : anneau fin 103-105 | bande sombre lumineuse |
+   arc 76-94 | couronne de points en spirale 52-74 | disque sombre */
+[data-theme="vitality"] #boost-meter {
+  width: 210px; height: 210px;
+  right: 76px; bottom: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #24282c 0 71%, #0f1b27 80%, #0c1824 100%);
+  box-shadow: 0 0 0 2.5px var(--blue), 0 0 16px rgba(0,170,254,.55), inset 0 0 18px rgba(0,170,254,.3);
+}
+/* rotate(90deg) : départ à 6h, sens horaire, 100 % à 3h */
+[data-theme="vitality"] #boost-svg  { transform: rotate(90deg); }
+/* arc : rayon 46 conservé pour les calculs de l'app, réduit à l'échelle (rayon effectif 85 px) */
+[data-theme="vitality"] #boost-arc  {
+  stroke-width: 10.3; stroke-linecap: butt;
+  transform-box: view-box; transform-origin: 54px 54px; transform: scale(.95);
+}
+/* graduations fines au bord extérieur de la bande (couleur d'équipe posée par l'app via
+   --boost-track-b/-o), visibles sur la partie non remplie des 270° */
+[data-theme="vitality"] #boost-track {
+  fill: none; r: 47px; stroke-width: 3.4;
+  stroke-dasharray: 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 4.2 0.6 73.91;
+}
+/* grandes graduations à 1h30 et 3h, sur toute l'épaisseur de la bande */
+[data-theme="vitality"] #boost-ticks {
+  fill: none; r: 43.7px; stroke: var(--blue); stroke-width: 9.8;
+  stroke-dasharray: 0 171.11 1 33.33 1 68.14;
+}
+/* disque central + couronne de points en spirale (masque SVG, couleur d'équipe) */
+[data-theme="vitality"] #boost-meter::before,
+[data-theme="vitality"] #boost-meter::after {
+  content: ''; position: absolute; left: 50%; top: 50%; z-index: 1;
+  border-radius: 50%; pointer-events: none;
+}
+[data-theme="vitality"] #boost-meter::before {
+  width: 150px; height: 150px; margin: -75px 0 0 -75px;
+  background: #24282c;
+}
+[data-theme="vitality"] #boost-meter::after {
+  width: 152px; height: 152px; margin: -76px 0 0 -76px; border-radius: 0;
+  background: var(--blue);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='152' height='152' viewBox='0 0 152 152'%3E%3Cpath fill='%23000' d='M69.92 32.34L67.65 33.87L67.26 31.67ZM110.03 104.12L110.67 101.46L112.44 102.83ZM31.84 78.26L33.17 80.65L30.94 80.84ZM107.08 44.46L104.48 43.59L106 41.95ZM74.39 120.31L76.89 119.2L76.88 121.44ZM47.21 42.19L46.12 44.7L44.61 43.04ZM120.13 81.49L119.24 78.9L121.47 79.11ZM39.69 101.8L42.1 103.11L40.32 104.47ZM85.35 32.39L82.7 33.05L83.09 30.85ZM98.6 114.53L100.11 112.25L101.31 114.14ZM33.25 62.84L33.67 65.54L31.51 64.95ZM116.47 56.8L114.33 55.09L116.32 54.07ZM59.1 117.56L61.84 117.37L61.06 119.47ZM60.36 33.88L58.47 35.87L57.63 33.8ZM116.04 96.52L116.09 93.78L118.11 94.74ZM32.56 87.93L34.37 89.99L32.23 90.65ZM100.01 37.8L97.28 37.51L98.41 35.57ZM84.12 120.45L86.32 118.82L86.8 121.01ZM39.94 48.67L39.41 51.36L37.58 50.07ZM121.11 71.78L119.69 69.45L121.91 69.16ZM45.54 109.63L48.17 110.39L46.73 112.1ZM75.74 30.57L73.29 31.78L73.2 29.54ZM106.93 109.37L107.92 106.82L109.49 108.41ZM30.59 72.28L31.59 74.83L29.35 74.72ZM112.04 48.03L109.59 46.82L111.31 45.39ZM68.31 121.04L70.94 120.27L70.63 122.48ZM51.21 37.54L49.8 39.89L48.52 38.05ZM120.31 87.63L119.78 84.94L121.96 85.44ZM35.42 97.39L37.62 99.01L35.68 100.12ZM91.5 32.75L88.77 33.05L89.46 30.92ZM93.81 118.41L95.62 116.35L96.55 118.39ZM34.16 56.73L34.22 59.47L32.16 58.6ZM119.93 61.92L118.03 59.94L120.14 59.19ZM53.09 116.11L55.82 116.29L54.78 118.27ZM65.78 30.89L63.65 32.6L63.08 30.44ZM114.06 102.39L114.47 99.69L116.35 100.9ZM30.05 82.25L31.57 84.53L29.36 84.91ZM105.7 40.3L103.04 39.65L104.41 37.88ZM78.22 122.45L80.62 121.13L80.8 123.36ZM42.94 43.21L42.06 45.8L40.42 44.28ZM122.59 77.85L121.49 75.34L123.72 75.36ZM40.35 106.15L42.86 107.25L41.2 108.75ZM81.92 29.63L79.33 30.51L79.54 28.28ZM102.99 114.24L104.31 111.84L105.66 113.63ZM30.2 66.02L30.85 68.68L28.65 68.28ZM116.56 52.39L114.29 50.87L116.18 49.68ZM62.02 120.87L64.73 120.46L64.13 122.61ZM55.97 33.42L54.25 35.55L53.24 33.56ZM119.59 93.89L119.41 91.16L121.51 91.94ZM31.72 92.28L33.69 94.17L31.62 95.01ZM97.68 34.03L94.95 33.97L95.91 31.95ZM88.38 121.65L90.44 119.85L91.09 121.99ZM35.98 50.67L35.68 53.39L33.75 52.25ZM122.68 67.64L121.06 65.42L123.25 64.96ZM47.2 113.75L49.88 114.29L48.58 116.11ZM71.73 28.65L69.39 30.06L69.12 27.84ZM111.18 108.07L111.95 105.45L113.65 106.9ZM28.34 76.11L29.54 78.57L27.3 78.65ZM111.11 43.68L108.56 42.68L110.16 41.11ZM71.94 123.61L74.5 122.63L74.38 124.86ZM46.79 38.11L45.57 40.56L44.15 38.83ZM123.19 84.22L122.44 81.59L124.65 81.91ZM35.6 101.85L37.93 103.28L36.09 104.54ZM88.34 29.59L85.66 30.11L86.16 27.93ZM98.28 118.61L99.9 116.41L101 118.36ZM30.73 59.61L31.02 62.33L28.89 61.64ZM120.51 57.49L118.46 55.67L120.49 54.75ZM55.67 119.77L58.4 119.72L57.53 121.78ZM61.41 29.93L59.42 31.82L58.68 29.71ZM117.93 100.14L118.12 97.41L120.1 98.46ZM28.72 86.54L30.42 88.68L28.25 89.24ZM103.78 36.24L101.07 35.81L102.3 33.94ZM82.38 124.14L84.67 122.63L85.03 124.84ZM38.73 44.78L38.06 47.44L36.3 46.05ZM124.63 73.84L123.33 71.43L125.56 71.26ZM41.56 110.49L44.15 111.38L42.62 113.01ZM78.1 27.25L75.59 28.34L75.62 26.1ZM107.42 113.41L108.54 110.91L110.03 112.58ZM27.5 69.63L28.37 72.23L26.14 72.01ZM116.11 47.9L113.72 46.57L115.51 45.23ZM65.4 123.87L68.06 123.24L67.64 125.44ZM51.45 33.49L49.92 35.75L48.74 33.85ZM122.87 90.78L122.48 88.07L124.63 88.68ZM31.4 96.79L33.52 98.52L31.53 99.53ZM94.86 30.49L92.13 30.65L92.92 28.56ZM92.85 122.36L94.76 120.39L95.59 122.47ZM32.21 53.18L32.13 55.92L30.11 54.94ZM123.76 63.23L121.97 61.16L124.12 60.51ZM49.38 117.73L52.1 118.05L50.95 119.97ZM67.43 27.19L65.21 28.79L64.76 26.6ZM115.34 106.24L115.89 103.56L117.71 104.86ZM26.51 80.28L27.91 82.64L25.69 82.9ZM109.64 39.37L107.01 38.58L108.48 36.89ZM75.94 125.79L78.41 124.6L78.47 126.84ZM42.37 39.21L41.35 41.75L39.8 40.15ZM125.71 80.42L124.74 77.86L126.97 77.99ZM36.32 106.36L38.76 107.59L37.03 109ZM84.76 26.75L82.13 27.5L82.45 25.28ZM102.84 118.28L104.28 115.95L105.53 117.8ZM27.6 62.94L28.1 65.63L25.93 65.11ZM120.56 52.91L118.37 51.27L120.33 50.18ZM58.72 123.19L61.45 122.91L60.74 125.04ZM56.84 29.48L55.02 31.52L54.1 29.48ZM121.6 97.38L121.57 94.64L123.62 95.53ZM27.88 91.05L29.75 93.05L27.64 93.78ZM101.34 32.34L98.61 32.14L99.68 30.17ZM86.82 125.37L88.97 123.67L89.51 125.84ZM34.63 46.88L34.19 49.58L32.32 48.34ZM126.23 69.52L124.74 67.23L126.95 66.88ZM43.3 114.75L45.95 115.43L44.56 117.18ZM73.93 25.28L71.52 26.57L71.36 24.34ZM111.83 112.04L112.74 109.46L114.36 111ZM25.18 73.63L26.25 76.14L24.02 76.1ZM115.12 43.38L112.63 42.25L114.3 40.77ZM69.18 126.53L71.78 125.68L71.55 127.91ZM46.86 34.09L45.52 36.47L44.19 34.67ZM125.85 87.23L125.23 84.57L127.43 84.99ZM31.6 101.42L33.86 102.97L31.95 104.14ZM91.58 27.21L88.87 27.6L89.49 25.45ZM97.49 122.55L99.23 120.43L100.23 122.44ZM28.66 56.17L28.8 58.91L26.71 58.1ZM124.36 58.62L122.4 56.7L124.48 55.88ZM52.06 121.53L54.8 121.62L53.81 123.63ZM62.88 26.2L60.8 27.98L60.17 25.84ZM119.36 103.89L119.69 101.17L121.61 102.32ZM25.14 84.74L26.73 86.97L24.54 87.41ZM107.64 35.15L104.96 34.59L106.27 32.78ZM80.27 127.54L82.63 126.15L82.88 128.38ZM37.99 40.84L37.19 43.46L35.51 41.99ZM127.83 76.25L126.65 73.78L128.89 73.72ZM37.57 110.86L40.11 111.89L38.5 113.44ZM80.79 24.28L78.22 25.24L78.36 23ZM107.44 117.41L108.69 114.97L110.09 116.72ZM24.79 66.69L25.52 69.33L23.3 69ZM120.1 48.24L117.78 46.79L119.63 45.54ZM62.22 126.31L64.92 125.81L64.39 127.99ZM52.15 29.55L50.5 31.73L49.42 29.77ZM125.02 94.16L124.76 91.43L126.88 92.15ZM27.54 95.75L29.57 97.58L27.53 98.48ZM98.42 28.66L95.68 28.68L96.58 26.63ZM91.47 126.1L93.47 124.24L94.2 126.36ZM30.7 49.48L30.48 52.21L28.52 51.13ZM127.37 64.94L125.69 62.78L127.86 62.25ZM45.56 118.9L48.26 119.36L47.02 121.22ZM69.46 23.75L67.16 25.24L66.82 23.03ZM116.16 110.14L116.85 107.5L118.6 108.9ZM23.27 77.95L24.55 80.37L22.32 80.52ZM113.6 38.9L111.02 37.98L112.57 36.37ZM73.33 128.81L75.86 127.75L75.81 129.98ZM42.26 35.22L41.12 37.71L39.64 36.02ZM128.48 83.29L127.64 80.68L129.87 80.92ZM32.34 106.11L34.72 107.47L32.91 108.79ZM87.87 24.25L85.2 24.86L85.64 22.66ZM102.23 122.22L103.79 119.97L104.95 121.88ZM25.38 59.62L25.75 62.34L23.61 61.71ZM124.44 53.86L122.33 52.11L124.34 51.12ZM55.22 125.09L57.96 124.96L57.14 127.04ZM58.14 25.71L56.21 27.66L55.4 25.57ZM123.19 101.04L123.29 98.3L125.3 99.3ZM24.24 89.43L26.01 91.52L23.86 92.14ZM105.12 31.09L102.41 30.75L103.57 28.84ZM84.87 128.84L87.11 127.26L87.54 129.45ZM33.72 43L33.14 45.67L31.34 44.35ZM129.52 71.77L128.14 69.41L130.37 69.17ZM39.36 115.31L41.97 116.12L40.49 117.8ZM76.47 22.21L73.99 23.37L73.94 21.14ZM112.03 116.02L113.07 113.48L114.61 115.1ZM22.35 70.83L23.29 73.4L21.06 73.24ZM119.1 43.54L116.66 42.28L118.41 40.89ZM66.14 129.1L68.78 128.38L68.43 130.59ZM47.37 30.14L45.91 32.45L44.67 30.59ZM128.14 90.49L127.65 87.8L129.83 88.33ZM27.72 100.56L29.9 102.22L27.93 103.29ZM95.03 25.23L92.3 25.47L93.03 23.36ZM96.29 126.34L98.13 124.32L99.02 126.37ZM26.99 52.56L27 55.3L24.95 54.39ZM128.02 60.16L126.17 58.14L128.29 57.43ZM48.32 122.87L51.04 123.1L49.96 125.06ZM64.74 22.69L62.57 24.36L62.05 22.19ZM120.35 107.73L120.83 105.04L122.68 106.29ZM21.81 82.57L23.28 84.88L21.07 85.21ZM111.56 34.51L108.91 33.8L110.32 32.06ZM77.81 130.67L80.24 129.4L80.38 131.63ZM37.7 36.88L36.77 39.45L35.16 37.9ZM130.72 78.98L129.67 76.45L131.91 76.51ZM33.6 110.8L36.08 111.96L34.39 113.42ZM83.76 21.64L81.15 22.47L81.41 20.25ZM107.02 121.36L108.39 118.99L109.7 120.8ZM22.43 63.5L23.02 66.17L20.83 65.72ZM123.99 49.01L121.75 47.44L123.67 46.29ZM58.83 128.37L61.54 128.02L60.91 130.16ZM53.26 25.74L51.5 27.83L50.52 25.82ZM126.77 97.72L126.65 94.99L128.73 95.81ZM23.84 94.3L25.78 96.23L23.69 97.03ZM102.12 27.23L99.39 27.11L100.39 25.11ZM89.69 129.66L91.79 127.9L92.4 130.05ZM29.61 45.66L29.25 48.37L27.35 47.2ZM130.75 67.03L129.18 64.79L131.38 64.36ZM41.66 119.64L44.33 120.23L42.99 122.03ZM71.84 20.57L69.47 21.94L69.24 19.71ZM116.55 114.1L117.37 111.48L119.04 112.97ZM20.32 75.3L21.47 77.78L19.23 77.81ZM117.57 38.87L115.04 37.82L116.67 36.28ZM70.43 131.51L73 130.58L72.84 132.81ZM42.58 31.26L41.31 33.69L39.93 31.93ZM130.91 86.42L130.21 83.78L132.42 84.13ZM28.43 105.44L30.73 106.91L28.86 108.14ZM91.21 22.11L88.51 22.58L89.06 20.41ZM101.21 126.06L102.89 123.89L103.95 125.86ZM23.55 56.1L23.78 58.83L21.67 58.1ZM128.16 55.22L126.15 53.36L128.2 52.48ZM51.55 126.61L54.29 126.61L53.37 128.65ZM59.83 22.12L57.8 23.97L57.1 21.84ZM124.37 104.83L124.61 102.1L126.56 103.19ZM20.81 87.43L22.47 89.6L20.3 90.11ZM109 30.26L106.31 29.77L107.57 27.92ZM82.57 132.07L84.89 130.61L85.2 132.82ZM33.24 39.06L32.52 41.7L30.79 40.28ZM132.54 74.35L131.28 71.92L133.51 71.79ZM35.39 115.44L37.96 116.39L36.4 117.99ZM79.3 19.43L76.77 20.47L76.84 18.24ZM111.81 119.98L112.97 117.5L114.43 119.2ZM19.84 67.75L20.65 70.37L18.43 70.1ZM123.02 44.12L120.66 42.74L122.48 41.43ZM62.85 131.32L65.53 130.74L65.07 132.93ZM48.3 26.28L46.72 28.52L45.58 26.59ZM130.06 93.96L129.71 91.25L131.86 91.9ZM23.96 99.29L26.05 101.06L24.03 102.03ZM98.66 23.62L95.92 23.73L96.76 21.65ZM94.69 129.97L96.64 128.05L97.42 130.14ZM25.72 48.8L25.58 51.54L23.59 50.53ZM131.5 62.07L129.75 59.97L131.9 59.36ZM44.46 123.8L47.17 124.17L45.99 126.07ZM66.96 19.4L64.71 20.96L64.3 18.76ZM120.94 111.66L121.55 108.99L123.34 110.33ZM18.72 80.07L20.08 82.45L17.85 82.66ZM115.52 34.27L112.91 33.44L114.41 31.77ZM75.05 133.51L77.53 132.37L77.56 134.61ZM37.82 32.91L36.76 35.43L35.23 33.8ZM133.31 81.99L132.39 79.41L134.62 79.58ZM29.66 110.33L32.08 111.61L30.32 112.99ZM86.99 19.34L84.34 20.03L84.71 17.82ZM106.2 125.25L107.69 122.95L108.9 124.82ZM20.42 60.07L20.87 62.77L18.71 62.21ZM127.79 50.18L125.63 48.49L127.6 47.44ZM55.24 130.07L57.97 129.85L57.22 131.96ZM54.76 22.06L52.9 24.07L52.03 22.01ZM128.14 101.45L128.16 98.71L130.19 99.64ZM20.32 92.47L22.15 94.5L20.02 95.19ZM105.96 26.2L103.23 25.94L104.33 23.99ZM87.56 133.01L89.75 131.36L90.25 133.54ZM28.93 41.75L28.43 44.44L26.59 43.17ZM133.9 69.45L132.44 67.13L134.66 66.82ZM37.7 119.97L40.34 120.7L38.91 122.43ZM74.53 17.65L72.1 18.9L71.98 16.66ZM116.53 118.07L117.49 115.5L119.08 117.07ZM17.65 72.36L18.68 74.89L16.44 74.81ZM121.52 39.24L119.05 38.06L120.76 36.61ZM67.26 133.9L69.87 133.1L69.6 135.32ZM43.3 27.36L41.91 29.71L40.62 27.89ZM133.01 89.79L132.45 87.12L134.63 87.59ZM24.6 104.37L26.83 105.96L24.9 107.09ZM94.75 20.32L92.04 20.65L92.7 18.51ZM99.81 129.77L101.59 127.69L102.54 129.71ZM22.08 52.41L22.17 55.15L20.1 54.3ZM131.74 56.95L129.82 55L131.92 54.22ZM47.74 127.74L50.48 127.89L49.46 129.88ZM61.87 18.71L59.76 20.45L59.17 18.3ZM125.15 108.72L125.54 106.01L127.43 107.2ZM17.6 85.08L19.15 87.34L16.95 87.74ZM112.95 29.82L110.29 29.2L111.64 27.41ZM79.95 135.07L82.34 133.72L82.54 135.95ZM33.15 35.08L32.3 37.69L30.64 36.18ZM135.28 77.23L134.15 74.73L136.39 74.72ZM31.42 115.17L33.94 116.25L32.3 117.77ZM82.41 16.96L79.83 17.86L80.01 15.63ZM111.18 123.91L112.48 121.49L113.85 123.26ZM17.65 64.43L18.33 67.09L16.12 66.71ZM126.88 45.09L124.59 43.59L126.47 42.38ZM59.35 133.21L62.05 132.77L61.48 134.93ZM49.61 22.52L47.92 24.68L46.87 22.7ZM131.63 97.62L131.42 94.89L133.53 95.65ZM20.33 97.65L22.33 99.53L20.27 100.39ZM102.44 22.39L99.7 22.35L100.64 20.32ZM92.73 133.44L94.77 131.61L95.45 133.75ZM24.82 44.93L24.55 47.65L22.61 46.54ZM134.78 64.33L133.14 62.14L135.32 61.65ZM40.52 124.35L43.21 124.86L41.93 126.69ZM69.5 16.33L67.17 17.78L66.88 15.56ZM121.13 115.64L121.88 113L123.59 114.44ZM15.9 77.26L17.13 79.71L14.9 79.81ZM119.5 34.44L116.94 33.47L118.52 31.88ZM72 136.08L74.54 135.06L74.45 137.3ZM38.34 28.96L37.15 31.43L35.71 29.72ZM135.59 85.25L134.8 82.63L137.02 82.92ZM25.77 109.46L28.12 110.86L26.29 112.15ZM90.45 17.35L87.76 17.91L88.25 15.72ZM104.99 129.05L106.59 126.82L107.71 128.76ZM18.75 56.45L19.07 59.17L16.93 58.5ZM131.46 51.72L129.39 49.93L131.42 48.98ZM51.49 131.41L54.22 131.33L53.37 133.4ZM56.63 18.54L54.66 20.45L53.9 18.34ZM129.14 105.31L129.3 102.57L131.29 103.61ZM16.97 90.3L18.7 92.42L16.54 93ZM109.89 25.55L107.18 25.15L108.38 23.26ZM85.1 136.14L87.37 134.61L87.75 136.81ZM28.63 37.77L27.99 40.43L26.22 39.07ZM136.8 72.19L135.47 69.79L137.7 69.6ZM33.71 119.92L36.31 120.78L34.8 122.43ZM77.52 15L75.02 16.12L75.02 13.88ZM116.12 122.04L117.21 119.53L118.72 121.18ZM15.27 69.15L16.17 71.74L13.94 71.54ZM125.44 40L123.04 38.7L124.81 37.34ZM63.85 135.99L66.5 135.32L66.11 137.53ZM44.41 23.52L42.9 25.8L41.7 23.92ZM134.79 93.37L134.36 90.67L136.52 91.25ZM20.87 102.92L23.02 104.62L21.03 105.65ZM98.48 18.87L95.75 19.06L96.52 16.96ZM98.03 133.35L99.92 131.37L100.77 133.44ZM20.97 48.57L20.92 51.31L18.89 50.36ZM135.15 59.04L133.34 56.99L135.47 56.32ZM43.82 128.5L46.54 128.79L45.42 130.73ZM64.25 15.5L62.05 17.13L61.57 14.94ZM125.57 112.7L126.09 110.01L127.92 111.3ZM14.61 82.43L16.04 84.76L13.82 85.05ZM116.95 29.76L114.32 29L115.76 27.29ZM77.04 137.81L79.49 136.59L79.58 138.82ZM33.45 31.09L32.47 33.65L30.89 32.06ZM137.75 80.37L136.75 77.83L138.99 77.93ZM27.47 114.52L29.93 115.72L28.22 117.15ZM85.77 14.77L83.14 15.55L83.44 13.33ZM110.18 127.78L111.6 125.44L112.87 127.27ZM15.77 60.9L16.31 63.58L14.13 63.09ZM130.65 46.43L128.44 44.82L130.38 43.71ZM55.66 134.77L58.38 134.46L57.7 136.59ZM51.28 18.89L49.48 20.95L48.54 18.92ZM132.85 101.44L132.78 98.7L134.85 99.56ZM16.86 95.66L18.75 97.63L16.65 98.39ZM106.35 21.51L103.62 21.34L104.66 19.36ZM90.44 136.73L92.57 135.01L93.14 137.17ZM24.3 40.95L23.88 43.66L22 42.45ZM137.85 66.91L136.32 64.64L138.53 64.26ZM36.51 124.52L39.17 125.16L37.8 126.93ZM72.34 13.5L69.95 14.82L69.76 12.6ZM120.94 119.64L121.82 117.05L123.46 118.57ZM13.33 74.18L14.44 76.68L12.2 76.67ZM123.47 34.98L120.97 33.88L122.62 32.38ZM68.7 138.36L71.29 137.48L71.08 139.7ZM39.23 25.05L37.92 27.45L36.57 25.67ZM137.57 88.74L136.92 86.08L139.12 86.48ZM21.95 108.22L24.23 109.74L22.34 110.93ZM94.1 15.69L91.4 16.11L91.99 13.95ZM103.41 132.74L105.13 130.6L106.15 132.59ZM17.42 52.66L17.6 55.4L15.5 54.62ZM135 53.62L133.03 51.72L135.1 50.88ZM47.59 132.4L50.33 132.46L49.37 134.48ZM58.84 15.18L56.78 16.98L56.12 14.84ZM129.78 109.28L130.08 106.56L132.01 107.69ZM13.82 87.8L15.44 90.01L13.25 90.48ZM113.9 25.26L111.22 24.72L112.51 22.9ZM82.33 139.06L84.67 137.64L84.95 139.86ZM28.7 33.75L27.93 36.37L26.23 34.92ZM139.47 75.2L138.26 72.75L140.49 72.67ZM29.71 119.49L32.26 120.48L30.67 122.05ZM80.76 12.62L78.21 13.61L78.32 11.37ZM115.33 125.99L116.55 123.53L117.97 125.26ZM13.19 65.7L13.95 68.33L11.73 68.02ZM129.31 41.14L126.97 39.71L128.81 38.44ZM60.23 137.76L62.92 137.23L62.42 139.41ZM45.89 19.77L44.26 21.97L43.16 20.03ZM136.23 97.14L135.94 94.41L138.07 95.1ZM17.27 101.12L19.32 102.93L17.29 103.86ZM102.36 17.76L99.62 17.82L100.49 15.76ZM95.92 136.79L97.9 134.9L98.65 137.01ZM20.21 44.61L20.02 47.34L18.05 46.29ZM138.38 61.45L136.68 59.31L138.84 58.75ZM39.81 128.91L42.51 129.33L41.29 131.21ZM66.94 12.5L64.66 14.01L64.29 11.8ZM125.61 116.74L126.27 114.08L128.03 115.46ZM11.86 79.48L13.17 81.88L10.94 82.06ZM120.98 30.08L118.39 29.19L119.92 27.55ZM73.86 140.29L76.37 139.2L76.34 141.43ZM34.12 27.11L33.01 29.61L31.52 27.95ZM139.95 83.77L139.08 81.17L141.3 81.39ZM23.57 113.5L25.96 114.82L24.17 116.17ZM89.34 12.89L86.68 13.53L87.09 11.33ZM108.82 131.59L110.35 129.32L111.53 131.22ZM14.21 57.17L14.62 59.87L12.46 59.27ZM134.32 48.13L132.19 46.41L134.19 45.39ZM51.81 135.99L54.54 135.82L53.75 137.92ZM53.3 15.38L51.4 17.35L50.57 15.27ZM133.72 105.39L133.8 102.65L135.81 103.62ZM13.54 93.34L15.34 95.41L13.2 96.05ZM110.36 20.99L107.64 20.68L108.79 18.75ZM87.83 139.82L90.05 138.21L90.5 140.4ZM24.13 36.91L23.58 39.59L21.77 38.28ZM140.7 69.79L139.29 67.44L141.51 67.17ZM32.46 124.32L35.09 125.1L33.63 126.8ZM75.46 10.92L73 12.12L72.93 9.88ZM120.39 123.66L121.4 121.11L122.96 122.71ZM11.03 70.84L12.01 73.4L9.78 73.27ZM127.42 35.89L124.98 34.66L126.71 33.25ZM65.17 140.35L67.8 139.61L67.48 141.82ZM40.49 21.19L39.06 23.52L37.8 21.68ZM139.25 92.44L138.73 89.75L140.91 90.26ZM18.22 106.62L20.42 108.26L18.47 109.35ZM97.93 14.35L95.21 14.63L95.91 12.5ZM101.49 136.31L103.31 134.27L104.23 136.31ZM16.42 48.73L16.46 51.47L14.41 50.58ZM138.4 55.85L136.52 53.86L138.63 53.12ZM43.58 133.04L46.31 133.24L45.25 135.21ZM61.36 12L59.21 13.69L58.66 11.53ZM130.06 113.33L130.5 110.63L132.37 111.86ZM10.88 85L12.38 87.29L10.17 87.65ZM117.97 25.34L115.31 24.66L116.7 22.91ZM79.28 141.75L81.69 140.45L81.85 142.68ZM29.14 29.7L28.23 32.29L26.61 30.75ZM141.87 78.48L140.79 75.97L143.03 76ZM25.72 118.69L28.22 119.82L26.54 121.31ZM84.24 10.51L81.64 11.37L81.87 9.14Z'/%3E%3C/svg%3E") center / 152px 152px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='152' height='152' viewBox='0 0 152 152'%3E%3Cpath fill='%23000' d='M69.92 32.34L67.65 33.87L67.26 31.67ZM110.03 104.12L110.67 101.46L112.44 102.83ZM31.84 78.26L33.17 80.65L30.94 80.84ZM107.08 44.46L104.48 43.59L106 41.95ZM74.39 120.31L76.89 119.2L76.88 121.44ZM47.21 42.19L46.12 44.7L44.61 43.04ZM120.13 81.49L119.24 78.9L121.47 79.11ZM39.69 101.8L42.1 103.11L40.32 104.47ZM85.35 32.39L82.7 33.05L83.09 30.85ZM98.6 114.53L100.11 112.25L101.31 114.14ZM33.25 62.84L33.67 65.54L31.51 64.95ZM116.47 56.8L114.33 55.09L116.32 54.07ZM59.1 117.56L61.84 117.37L61.06 119.47ZM60.36 33.88L58.47 35.87L57.63 33.8ZM116.04 96.52L116.09 93.78L118.11 94.74ZM32.56 87.93L34.37 89.99L32.23 90.65ZM100.01 37.8L97.28 37.51L98.41 35.57ZM84.12 120.45L86.32 118.82L86.8 121.01ZM39.94 48.67L39.41 51.36L37.58 50.07ZM121.11 71.78L119.69 69.45L121.91 69.16ZM45.54 109.63L48.17 110.39L46.73 112.1ZM75.74 30.57L73.29 31.78L73.2 29.54ZM106.93 109.37L107.92 106.82L109.49 108.41ZM30.59 72.28L31.59 74.83L29.35 74.72ZM112.04 48.03L109.59 46.82L111.31 45.39ZM68.31 121.04L70.94 120.27L70.63 122.48ZM51.21 37.54L49.8 39.89L48.52 38.05ZM120.31 87.63L119.78 84.94L121.96 85.44ZM35.42 97.39L37.62 99.01L35.68 100.12ZM91.5 32.75L88.77 33.05L89.46 30.92ZM93.81 118.41L95.62 116.35L96.55 118.39ZM34.16 56.73L34.22 59.47L32.16 58.6ZM119.93 61.92L118.03 59.94L120.14 59.19ZM53.09 116.11L55.82 116.29L54.78 118.27ZM65.78 30.89L63.65 32.6L63.08 30.44ZM114.06 102.39L114.47 99.69L116.35 100.9ZM30.05 82.25L31.57 84.53L29.36 84.91ZM105.7 40.3L103.04 39.65L104.41 37.88ZM78.22 122.45L80.62 121.13L80.8 123.36ZM42.94 43.21L42.06 45.8L40.42 44.28ZM122.59 77.85L121.49 75.34L123.72 75.36ZM40.35 106.15L42.86 107.25L41.2 108.75ZM81.92 29.63L79.33 30.51L79.54 28.28ZM102.99 114.24L104.31 111.84L105.66 113.63ZM30.2 66.02L30.85 68.68L28.65 68.28ZM116.56 52.39L114.29 50.87L116.18 49.68ZM62.02 120.87L64.73 120.46L64.13 122.61ZM55.97 33.42L54.25 35.55L53.24 33.56ZM119.59 93.89L119.41 91.16L121.51 91.94ZM31.72 92.28L33.69 94.17L31.62 95.01ZM97.68 34.03L94.95 33.97L95.91 31.95ZM88.38 121.65L90.44 119.85L91.09 121.99ZM35.98 50.67L35.68 53.39L33.75 52.25ZM122.68 67.64L121.06 65.42L123.25 64.96ZM47.2 113.75L49.88 114.29L48.58 116.11ZM71.73 28.65L69.39 30.06L69.12 27.84ZM111.18 108.07L111.95 105.45L113.65 106.9ZM28.34 76.11L29.54 78.57L27.3 78.65ZM111.11 43.68L108.56 42.68L110.16 41.11ZM71.94 123.61L74.5 122.63L74.38 124.86ZM46.79 38.11L45.57 40.56L44.15 38.83ZM123.19 84.22L122.44 81.59L124.65 81.91ZM35.6 101.85L37.93 103.28L36.09 104.54ZM88.34 29.59L85.66 30.11L86.16 27.93ZM98.28 118.61L99.9 116.41L101 118.36ZM30.73 59.61L31.02 62.33L28.89 61.64ZM120.51 57.49L118.46 55.67L120.49 54.75ZM55.67 119.77L58.4 119.72L57.53 121.78ZM61.41 29.93L59.42 31.82L58.68 29.71ZM117.93 100.14L118.12 97.41L120.1 98.46ZM28.72 86.54L30.42 88.68L28.25 89.24ZM103.78 36.24L101.07 35.81L102.3 33.94ZM82.38 124.14L84.67 122.63L85.03 124.84ZM38.73 44.78L38.06 47.44L36.3 46.05ZM124.63 73.84L123.33 71.43L125.56 71.26ZM41.56 110.49L44.15 111.38L42.62 113.01ZM78.1 27.25L75.59 28.34L75.62 26.1ZM107.42 113.41L108.54 110.91L110.03 112.58ZM27.5 69.63L28.37 72.23L26.14 72.01ZM116.11 47.9L113.72 46.57L115.51 45.23ZM65.4 123.87L68.06 123.24L67.64 125.44ZM51.45 33.49L49.92 35.75L48.74 33.85ZM122.87 90.78L122.48 88.07L124.63 88.68ZM31.4 96.79L33.52 98.52L31.53 99.53ZM94.86 30.49L92.13 30.65L92.92 28.56ZM92.85 122.36L94.76 120.39L95.59 122.47ZM32.21 53.18L32.13 55.92L30.11 54.94ZM123.76 63.23L121.97 61.16L124.12 60.51ZM49.38 117.73L52.1 118.05L50.95 119.97ZM67.43 27.19L65.21 28.79L64.76 26.6ZM115.34 106.24L115.89 103.56L117.71 104.86ZM26.51 80.28L27.91 82.64L25.69 82.9ZM109.64 39.37L107.01 38.58L108.48 36.89ZM75.94 125.79L78.41 124.6L78.47 126.84ZM42.37 39.21L41.35 41.75L39.8 40.15ZM125.71 80.42L124.74 77.86L126.97 77.99ZM36.32 106.36L38.76 107.59L37.03 109ZM84.76 26.75L82.13 27.5L82.45 25.28ZM102.84 118.28L104.28 115.95L105.53 117.8ZM27.6 62.94L28.1 65.63L25.93 65.11ZM120.56 52.91L118.37 51.27L120.33 50.18ZM58.72 123.19L61.45 122.91L60.74 125.04ZM56.84 29.48L55.02 31.52L54.1 29.48ZM121.6 97.38L121.57 94.64L123.62 95.53ZM27.88 91.05L29.75 93.05L27.64 93.78ZM101.34 32.34L98.61 32.14L99.68 30.17ZM86.82 125.37L88.97 123.67L89.51 125.84ZM34.63 46.88L34.19 49.58L32.32 48.34ZM126.23 69.52L124.74 67.23L126.95 66.88ZM43.3 114.75L45.95 115.43L44.56 117.18ZM73.93 25.28L71.52 26.57L71.36 24.34ZM111.83 112.04L112.74 109.46L114.36 111ZM25.18 73.63L26.25 76.14L24.02 76.1ZM115.12 43.38L112.63 42.25L114.3 40.77ZM69.18 126.53L71.78 125.68L71.55 127.91ZM46.86 34.09L45.52 36.47L44.19 34.67ZM125.85 87.23L125.23 84.57L127.43 84.99ZM31.6 101.42L33.86 102.97L31.95 104.14ZM91.58 27.21L88.87 27.6L89.49 25.45ZM97.49 122.55L99.23 120.43L100.23 122.44ZM28.66 56.17L28.8 58.91L26.71 58.1ZM124.36 58.62L122.4 56.7L124.48 55.88ZM52.06 121.53L54.8 121.62L53.81 123.63ZM62.88 26.2L60.8 27.98L60.17 25.84ZM119.36 103.89L119.69 101.17L121.61 102.32ZM25.14 84.74L26.73 86.97L24.54 87.41ZM107.64 35.15L104.96 34.59L106.27 32.78ZM80.27 127.54L82.63 126.15L82.88 128.38ZM37.99 40.84L37.19 43.46L35.51 41.99ZM127.83 76.25L126.65 73.78L128.89 73.72ZM37.57 110.86L40.11 111.89L38.5 113.44ZM80.79 24.28L78.22 25.24L78.36 23ZM107.44 117.41L108.69 114.97L110.09 116.72ZM24.79 66.69L25.52 69.33L23.3 69ZM120.1 48.24L117.78 46.79L119.63 45.54ZM62.22 126.31L64.92 125.81L64.39 127.99ZM52.15 29.55L50.5 31.73L49.42 29.77ZM125.02 94.16L124.76 91.43L126.88 92.15ZM27.54 95.75L29.57 97.58L27.53 98.48ZM98.42 28.66L95.68 28.68L96.58 26.63ZM91.47 126.1L93.47 124.24L94.2 126.36ZM30.7 49.48L30.48 52.21L28.52 51.13ZM127.37 64.94L125.69 62.78L127.86 62.25ZM45.56 118.9L48.26 119.36L47.02 121.22ZM69.46 23.75L67.16 25.24L66.82 23.03ZM116.16 110.14L116.85 107.5L118.6 108.9ZM23.27 77.95L24.55 80.37L22.32 80.52ZM113.6 38.9L111.02 37.98L112.57 36.37ZM73.33 128.81L75.86 127.75L75.81 129.98ZM42.26 35.22L41.12 37.71L39.64 36.02ZM128.48 83.29L127.64 80.68L129.87 80.92ZM32.34 106.11L34.72 107.47L32.91 108.79ZM87.87 24.25L85.2 24.86L85.64 22.66ZM102.23 122.22L103.79 119.97L104.95 121.88ZM25.38 59.62L25.75 62.34L23.61 61.71ZM124.44 53.86L122.33 52.11L124.34 51.12ZM55.22 125.09L57.96 124.96L57.14 127.04ZM58.14 25.71L56.21 27.66L55.4 25.57ZM123.19 101.04L123.29 98.3L125.3 99.3ZM24.24 89.43L26.01 91.52L23.86 92.14ZM105.12 31.09L102.41 30.75L103.57 28.84ZM84.87 128.84L87.11 127.26L87.54 129.45ZM33.72 43L33.14 45.67L31.34 44.35ZM129.52 71.77L128.14 69.41L130.37 69.17ZM39.36 115.31L41.97 116.12L40.49 117.8ZM76.47 22.21L73.99 23.37L73.94 21.14ZM112.03 116.02L113.07 113.48L114.61 115.1ZM22.35 70.83L23.29 73.4L21.06 73.24ZM119.1 43.54L116.66 42.28L118.41 40.89ZM66.14 129.1L68.78 128.38L68.43 130.59ZM47.37 30.14L45.91 32.45L44.67 30.59ZM128.14 90.49L127.65 87.8L129.83 88.33ZM27.72 100.56L29.9 102.22L27.93 103.29ZM95.03 25.23L92.3 25.47L93.03 23.36ZM96.29 126.34L98.13 124.32L99.02 126.37ZM26.99 52.56L27 55.3L24.95 54.39ZM128.02 60.16L126.17 58.14L128.29 57.43ZM48.32 122.87L51.04 123.1L49.96 125.06ZM64.74 22.69L62.57 24.36L62.05 22.19ZM120.35 107.73L120.83 105.04L122.68 106.29ZM21.81 82.57L23.28 84.88L21.07 85.21ZM111.56 34.51L108.91 33.8L110.32 32.06ZM77.81 130.67L80.24 129.4L80.38 131.63ZM37.7 36.88L36.77 39.45L35.16 37.9ZM130.72 78.98L129.67 76.45L131.91 76.51ZM33.6 110.8L36.08 111.96L34.39 113.42ZM83.76 21.64L81.15 22.47L81.41 20.25ZM107.02 121.36L108.39 118.99L109.7 120.8ZM22.43 63.5L23.02 66.17L20.83 65.72ZM123.99 49.01L121.75 47.44L123.67 46.29ZM58.83 128.37L61.54 128.02L60.91 130.16ZM53.26 25.74L51.5 27.83L50.52 25.82ZM126.77 97.72L126.65 94.99L128.73 95.81ZM23.84 94.3L25.78 96.23L23.69 97.03ZM102.12 27.23L99.39 27.11L100.39 25.11ZM89.69 129.66L91.79 127.9L92.4 130.05ZM29.61 45.66L29.25 48.37L27.35 47.2ZM130.75 67.03L129.18 64.79L131.38 64.36ZM41.66 119.64L44.33 120.23L42.99 122.03ZM71.84 20.57L69.47 21.94L69.24 19.71ZM116.55 114.1L117.37 111.48L119.04 112.97ZM20.32 75.3L21.47 77.78L19.23 77.81ZM117.57 38.87L115.04 37.82L116.67 36.28ZM70.43 131.51L73 130.58L72.84 132.81ZM42.58 31.26L41.31 33.69L39.93 31.93ZM130.91 86.42L130.21 83.78L132.42 84.13ZM28.43 105.44L30.73 106.91L28.86 108.14ZM91.21 22.11L88.51 22.58L89.06 20.41ZM101.21 126.06L102.89 123.89L103.95 125.86ZM23.55 56.1L23.78 58.83L21.67 58.1ZM128.16 55.22L126.15 53.36L128.2 52.48ZM51.55 126.61L54.29 126.61L53.37 128.65ZM59.83 22.12L57.8 23.97L57.1 21.84ZM124.37 104.83L124.61 102.1L126.56 103.19ZM20.81 87.43L22.47 89.6L20.3 90.11ZM109 30.26L106.31 29.77L107.57 27.92ZM82.57 132.07L84.89 130.61L85.2 132.82ZM33.24 39.06L32.52 41.7L30.79 40.28ZM132.54 74.35L131.28 71.92L133.51 71.79ZM35.39 115.44L37.96 116.39L36.4 117.99ZM79.3 19.43L76.77 20.47L76.84 18.24ZM111.81 119.98L112.97 117.5L114.43 119.2ZM19.84 67.75L20.65 70.37L18.43 70.1ZM123.02 44.12L120.66 42.74L122.48 41.43ZM62.85 131.32L65.53 130.74L65.07 132.93ZM48.3 26.28L46.72 28.52L45.58 26.59ZM130.06 93.96L129.71 91.25L131.86 91.9ZM23.96 99.29L26.05 101.06L24.03 102.03ZM98.66 23.62L95.92 23.73L96.76 21.65ZM94.69 129.97L96.64 128.05L97.42 130.14ZM25.72 48.8L25.58 51.54L23.59 50.53ZM131.5 62.07L129.75 59.97L131.9 59.36ZM44.46 123.8L47.17 124.17L45.99 126.07ZM66.96 19.4L64.71 20.96L64.3 18.76ZM120.94 111.66L121.55 108.99L123.34 110.33ZM18.72 80.07L20.08 82.45L17.85 82.66ZM115.52 34.27L112.91 33.44L114.41 31.77ZM75.05 133.51L77.53 132.37L77.56 134.61ZM37.82 32.91L36.76 35.43L35.23 33.8ZM133.31 81.99L132.39 79.41L134.62 79.58ZM29.66 110.33L32.08 111.61L30.32 112.99ZM86.99 19.34L84.34 20.03L84.71 17.82ZM106.2 125.25L107.69 122.95L108.9 124.82ZM20.42 60.07L20.87 62.77L18.71 62.21ZM127.79 50.18L125.63 48.49L127.6 47.44ZM55.24 130.07L57.97 129.85L57.22 131.96ZM54.76 22.06L52.9 24.07L52.03 22.01ZM128.14 101.45L128.16 98.71L130.19 99.64ZM20.32 92.47L22.15 94.5L20.02 95.19ZM105.96 26.2L103.23 25.94L104.33 23.99ZM87.56 133.01L89.75 131.36L90.25 133.54ZM28.93 41.75L28.43 44.44L26.59 43.17ZM133.9 69.45L132.44 67.13L134.66 66.82ZM37.7 119.97L40.34 120.7L38.91 122.43ZM74.53 17.65L72.1 18.9L71.98 16.66ZM116.53 118.07L117.49 115.5L119.08 117.07ZM17.65 72.36L18.68 74.89L16.44 74.81ZM121.52 39.24L119.05 38.06L120.76 36.61ZM67.26 133.9L69.87 133.1L69.6 135.32ZM43.3 27.36L41.91 29.71L40.62 27.89ZM133.01 89.79L132.45 87.12L134.63 87.59ZM24.6 104.37L26.83 105.96L24.9 107.09ZM94.75 20.32L92.04 20.65L92.7 18.51ZM99.81 129.77L101.59 127.69L102.54 129.71ZM22.08 52.41L22.17 55.15L20.1 54.3ZM131.74 56.95L129.82 55L131.92 54.22ZM47.74 127.74L50.48 127.89L49.46 129.88ZM61.87 18.71L59.76 20.45L59.17 18.3ZM125.15 108.72L125.54 106.01L127.43 107.2ZM17.6 85.08L19.15 87.34L16.95 87.74ZM112.95 29.82L110.29 29.2L111.64 27.41ZM79.95 135.07L82.34 133.72L82.54 135.95ZM33.15 35.08L32.3 37.69L30.64 36.18ZM135.28 77.23L134.15 74.73L136.39 74.72ZM31.42 115.17L33.94 116.25L32.3 117.77ZM82.41 16.96L79.83 17.86L80.01 15.63ZM111.18 123.91L112.48 121.49L113.85 123.26ZM17.65 64.43L18.33 67.09L16.12 66.71ZM126.88 45.09L124.59 43.59L126.47 42.38ZM59.35 133.21L62.05 132.77L61.48 134.93ZM49.61 22.52L47.92 24.68L46.87 22.7ZM131.63 97.62L131.42 94.89L133.53 95.65ZM20.33 97.65L22.33 99.53L20.27 100.39ZM102.44 22.39L99.7 22.35L100.64 20.32ZM92.73 133.44L94.77 131.61L95.45 133.75ZM24.82 44.93L24.55 47.65L22.61 46.54ZM134.78 64.33L133.14 62.14L135.32 61.65ZM40.52 124.35L43.21 124.86L41.93 126.69ZM69.5 16.33L67.17 17.78L66.88 15.56ZM121.13 115.64L121.88 113L123.59 114.44ZM15.9 77.26L17.13 79.71L14.9 79.81ZM119.5 34.44L116.94 33.47L118.52 31.88ZM72 136.08L74.54 135.06L74.45 137.3ZM38.34 28.96L37.15 31.43L35.71 29.72ZM135.59 85.25L134.8 82.63L137.02 82.92ZM25.77 109.46L28.12 110.86L26.29 112.15ZM90.45 17.35L87.76 17.91L88.25 15.72ZM104.99 129.05L106.59 126.82L107.71 128.76ZM18.75 56.45L19.07 59.17L16.93 58.5ZM131.46 51.72L129.39 49.93L131.42 48.98ZM51.49 131.41L54.22 131.33L53.37 133.4ZM56.63 18.54L54.66 20.45L53.9 18.34ZM129.14 105.31L129.3 102.57L131.29 103.61ZM16.97 90.3L18.7 92.42L16.54 93ZM109.89 25.55L107.18 25.15L108.38 23.26ZM85.1 136.14L87.37 134.61L87.75 136.81ZM28.63 37.77L27.99 40.43L26.22 39.07ZM136.8 72.19L135.47 69.79L137.7 69.6ZM33.71 119.92L36.31 120.78L34.8 122.43ZM77.52 15L75.02 16.12L75.02 13.88ZM116.12 122.04L117.21 119.53L118.72 121.18ZM15.27 69.15L16.17 71.74L13.94 71.54ZM125.44 40L123.04 38.7L124.81 37.34ZM63.85 135.99L66.5 135.32L66.11 137.53ZM44.41 23.52L42.9 25.8L41.7 23.92ZM134.79 93.37L134.36 90.67L136.52 91.25ZM20.87 102.92L23.02 104.62L21.03 105.65ZM98.48 18.87L95.75 19.06L96.52 16.96ZM98.03 133.35L99.92 131.37L100.77 133.44ZM20.97 48.57L20.92 51.31L18.89 50.36ZM135.15 59.04L133.34 56.99L135.47 56.32ZM43.82 128.5L46.54 128.79L45.42 130.73ZM64.25 15.5L62.05 17.13L61.57 14.94ZM125.57 112.7L126.09 110.01L127.92 111.3ZM14.61 82.43L16.04 84.76L13.82 85.05ZM116.95 29.76L114.32 29L115.76 27.29ZM77.04 137.81L79.49 136.59L79.58 138.82ZM33.45 31.09L32.47 33.65L30.89 32.06ZM137.75 80.37L136.75 77.83L138.99 77.93ZM27.47 114.52L29.93 115.72L28.22 117.15ZM85.77 14.77L83.14 15.55L83.44 13.33ZM110.18 127.78L111.6 125.44L112.87 127.27ZM15.77 60.9L16.31 63.58L14.13 63.09ZM130.65 46.43L128.44 44.82L130.38 43.71ZM55.66 134.77L58.38 134.46L57.7 136.59ZM51.28 18.89L49.48 20.95L48.54 18.92ZM132.85 101.44L132.78 98.7L134.85 99.56ZM16.86 95.66L18.75 97.63L16.65 98.39ZM106.35 21.51L103.62 21.34L104.66 19.36ZM90.44 136.73L92.57 135.01L93.14 137.17ZM24.3 40.95L23.88 43.66L22 42.45ZM137.85 66.91L136.32 64.64L138.53 64.26ZM36.51 124.52L39.17 125.16L37.8 126.93ZM72.34 13.5L69.95 14.82L69.76 12.6ZM120.94 119.64L121.82 117.05L123.46 118.57ZM13.33 74.18L14.44 76.68L12.2 76.67ZM123.47 34.98L120.97 33.88L122.62 32.38ZM68.7 138.36L71.29 137.48L71.08 139.7ZM39.23 25.05L37.92 27.45L36.57 25.67ZM137.57 88.74L136.92 86.08L139.12 86.48ZM21.95 108.22L24.23 109.74L22.34 110.93ZM94.1 15.69L91.4 16.11L91.99 13.95ZM103.41 132.74L105.13 130.6L106.15 132.59ZM17.42 52.66L17.6 55.4L15.5 54.62ZM135 53.62L133.03 51.72L135.1 50.88ZM47.59 132.4L50.33 132.46L49.37 134.48ZM58.84 15.18L56.78 16.98L56.12 14.84ZM129.78 109.28L130.08 106.56L132.01 107.69ZM13.82 87.8L15.44 90.01L13.25 90.48ZM113.9 25.26L111.22 24.72L112.51 22.9ZM82.33 139.06L84.67 137.64L84.95 139.86ZM28.7 33.75L27.93 36.37L26.23 34.92ZM139.47 75.2L138.26 72.75L140.49 72.67ZM29.71 119.49L32.26 120.48L30.67 122.05ZM80.76 12.62L78.21 13.61L78.32 11.37ZM115.33 125.99L116.55 123.53L117.97 125.26ZM13.19 65.7L13.95 68.33L11.73 68.02ZM129.31 41.14L126.97 39.71L128.81 38.44ZM60.23 137.76L62.92 137.23L62.42 139.41ZM45.89 19.77L44.26 21.97L43.16 20.03ZM136.23 97.14L135.94 94.41L138.07 95.1ZM17.27 101.12L19.32 102.93L17.29 103.86ZM102.36 17.76L99.62 17.82L100.49 15.76ZM95.92 136.79L97.9 134.9L98.65 137.01ZM20.21 44.61L20.02 47.34L18.05 46.29ZM138.38 61.45L136.68 59.31L138.84 58.75ZM39.81 128.91L42.51 129.33L41.29 131.21ZM66.94 12.5L64.66 14.01L64.29 11.8ZM125.61 116.74L126.27 114.08L128.03 115.46ZM11.86 79.48L13.17 81.88L10.94 82.06ZM120.98 30.08L118.39 29.19L119.92 27.55ZM73.86 140.29L76.37 139.2L76.34 141.43ZM34.12 27.11L33.01 29.61L31.52 27.95ZM139.95 83.77L139.08 81.17L141.3 81.39ZM23.57 113.5L25.96 114.82L24.17 116.17ZM89.34 12.89L86.68 13.53L87.09 11.33ZM108.82 131.59L110.35 129.32L111.53 131.22ZM14.21 57.17L14.62 59.87L12.46 59.27ZM134.32 48.13L132.19 46.41L134.19 45.39ZM51.81 135.99L54.54 135.82L53.75 137.92ZM53.3 15.38L51.4 17.35L50.57 15.27ZM133.72 105.39L133.8 102.65L135.81 103.62ZM13.54 93.34L15.34 95.41L13.2 96.05ZM110.36 20.99L107.64 20.68L108.79 18.75ZM87.83 139.82L90.05 138.21L90.5 140.4ZM24.13 36.91L23.58 39.59L21.77 38.28ZM140.7 69.79L139.29 67.44L141.51 67.17ZM32.46 124.32L35.09 125.1L33.63 126.8ZM75.46 10.92L73 12.12L72.93 9.88ZM120.39 123.66L121.4 121.11L122.96 122.71ZM11.03 70.84L12.01 73.4L9.78 73.27ZM127.42 35.89L124.98 34.66L126.71 33.25ZM65.17 140.35L67.8 139.61L67.48 141.82ZM40.49 21.19L39.06 23.52L37.8 21.68ZM139.25 92.44L138.73 89.75L140.91 90.26ZM18.22 106.62L20.42 108.26L18.47 109.35ZM97.93 14.35L95.21 14.63L95.91 12.5ZM101.49 136.31L103.31 134.27L104.23 136.31ZM16.42 48.73L16.46 51.47L14.41 50.58ZM138.4 55.85L136.52 53.86L138.63 53.12ZM43.58 133.04L46.31 133.24L45.25 135.21ZM61.36 12L59.21 13.69L58.66 11.53ZM130.06 113.33L130.5 110.63L132.37 111.86ZM10.88 85L12.38 87.29L10.17 87.65ZM117.97 25.34L115.31 24.66L116.7 22.91ZM79.28 141.75L81.69 140.45L81.85 142.68ZM29.14 29.7L28.23 32.29L26.61 30.75ZM141.87 78.48L140.79 75.97L143.03 76ZM25.72 118.69L28.22 119.82L26.54 121.31ZM84.24 10.51L81.64 11.37L81.87 9.14Z'/%3E%3C/svg%3E") center / 152px 152px no-repeat;
+}
+[data-theme="vitality"] #boost-center { z-index: 2; }
+[data-theme="vitality"] #boost-big  { font-size: 66px; font-weight: 700; font-style: normal; color: #fff; line-height: 1; padding-top: 4px; }
+[data-theme="vitality"] #speed-val,
+[data-theme="vitality"] #speed-unit { display: none; }
+/* joueur orange : anneau, trait et points jaunes (couleur de l'arc posée par l'app) */
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(254, 255, 2)"]),
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(255, 255, 102)"]) {
+  background: radial-gradient(circle, #24282c 0 71%, #1c1c0c 80%, #171708 100%);
+  box-shadow: 0 0 0 2.5px var(--orange), 0 0 16px rgba(254,255,2,.45), inset 0 0 18px rgba(254,255,2,.22);
+}
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(254, 255, 2)"]) #boost-ticks,
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(255, 255, 102)"]) #boost-ticks { stroke: var(--orange); }
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(254, 255, 2)"])::after,
+[data-theme="vitality"] #boost-meter:has(#boost-arc[style*="rgb(255, 255, 102)"])::after {
+  background: var(--orange);
+}
+
+/* ══════════════════════════════════════════════════════════
+   REPLAY BAR — halo couleur de l'équipe qui a marqué depuis le bas, blocs "≪ REPLAY"
+   aux deux coins, bandeau sombre, explosion + nom du buteur au centre, vitesse à gauche
 ══════════════════════════════════════════════════════════ */
 [data-theme="vitality"] #replay-bar {
-  background: #080c14;
-  border-top: none; border-radius: 0;
+  --vlt-team: var(--orange);
+  left: 0; right: 0; bottom: 0;
+  height: 236px; display: block;
+  border: none; border-radius: 0; filter: none;
+  /* halo : le bas (0 → 86 px) est sous le bandeau sombre, il démarre fort juste au-dessus */
+  background: linear-gradient(to top, rgba(254,255,2,.95) 0 36%, rgba(254,255,2,.62) 50%, rgba(254,255,2,.24) 74%, rgba(254,255,2,0) 100%);
+  transform: translateY(40px);
+  transition: opacity .35s, transform .45s cubic-bezier(.2,.9,.3,1);
 }
+[data-theme="vitality"] #replay-bar[data-team="0"] {
+  --vlt-team: var(--blue);
+  background: linear-gradient(to top, rgba(0,170,254,.95) 0 36%, rgba(0,170,254,.62) 50%, rgba(0,170,254,.24) 74%, rgba(0,170,254,0) 100%);
+}
+[data-theme="vitality"] #replay-bar.show { transform: none; }
 
-/* Trapèze gauche bleu */
+/* bandeau sombre en bas */
+[data-theme="vitality"] #replay-bar::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 86px;
+  background: var(--vlt-ink);
+}
+/* blocs "≪ REPLAY" */
+[data-theme="vitality"] #replay-label,
+[data-theme="vitality"] #replay-bar::after {
+  position: absolute; bottom: 0; z-index: 2;
+  width: 367px; height: 130px; box-sizing: border-box;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--vlt-team);
+  font-size: 50px; font-weight: 700; font-style: italic; letter-spacing: 1px;
+  color: var(--vlt-ink); line-height: 1;
+}
 [data-theme="vitality"] #replay-label {
-  background: #1AACE6;
-  color: #fff;
-  font-size: 18px; font-weight: 900; font-style: italic; letter-spacing: 4px;
-  border-left: none; border-right: none; height: 100%;
-  padding: 0 36px 0 22px;
-  clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
-  min-width: 220px;
+  left: 0; padding: 4px 0 0 56px;
+  border: none;
+  clip-path: polygon(0 0, 271px 0, 100% 100%, 0 100%);
 }
-[data-theme="vitality"] #replay-label::before { content: '<<  '; opacity: .8; }
-
-/* Cache l'étiquette de but */
-[data-theme="vitality"] #replay-goal-tag { display: none; }
-
-/* Nom du scoreur : grand, centré */
+[data-theme="vitality"] #replay-label::before {
+  content: ''; flex-shrink: 0; width: 36px; height: 28px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='28' viewBox='0 0 36 28'%3E%3Cpath fill='%231e1e1e' d='M17 0L0 14L17 28L17 20L10 14L17 8ZM36 0L19 14L36 28L36 20L29 14L36 8Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+[data-theme="vitality"] #replay-bar::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='28' viewBox='0 0 36 28'%3E%3Cpath fill='%231e1e1e' d='M17 0L0 14L17 28L17 20L10 14L17 8ZM36 0L19 14L36 28L36 20L29 14L36 8Z'/%3E%3C/svg%3E") "  REPLAY";
+  right: 0; justify-content: flex-end; padding: 4px 50px 0 0;
+  white-space: pre;
+  clip-path: polygon(96px 0, 100% 0, 100% 100%, 0 100%);
+}
+/* explosion au-dessus du nom (l'étiquette "GOAL BY" de l'app devient l'image) */
+[data-theme="vitality"] #replay-goal-tag {
+  position: absolute; left: 50%; bottom: 64px; z-index: 3;
+  width: 210px; height: 128px; margin: 0 0 0 -105px; padding: 0;
+  font-size: 0; clip-path: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='128' viewBox='0 0 210 128'%3E%3Cpolygon fill='%23FEFF02' points='105 2 115.8 24.6 134.4 13.9 136 29.4 169.3 16.5 152.5 38.3 179.5 37.3 163.3 50.3 203.5 53.2 167 64 189.7 73.3 163.3 77.7 191.6 95 152.5 89.7 160.3 104.8 136 98.6 139.2 122.3 115.8 103.4 105 117.3 94.2 103.4 70.8 122.3 74 98.6 49.7 104.8 57.5 89.7 18.4 95 46.7 77.7 20.3 73.3 43 64 6.5 53.2 46.7 50.3 30.5 37.3 57.5 38.3 40.7 16.5 74 29.4 75.6 13.9 94.2 24.6'/%3E%3Ccircle cx='105' cy='64' r='29' fill='%231e1e1e'/%3E%3Cg fill='%23FEFF02'%3E%3Cpolygon points='111.9 68 105 72 98.1 68 98.1 60 105 56 111.9 60'/%3E%3Cpolygon points='127.6 67.3 122 70.5 116.4 67.3 116.4 60.8 122 57.5 127.6 60.8'/%3E%3Cpolygon points='119.1 82 113.5 85.2 107.9 82 107.9 75.5 113.5 72.2 119.1 75.5'/%3E%3Cpolygon points='102.1 82 96.5 85.2 90.9 82 90.9 75.5 96.5 72.2 102.1 75.5'/%3E%3Cpolygon points='93.6 67.3 88 70.5 82.4 67.3 82.4 60.8 88 57.5 93.6 60.8'/%3E%3Cpolygon points='102.1 52.5 96.5 55.8 90.9 52.5 90.9 46 96.5 42.8 102.1 46'/%3E%3Cpolygon points='119.1 52.5 113.5 55.8 107.9 52.5 107.9 46 113.5 42.8 119.1 46'/%3E%3C/g%3E%3Ccircle cx='105' cy='64' r='29' fill='none' stroke='%231e1e1e' stroke-width='4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+[data-theme="vitality"] #replay-bar[data-team="0"] #replay-goal-tag { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='210' height='128' viewBox='0 0 210 128'%3E%3Cpolygon fill='%2300AAFE' points='105 2 115.8 24.6 134.4 13.9 136 29.4 169.3 16.5 152.5 38.3 179.5 37.3 163.3 50.3 203.5 53.2 167 64 189.7 73.3 163.3 77.7 191.6 95 152.5 89.7 160.3 104.8 136 98.6 139.2 122.3 115.8 103.4 105 117.3 94.2 103.4 70.8 122.3 74 98.6 49.7 104.8 57.5 89.7 18.4 95 46.7 77.7 20.3 73.3 43 64 6.5 53.2 46.7 50.3 30.5 37.3 57.5 38.3 40.7 16.5 74 29.4 75.6 13.9 94.2 24.6'/%3E%3Ccircle cx='105' cy='64' r='29' fill='%231e1e1e'/%3E%3Cg fill='%2300AAFE'%3E%3Cpolygon points='111.9 68 105 72 98.1 68 98.1 60 105 56 111.9 60'/%3E%3Cpolygon points='127.6 67.3 122 70.5 116.4 67.3 116.4 60.8 122 57.5 127.6 60.8'/%3E%3Cpolygon points='119.1 82 113.5 85.2 107.9 82 107.9 75.5 113.5 72.2 119.1 75.5'/%3E%3Cpolygon points='102.1 82 96.5 85.2 90.9 82 90.9 75.5 96.5 72.2 102.1 75.5'/%3E%3Cpolygon points='93.6 67.3 88 70.5 82.4 67.3 82.4 60.8 88 57.5 93.6 60.8'/%3E%3Cpolygon points='102.1 52.5 96.5 55.8 90.9 52.5 90.9 46 96.5 42.8 102.1 46'/%3E%3Cpolygon points='119.1 52.5 113.5 55.8 107.9 52.5 107.9 46 113.5 42.8 119.1 46'/%3E%3C/g%3E%3Ccircle cx='105' cy='64' r='29' fill='none' stroke='%231e1e1e' stroke-width='4'/%3E%3C/svg%3E"); }
 [data-theme="vitality"] #replay-scorer {
-  flex: 1; text-align: center;
-  font-size: 32px; font-weight: 900; font-style: italic;
-  color: #fff; letter-spacing: 4px; text-transform: uppercase;
+  position: absolute; left: 420px; right: 420px; bottom: 4px; z-index: 4;
+  text-align: center;
+  font-size: 94px; font-weight: 700; font-style: italic; letter-spacing: 1px; line-height: .9;
+  color: var(--vlt-team);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-/* Blocs vitesse et assist : visibles, fins */
+/* vitesse du ballon à gauche du bandeau ; passeur non affiché (comme l'original) */
 [data-theme="vitality"] #replay-right {
-  display: flex; align-items: center; height: 100%;
-  gap: 0; padding: 0;
+  position: absolute; left: 505px; bottom: 0; z-index: 3;
+  height: 86px; padding: 0; gap: 0;
 }
 [data-theme="vitality"] #replay-speed-block {
-  padding: 0 22px; border-left: 1px solid rgba(255,255,255,.07);
-  text-align: center;
+  flex-direction: row; align-items: center; gap: 12px;
+  padding: 0; border: none; text-align: left;
 }
-[data-theme="vitality"] #replay-assist-block {
-  padding: 0 20px; border-left: 1px solid rgba(255,255,255,.07);
-  text-align: center;
+[data-theme="vitality"] #replay-speed-block::before {
+  content: ''; width: 34px; height: 30px; flex-shrink: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='30' viewBox='0 0 34 30'%3E%3Cg fill='%23FEFF02'%3E%3Cpath d='M14 4Q22 0 33 1Q26 4 24 7Q30 6 34 8Q27 10 25 14Z'/%3E%3Ccircle cx='13' cy='17' r='12'/%3E%3C/g%3E%3Cg fill='%231e1e1e'%3E%3Cpolygon points='13,12 17.3,14.5 17.3,19.5 13,22 8.7,19.5 8.7,14.5'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
 }
-[data-theme="vitality"] #replay-spd-unit,
+[data-theme="vitality"] #replay-bar[data-team="0"] #replay-speed-block::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='30' viewBox='0 0 34 30'%3E%3Cg fill='%2300AAFE'%3E%3Cpath d='M14 4Q22 0 33 1Q26 4 24 7Q30 6 34 8Q27 10 25 14Z'/%3E%3Ccircle cx='13' cy='17' r='12'/%3E%3C/g%3E%3Cg fill='%231e1e1e'%3E%3Cpolygon points='13,12 17.3,14.5 17.3,19.5 13,22 8.7,19.5 8.7,14.5'/%3E%3C/g%3E%3C/svg%3E"); }
+[data-theme="vitality"] #replay-speed-line { align-items: baseline; gap: 8px; }
+[data-theme="vitality"] #replay-spd      { font-size: 36px; font-weight: 700; font-style: italic; color: #fff; }
+[data-theme="vitality"] #replay-spd-unit { font-size: 26px; font-weight: 700; font-style: italic; color: #fff; }
 [data-theme="vitality"] #replay-spd-lbl,
-[data-theme="vitality"] #replay-assist-lbl { color: rgba(255,255,255,.35); }
+[data-theme="vitality"] #replay-assist-block { display: none; }
 
-/* Trapèze droit jaune via ::after sur la bar */
-[data-theme="vitality"] #replay-bar::after {
-  content: 'REPLAY  >>';
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: #FAD500; color: #111;
-  font-size: 18px; font-weight: 900; font-style: italic; letter-spacing: 4px;
-  padding: 0 22px 0 36px;
-  clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%);
-  min-width: 220px; height: 100%;
-}
+/* entrée : blocs depuis les coins, explosion qui éclate, nom qui monte */
+[data-theme="vitality"] #replay-bar.show #replay-label  { animation: vltFromLeft .45s cubic-bezier(.2,.9,.3,1) both; }
+[data-theme="vitality"] #replay-bar.show::after         { animation: vltFromRight .45s cubic-bezier(.2,.9,.3,1) both; }
+[data-theme="vitality"] #replay-bar.show #replay-goal-tag { animation: vltBurst .5s cubic-bezier(.2,1.5,.4,1) .15s both; }
+[data-theme="vitality"] #replay-bar.show #replay-scorer   { animation: vltRise .45s cubic-bezier(.2,1.2,.4,1) .25s both; }
+@keyframes vltFromLeft  { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes vltFromRight { from { transform: translateX(100%); }  to { transform: none; } }
+@keyframes vltBurst { from { transform: scale(0) rotate(-40deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes vltRise  { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ══════════════════════════════════════════════════════════
    GOAL NOTIF — slam + flicker jaune
 ══════════════════════════════════════════════════════════ */
 [data-theme="vitality"] #goal-notif { transition: opacity .3s; }
-
-/* Entrée : slam horizontal */
 [data-theme="vitality"] #goal-notif.show {
   animation: vltGoalSlam .38s cubic-bezier(.15,.8,.25,1.15) both;
 }
@@ -407,265 +543,215 @@
   40%  { opacity: 1; transform: translate(-50%,-50%) scaleX(1.04) scaleY(.97); filter: brightness(1.4); }
   100% { opacity: 1; transform: translate(-50%,-50%) scale(1); filter: brightness(1); }
 }
-
-/* Boîte jaune */
 [data-theme="vitality"] #goal-inner {
-  border: 2px solid rgba(250,213,0,.55);
-  border-bottom: 3px solid #FAD500;
+  border: none; border-bottom: 4px solid var(--orange);
   border-radius: 0;
-  background: rgba(8,6,0,.95);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%23FEFF02' d='M28 1L18 7.5L28 14ZM14 -6.5L4 0L14 6.5ZM14 8.5L4 15L14 21.5Z'/%3E%3C/svg%3E") left top / 20px 14px repeat-y, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%2300AAFE' d='M0 1L10 7.5L0 14ZM14 -6.5L24 0L14 6.5ZM14 8.5L24 15L14 21.5Z'/%3E%3C/svg%3E") right top / 20px 14px repeat-y, var(--vlt-ink);
+  padding: 22px 80px;
 }
 [data-theme="vitality"] #goal-inner::after {
-  background: linear-gradient(90deg, transparent, rgba(250,213,0,.8), transparent);
+  background: linear-gradient(90deg, transparent, rgba(254,255,2,.8), transparent);
 }
-
-/* Mot GOAL! : flicker lettres jaunes */
+[data-theme="vitality"] #goal-word { font-weight: 700; font-style: italic; }
 [data-theme="vitality"] #goal-notif.show #goal-word {
-  -webkit-text-stroke: 3px #FAD500;
+  -webkit-text-stroke: 3px var(--orange);
   color: transparent;
-  font-style: italic; letter-spacing: 14px;
+  letter-spacing: 14px;
   animation: vltGoalFlicker 1.05s .18s ease-in both;
 }
 @keyframes vltGoalFlicker {
   0%   { color: transparent; text-shadow: none; }
-  7%   { color: #FAD500; text-shadow: 0 0 60px rgba(250,213,0,1), 0 0 120px rgba(250,213,0,.55); }
+  7%   { color: #FEFF02; text-shadow: 0 0 60px rgba(254,255,2,1), 0 0 120px rgba(254,255,2,.55); }
   13%  { color: transparent; text-shadow: none; }
-  25%  { color: #FAD500; text-shadow: 0 0 48px rgba(250,213,0,.95); }
+  25%  { color: #FEFF02; text-shadow: 0 0 48px rgba(254,255,2,.95); }
   30%  { color: transparent; text-shadow: none; }
-  44%  { color: #FAD500; text-shadow: 0 0 38px rgba(250,213,0,.85); }
+  44%  { color: #FEFF02; text-shadow: 0 0 38px rgba(254,255,2,.85); }
   48%  { color: transparent; text-shadow: none; }
-  61%  { color: #FAD500; text-shadow: 0 0 30px rgba(250,213,0,.75); }
+  61%  { color: #FEFF02; text-shadow: 0 0 30px rgba(254,255,2,.75); }
   65%  { color: transparent; text-shadow: none; }
-  79%  { color: #FAD500; text-shadow: 0 0 22px rgba(250,213,0,.65); }
-  100% { color: #FAD500; text-shadow: 0 0 14px rgba(250,213,0,.4), 0 0 40px rgba(250,213,0,.15); }
+  79%  { color: #FEFF02; text-shadow: 0 0 22px rgba(254,255,2,.65); }
+  100% { color: #FEFF02; text-shadow: 0 0 14px rgba(254,255,2,.4), 0 0 40px rgba(254,255,2,.15); }
 }
 [data-theme="vitality"] #goal-sub {
-  color: rgba(250,213,0,.7) !important;
-  font-style: italic; letter-spacing: 6px;
+  color: rgba(255,255,255,.8) !important;
+  font-weight: 700; letter-spacing: 6px;
 }
 
 /* ══════════════════════════════════════════════════════════
-   WIPE LIVE / REPLAY — animation "lettres qui clignotent"
+   WIPE LIVE / REPLAY — "plaque à dents"
+   Une plaque anthracite à motif de triangles traverse l'écran, bord avant en dents de
+   scie précédé d'éclats cyan / jaunes ; un bandeau incliné se déroule au centre et les
+   lettres (découpées en <span> par l'app) y tombent une à une, en noir sur jaune
+   (REPLAY) ou sur cyan (LIVE). Sortie : les lettres retombent, le bandeau se replie,
+   la plaque continue sa course. REPLAY de gauche à droite, LIVE de droite à gauche.
 ══════════════════════════════════════════════════════════ */
-[data-theme="vitality"] #rw-box {
-  border-color: rgba(250,213,0,.45);
-  border-radius: 0;
-  box-shadow: 0 0 0 8px rgba(250,213,0,.05), inset 0 0 0 8px rgba(250,213,0,.03);
+[data-theme="vitality"] #replay-wipe {
+  --vlt-dir: 1;
+  background: transparent; transition: none; overflow: hidden;
 }
-[data-theme="vitality"] #rw-box::before { border-color: rgba(250,213,0,.18); }
+[data-theme="vitality"] #replay-wipe:has(#rw-word[data-text="LIVE"]) { --vlt-dir: -1; }
+[data-theme="vitality"] #replay-wipe.rw-active,
+[data-theme="vitality"] #replay-wipe.rw-fadeout { opacity: 1; transition: none; }
 
-/* Désactiver le spread par défaut et les ghost-textes ::before/::after */
+/* plaque 3200 px : couverture pleine de 0 à 1920 en position de repos */
+[data-theme="vitality"] #replay-wipe::before {
+  content: ''; position: absolute; top: 0; left: -640px;
+  width: 3200px; height: 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3200 1080' preserveAspectRatio='none'%3E%3Cdefs%3E%3Cpattern id='p' width='40' height='28' patternUnits='userSpaceOnUse'%3E%3Cpath fill='%23ffffff' fill-opacity='.035' d='M0 0L18 14L0 28ZM20 -14L38 0L20 14ZM20 14L38 28L20 42Z'/%3E%3C/pattern%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%2318181a'/%3E%3Cstop offset='.5' stop-color='%23262628'/%3E%3Cstop offset='1' stop-color='%2318181a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M490 0L2560 0L2710 60L2560 120L2710 180L2560 240L2710 300L2560 360L2710 420L2560 480L2710 540L2560 600L2710 660L2560 720L2710 780L2560 840L2710 900L2560 960L2710 1020L2560 1080L490 1080L640 1020L490 960L640 900L490 840L640 780L490 720L640 660L490 600L640 540L490 480L640 420L490 360L640 300L490 240L640 180L490 120L640 60L490 0Z'/%3E%3Cpath fill='url(%23p)' d='M490 0L2560 0L2710 60L2560 120L2710 180L2560 240L2710 300L2560 360L2710 420L2560 480L2710 540L2560 600L2710 660L2560 720L2710 780L2560 840L2710 900L2560 960L2710 1020L2560 1080L490 1080L640 1020L490 960L640 900L490 840L640 780L490 720L640 660L490 600L640 540L490 480L640 420L490 360L640 300L490 240L640 180L490 120L640 60L490 0Z'/%3E%3Cpath fill='%2300AAFE' d='M2574 -48L2694 0L2574 48ZM2574 72L2694 120L2574 168ZM2574 192L2694 240L2574 288ZM2574 312L2694 360L2574 408ZM2574 432L2694 480L2574 528ZM2574 552L2694 600L2574 648ZM2574 672L2694 720L2574 768ZM2574 792L2694 840L2574 888ZM2574 912L2694 960L2574 1008ZM2574 1032L2694 1080L2574 1128Z'/%3E%3Cpath fill='%23FEFF02' d='M2740 27L2822.5 60L2740 93ZM2740 147L2822.5 180L2740 213ZM2740 267L2822.5 300L2740 333ZM2740 387L2822.5 420L2740 453ZM2740 507L2822.5 540L2740 573ZM2740 627L2822.5 660L2740 693ZM2740 747L2822.5 780L2740 813ZM2740 867L2822.5 900L2740 933ZM2740 987L2822.5 1020L2740 1053Z'/%3E%3Cpath fill='%2300AAFE' d='M2860 -18L2905 0L2860 18ZM2860 102L2905 120L2860 138ZM2860 222L2905 240L2860 258ZM2860 342L2905 360L2860 378ZM2860 462L2905 480L2860 498ZM2860 582L2905 600L2860 618ZM2860 702L2905 720L2860 738ZM2860 822L2905 840L2860 858ZM2860 942L2905 960L2860 978ZM2860 1062L2905 1080L2860 1098Z'/%3E%3Cpath fill='%2300AAFE' d='M502 12L622 60L502 108ZM502 132L622 180L502 228ZM502 252L622 300L502 348ZM502 372L622 420L502 468ZM502 492L622 540L502 588ZM502 612L622 660L502 708ZM502 732L622 780L502 828ZM502 852L622 900L502 948ZM502 972L622 1020L502 1068Z'/%3E%3Cpath fill='%23FEFF02' d='M360 -33L442.5 0L360 33ZM360 87L442.5 120L360 153ZM360 207L442.5 240L360 273ZM360 327L442.5 360L360 393ZM360 447L442.5 480L360 513ZM360 567L442.5 600L360 633ZM360 687L442.5 720L360 753ZM360 807L442.5 840L360 873ZM360 927L442.5 960L360 993ZM360 1047L442.5 1080L360 1113Z'/%3E%3Cpath fill='%2300AAFE' d='M240 42L285 60L240 78ZM240 162L285 180L240 198ZM240 282L285 300L240 318ZM240 402L285 420L240 438ZM240 522L285 540L240 558ZM240 642L285 660L240 678ZM240 762L285 780L240 798ZM240 882L285 900L240 918ZM240 1002L285 1020L240 1038Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  transform: translateX(calc(var(--vlt-dir) * -2270px)) scaleX(var(--vlt-dir));
+}
+@keyframes vltPlateIn {
+  from { transform: translateX(calc(var(--vlt-dir) * -2270px)) scaleX(var(--vlt-dir)); }
+  to   { transform: translateX(0px) scaleX(var(--vlt-dir)); }
+}
+@keyframes vltPlateOut {
+  from { transform: translateX(0px) scaleX(var(--vlt-dir)); }
+  to   { transform: translateX(calc(var(--vlt-dir) * 2320px)) scaleX(var(--vlt-dir)); }
+}
+[data-theme="vitality"] #replay-wipe.rw-active::before  { animation: vltPlateIn .62s cubic-bezier(.6,0,.2,1) both; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout::before { animation: vltPlateOut .7s cubic-bezier(.65,0,.35,1) .3s both; }
+
+[data-theme="vitality"] #rw-center { opacity: 1; transition: none; }
+
+/* bandeau incliné */
+[data-theme="vitality"] #rw-box {
+  position: relative;
+  padding: 26px 100px 18px 170px;
+  border: none; border-radius: 0; box-shadow: none;
+  background: var(--orange);
+  clip-path: polygon(70px 0, 70px 0, 0 100%, 0 100%);
+}
+[data-theme="vitality"] #rw-box:has(#rw-word[data-text="LIVE"]) { background: var(--blue); }
+@keyframes vltBandIn {
+  from { clip-path: polygon(70px 0, 70px 0, 0 100%, 0 100%); }
+  to   { clip-path: polygon(70px 0, 100% 0, calc(100% - 70px) 100%, 0 100%); }
+}
+@keyframes vltBandOut {
+  from { clip-path: polygon(70px 0, 100% 0, calc(100% - 70px) 100%, 0 100%); }
+  to   { clip-path: polygon(100% 0, 100% 0, calc(100% - 70px) 100%, calc(100% - 70px) 100%); }
+}
+[data-theme="vitality"] #replay-wipe.rw-active  #rw-box { animation: vltBandIn .35s cubic-bezier(.65,0,.35,1) .42s both; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout #rw-box { animation: vltBandOut .3s cubic-bezier(.65,0,.35,1) .16s both; }
+
+/* double chevron "≪" (pointe vers la droite pour LIVE) */
+[data-theme="vitality"] #rw-box::before {
+  content: ''; position: absolute; inset: auto; border: none;
+  left: 86px; top: 50%; width: 60px; height: 48px; margin-top: -22px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='28' viewBox='0 0 36 28'%3E%3Cpath fill='%231e1e1e' d='M17 0L0 14L17 28L17 20L10 14L17 8ZM36 0L19 14L36 28L36 20L29 14L36 8Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+[data-theme="vitality"] #rw-box:has(#rw-word[data-text="LIVE"])::before { transform: scaleX(-1); }
+
 [data-theme="vitality"] #replay-wipe.rw-active #rw-word { animation: none !important; }
 [data-theme="vitality"] #rw-word::before,
 [data-theme="vitality"] #rw-word::after { display: none !important; }
-[data-theme="vitality"] #rw-word { letter-spacing: 12px; }
+[data-theme="vitality"] #rw-word {
+  font-size: 150px; font-weight: 700; font-style: italic; line-height: .9;
+  letter-spacing: 6px; color: var(--vlt-ink);
+}
 
-/* ── Lettre individuelle ── */
+/* lettres : tombent dans le bandeau l'une après l'autre (l'animation inline de l'app est remplacée) */
 [data-theme="vitality"] .vlt-letter {
   display: inline-block;
-  color: transparent;
-  -webkit-text-stroke: 3px #FAD500;
-  text-shadow: none;
-  animation: vltFlicker1 1.5s var(--vlt-delay, 0s) ease-in both;
+  color: var(--vlt-ink); -webkit-text-stroke: 0; text-shadow: none;
 }
-
-/* 3 patterns de clignotement différents pour l'effet aléatoire */
-@keyframes vltFlicker1 {
-  0%   { color: transparent; text-shadow: none; }
-  7%   { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  13%  { color: transparent; text-shadow: none; }
-  24%  { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  28%  { color: transparent; text-shadow: none; }
-  47%  { color: #FAD500; text-shadow: 0 0 24px rgba(250,213,0,.8); }
-  51%  { color: transparent; text-shadow: none; }
-  66%  { color: #FAD500; text-shadow: 0 0 20px rgba(250,213,0,.7); }
-  69%  { color: transparent; text-shadow: none; }
-  81%  { color: #FAD500; text-shadow: 0 0 16px rgba(250,213,0,.6); }
-  100% { color: #FAD500; text-shadow: 0 0 10px rgba(250,213,0,.35); }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter {
+  animation: vltLetterIn .42s cubic-bezier(.2,1.25,.4,1) both !important;
 }
-@keyframes vltFlicker2 {
-  0%   { color: transparent; text-shadow: none; }
-  4%   { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  9%   { color: transparent; text-shadow: none; }
-  17%  { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  22%  { color: transparent; text-shadow: none; }
-  35%  { color: #FAD500; text-shadow: 0 0 24px rgba(250,213,0,.8); }
-  40%  { color: transparent; text-shadow: none; }
-  55%  { color: #FAD500; text-shadow: 0 0 20px rgba(250,213,0,.7); }
-  59%  { color: transparent; text-shadow: none; }
-  74%  { color: #FAD500; text-shadow: 0 0 16px rgba(250,213,0,.6); }
-  100% { color: #FAD500; text-shadow: 0 0 10px rgba(250,213,0,.35); }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter {
+  animation: vltLetterOut .26s cubic-bezier(.5,0,.75,0) both !important;
 }
-@keyframes vltFlicker3 {
-  0%   { color: transparent; text-shadow: none; }
-  11%  { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  16%  { color: transparent; text-shadow: none; }
-  30%  { color: #FAD500; text-shadow: 0 0 28px rgba(250,213,0,.9); }
-  35%  { color: transparent; text-shadow: none; }
-  51%  { color: #FAD500; text-shadow: 0 0 24px rgba(250,213,0,.8); }
-  56%  { color: transparent; text-shadow: none; }
-  71%  { color: #FAD500; text-shadow: 0 0 20px rgba(250,213,0,.7); }
-  75%  { color: transparent; text-shadow: none; }
-  87%  { color: #FAD500; text-shadow: 0 0 16px rgba(250,213,0,.6); }
-  100% { color: #FAD500; text-shadow: 0 0 10px rgba(250,213,0,.35); }
-}
+@keyframes vltLetterIn  { from { transform: translateY(-120%) skewX(-14deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes vltLetterOut { from { transform: none; opacity: 1; } to { transform: translateY(120%) skewX(14deg); opacity: 0; } }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(1) { animation-delay: .62s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(2) { animation-delay: .67s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(3) { animation-delay: .72s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(4) { animation-delay: .77s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(5) { animation-delay: .82s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(6) { animation-delay: .87s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(7) { animation-delay: .92s !important; }
+[data-theme="vitality"] #replay-wipe.rw-active .vlt-letter:nth-child(8) { animation-delay: .97s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(2) { animation-delay: .03s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(3) { animation-delay: .06s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(4) { animation-delay: .09s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(5) { animation-delay: .12s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(6) { animation-delay: .15s !important; }
+[data-theme="vitality"] #replay-wipe.rw-fadeout .vlt-letter:nth-child(n+7) { animation-delay: .18s !important; }
 
 /* ══════════════════════════════════════════════════════════
-   WIN SCREEN — VITALITY
+   WIN SCREEN
 ══════════════════════════════════════════════════════════ */
-[data-theme="vitality"] #win-screen    { background: #04060c; }
-[data-theme="vitality"] #win-bar-top,
-[data-theme="vitality"] #win-bar-bot   { height: 4px; }
-
+[data-theme="vitality"] #win-screen {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%2300AAFE' d='M0 1L10 7.5L0 14ZM14 -6.5L24 0L14 6.5ZM14 8.5L24 15L14 21.5Z'/%3E%3C/svg%3E") left top / 20px 14px repeat-y, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%23FEFF02' d='M28 1L18 7.5L28 14ZM14 -6.5L4 0L14 6.5ZM14 8.5L4 15L14 21.5Z'/%3E%3C/svg%3E") right top / 20px 14px repeat-y, #161618;
+}
 [data-theme="vitality"] #win-label {
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 12px; color: rgba(255,255,255,.4);
-  text-transform: uppercase; margin-bottom: 8px;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 12px; color: rgba(255,255,255,.5); margin-bottom: 8px;
 }
-[data-theme="vitality"] #win-logo-wrap {
-  width: 180px; height: 180px;
-  border-radius: 0;
-  filter: drop-shadow(0 0 40px currentColor);
-}
-[data-theme="vitality"] #win-logo-letter {
-  font-style: italic; font-size: 110px;
-}
+[data-theme="vitality"] #win-logo-wrap { width: 180px; height: 180px; border-radius: 0; filter: drop-shadow(0 0 40px currentColor); }
+[data-theme="vitality"] #win-logo-letter { font-style: italic; font-size: 110px; font-weight: 700; }
 [data-theme="vitality"] #win-team-name {
-  font-style: italic; font-size: 90px; font-weight: 900;
-  letter-spacing: 6px; text-transform: uppercase; line-height: 1;
-  /* couleur injectée par JS */
+  font-style: italic; font-size: 96px; font-weight: 700;
+  letter-spacing: 4px; line-height: 1;
 }
 [data-theme="vitality"] #win-subtitle {
-  font-size: 13px; letter-spacing: 9px; font-weight: 700;
-  color: rgba(255,255,255,.35); text-transform: uppercase;
-  margin-top: 8px;
+  font-size: 16px; letter-spacing: 9px; font-weight: 700;
+  color: rgba(255,255,255,.45); margin-top: 8px;
 }
 [data-theme="vitality"] #win-series-score {
-  font-size: 44px; font-weight: 900; letter-spacing: 12px;
-  color: rgba(255,255,255,.65); margin-top: 6px;
+  padding: 2px 30px; margin-top: 6px;
+  background: #fff; color: var(--vlt-ink);
+  font-size: 46px; font-weight: 700; letter-spacing: 10px;
+  clip-path: polygon(18px 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
 }
 
 /* ══════════════════════════════════════════════════════════
-   END SCREEN — VITALITY
+   END SCREEN
 ══════════════════════════════════════════════════════════ */
-[data-theme="vitality"] #end-screen   { background: #060910; }
+[data-theme="vitality"] #end-screen { background: #18181a; }
+[data-theme="vitality"] #end-hdr    { height: 104px; }
+[data-theme="vitality"] .end-side { background: var(--vlt-dark); border: none !important; }
+[data-theme="vitality"] .end-side.blue   { box-shadow: inset 0 5px 0 var(--blue); }
+[data-theme="vitality"] .end-side.orange { box-shadow: inset 0 5px 0 var(--orange); }
+[data-theme="vitality"] .end-side.blue.winner   { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%2300AAFE' d='M0 1L10 7.5L0 14ZM14 -6.5L24 0L14 6.5ZM14 8.5L24 15L14 21.5Z'/%3E%3C/svg%3E") left top / 20px 14px repeat-y, var(--vlt-dark); animation: none; }
+[data-theme="vitality"] .end-side.orange.winner { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='15' viewBox='0 0 28 15'%3E%3Cpath fill='%23FEFF02' d='M28 1L18 7.5L28 14ZM14 -6.5L4 0L14 6.5ZM14 8.5L4 15L14 21.5Z'/%3E%3C/svg%3E") right top / 20px 14px repeat-y, var(--vlt-dark); animation: none; }
+[data-theme="vitality"] .end-logo-sq { border-radius: 0; background: #26262b !important; border: none !important; opacity: 1 !important; }
+[data-theme="vitality"] .end-logo-letter { font-style: italic; font-weight: 700; }
+[data-theme="vitality"] .end-side.blue   .end-logo-letter { color: var(--blue); }
+[data-theme="vitality"] .end-side.orange .end-logo-letter { color: var(--orange); }
+[data-theme="vitality"] .end-side-result { letter-spacing: 4px; font-size: 14px; font-weight: 700; color: rgba(255,255,255,.4); }
+[data-theme="vitality"] .end-side.blue.winner   .end-side-result { color: var(--blue); }
+[data-theme="vitality"] .end-side.orange.winner .end-side-result { color: var(--orange); }
+[data-theme="vitality"] .end-side-name { font-size: 40px; font-weight: 700; letter-spacing: 1px; }
 
-/* ── Header ── */
-[data-theme="vitality"] #end-hdr      { height: 100px; }
+[data-theme="vitality"] #end-mid { background: #fff; border: none; }
+[data-theme="vitality"] .end-sc-box { border-radius: 0; font-weight: 700; color: var(--vlt-ink); font-size: 46px; }
+[data-theme="vitality"] .end-sc-box.blue   { background: var(--blue); }
+[data-theme="vitality"] .end-sc-box.orange { background: var(--orange); }
+[data-theme="vitality"] .end-vs-sep  { color: rgba(30,30,30,.4); font-size: 13px; font-weight: 700; letter-spacing: 2px; }
+[data-theme="vitality"] .end-ser-row { color: var(--vlt-ink); font-weight: 700; font-size: 20px; }
+[data-theme="vitality"] .end-bo-tag  { background: var(--vlt-ink); color: #fff; border-radius: 0; font-weight: 700; letter-spacing: 1px; }
 
-[data-theme="vitality"] .end-side.blue {
-  background: rgba(26,172,230,.07);
-  border-left:  4px solid #1AACE6;
-  border-top: none;
-}
-[data-theme="vitality"] .end-side.orange {
-  background: rgba(250,213,0,.07);
-  border-right: 4px solid #FAD500;
-  border-top: none;
-}
-[data-theme="vitality"] .end-side.blue.winner {
-  background: rgba(26,172,230,.15);
-}
-[data-theme="vitality"] .end-side.orange.winner {
-  background: rgba(250,213,0,.15);
-}
+[data-theme="vitality"] #end-table   { background: var(--vlt-ink); border: none; }
+[data-theme="vitality"] #end-lbl     { background: var(--vlt-dark); }
+[data-theme="vitality"] .end-lbl-text { color: rgba(255,255,255,.55); font-size: 13px; font-weight: 600; letter-spacing: 2px; }
+[data-theme="vitality"] .end-mini-b  { background: var(--blue); }
+[data-theme="vitality"] .end-mini-o  { background: var(--orange); }
+[data-theme="vitality"] .end-p-top { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: .5px; }
+[data-theme="vitality"] #end-bl .end-p-top { background: rgba(0,170,254,.12); border-top-color: var(--blue); }
+[data-theme="vitality"] #end-or .end-p-top { background: rgba(254,255,2,.08); border-top-color: var(--orange); }
+[data-theme="vitality"] .end-p-top.mvp::after { background: var(--orange); color: var(--vlt-ink); border-radius: 0; }
+[data-theme="vitality"] .end-p-cell { font-weight: 700; font-size: 32px; border-bottom-color: rgba(255,255,255,.05); }
+[data-theme="vitality"] #end-bl .end-p-cell { color: var(--blue); }
+[data-theme="vitality"] #end-or .end-p-cell { color: var(--orange); }
 
-[data-theme="vitality"] .end-logo-sq {
-  border-radius: 0;
-}
-[data-theme="vitality"] .end-side.blue   .end-logo-sq { border-color: #1AACE6; }
-[data-theme="vitality"] .end-side.orange .end-logo-sq { border-color: #FAD500; }
-[data-theme="vitality"] .end-logo-letter { font-style: italic; }
-[data-theme="vitality"] .end-side.blue   .end-logo-letter { color: #1AACE6; }
-[data-theme="vitality"] .end-side.orange .end-logo-letter { color: #FAD500; }
+[data-theme="vitality"] #end-bars     { background: var(--vlt-dark); }
+[data-theme="vitality"] .end-bl-lbl   { color: rgba(255,255,255,.5); font-size: 13px; font-weight: 600; letter-spacing: 2px; }
+[data-theme="vitality"] .end-bv       { font-weight: 700; font-size: 24px; }
+[data-theme="vitality"] .end-bv.r     { color: var(--blue); }
+[data-theme="vitality"] .end-bv.l     { color: var(--orange); }
+[data-theme="vitality"] .end-bar-track { border-radius: 0; background: #504950; }
+[data-theme="vitality"] .end-bf.b     { background: var(--blue); }
+[data-theme="vitality"] .end-bf.o     { background: var(--orange); }
 
-[data-theme="vitality"] .end-side-result {
-  letter-spacing: 4px; font-size: 11px; font-weight: 700;
-}
-[data-theme="vitality"] .end-side.blue   .end-side-result { color: rgba(26,172,230,.6); }
-[data-theme="vitality"] .end-side.orange .end-side-result { color: rgba(250,213,0,.6); }
-[data-theme="vitality"] .end-side.blue.winner   .end-side-result { color: #1AACE6; }
-[data-theme="vitality"] .end-side.orange.winner .end-side-result { color: #FAD500; }
-
-[data-theme="vitality"] .end-side-name {
-  font-size: 34px; font-weight: 900; font-style: italic; letter-spacing: 2px;
-}
-
-/* ── Centre score ── */
-[data-theme="vitality"] #end-mid {
-  background: #08080e;
-  border-color: rgba(255,255,255,.05);
-}
-[data-theme="vitality"] .end-sc-box {
-  border-radius: 0;
-  font-style: italic;
-}
-[data-theme="vitality"] .end-sc-box.blue   { background: #1AACE6; color: #111; }
-[data-theme="vitality"] .end-sc-box.orange { background: #FAD500; color: #111; }
-[data-theme="vitality"] .end-vs-sep {
-  color: rgba(255,255,255,.22); font-size: 11px; letter-spacing: 2px;
-}
-[data-theme="vitality"] .end-ser-row {
-  font-style: italic; letter-spacing: 2px; color: rgba(255,255,255,.5);
-}
-[data-theme="vitality"] .end-bo-tag {
-  background: rgba(255,255,255,.06); color: rgba(255,255,255,.35);
-  border-radius: 0; letter-spacing: 1px;
-}
-
-/* ── Tableau stats ── */
-[data-theme="vitality"] #end-table   { background: #07090f; }
-[data-theme="vitality"] #end-lbl     { background: rgba(0,0,0,.25); }
-[data-theme="vitality"] .end-lbl-text {
-  color: rgba(255,255,255,.32); letter-spacing: 3px;
-}
-[data-theme="vitality"] .end-mini-b  { background: #1AACE6; }
-[data-theme="vitality"] .end-mini-o  { background: #FAD500; }
-
-[data-theme="vitality"] #end-bl .end-p-top {
-  background: rgba(26,172,230,.1);
-  border-top-color: #1AACE6;
-  font-style: italic; letter-spacing: 1px;
-}
-[data-theme="vitality"] #end-or .end-p-top {
-  background: rgba(250,213,0,.1);
-  border-top-color: #FAD500;
-  font-style: italic; letter-spacing: 1px;
-}
-[data-theme="vitality"] .end-p-top.mvp::after {
-  background: #FAD500; color: #111; border-radius: 0;
-}
-[data-theme="vitality"] #end-bl .end-p-cell { color: #50CCFF; }
-[data-theme="vitality"] #end-or .end-p-cell { color: #FFE840; }
-[data-theme="vitality"] .end-p-cell {
-  border-bottom-color: rgba(255,255,255,.04);
-  font-weight: 900;
-}
-
-/* ── Barres de comparaison ── */
-[data-theme="vitality"] #end-bars     { background: rgba(0,0,0,.2); }
-[data-theme="vitality"] .end-bl-lbl   { color: rgba(255,255,255,.32); letter-spacing: 2px; }
-[data-theme="vitality"] .end-bv.r     { color: #1AACE6; }
-[data-theme="vitality"] .end-bv.l     { color: #FAD500; }
-[data-theme="vitality"] .end-bf.b     { background: linear-gradient(90deg, #1AACE6, #50CCFF); }
-[data-theme="vitality"] .end-bf.o     { background: linear-gradient(90deg, #FAD500, #FFE840); }
-
-/* ══════════════════════════════════════════════════════════
-   BOOST METER
-══════════════════════════════════════════════════════════ */
-[data-theme="vitality"] #boost-meter {
-  width: 170px; height: 170px; bottom: 50px;
-  background: rgba(6,9,18,.88); border-radius: 50%;
-}
-/* rotate(90deg) : début à 6h (bas-centre), arc horaire, fin à 3h (droite) à 100% */
-[data-theme="vitality"] #boost-svg  { transform: rotate(90deg); }
-/* Track 3/4 cercle : dots sur 270°, gap propre sur le quart inférieur-droit */
-/* 19 cycles "3 8" (=209px) + dernier dash 3 + gap 4.77 + gap final 72.26 = circ 289 */
-[data-theme="vitality"] #boost-track {
-  fill: none; stroke: rgba(250,213,0,.6); stroke-width: 6;
-  stroke-dasharray: 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 8 3 4.77 0 72.26;
-}
-[data-theme="vitality"] #boost-arc  { stroke-width: 8; stroke-linecap: butt; }
-[data-theme="vitality"] #boost-big  { font-size: 56px; font-style: italic; font-weight: 900; }
-[data-theme="vitality"] #speed-val  { display: none; }
-[data-theme="vitality"] #speed-unit { display: none; }
+/* Caméras replay */
+[data-theme="vitality"] .rc-slot { box-shadow: inset 0 0 0 2px rgba(255,255,255,.08); }
