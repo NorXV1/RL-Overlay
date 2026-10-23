@@ -75,5 +75,12 @@
       "Amélioration : refonte complète du thème Vitality (scoreboard, sidebars, stat bar, boost meter, barre replay, nouvelle transition REPLAY / LIVE)",
       "Correction : l'arc du boost meter gardait la couleur de l'ancien thème après un changement de thème"
     ]
+  },
+  "1.7.8": {
+    "date": "2026-10-23",
+    "notes": [
+      "Amélioration : refonte complète du thème RLCS 2026, fidèle à l'overlay officiel (scoreboard, noms d'équipe animés, sidebars, stat bar, boost meter, barre replay, bannière de démolition) + nouvelle transition REPLAY / LIVE",
+      "Correction : thème RLCS 2026 — scoreboard décalé ou cassé quand les noms d'équipe s'affichaient, et ouverture des noms non animée"
+    ]
   }
 }

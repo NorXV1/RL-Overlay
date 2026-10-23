@@ -1,4 +1,16 @@
-/* ── RLCS 2026 — Police personnalisée ── */
+/* ══════════════════════════════════════════════════════════
+   RLCS 2026 — reprise de l'overlay officiel (Boston Major)
+   Cyan #21AFD7 · Orange #FD5C00 · filet violet → blanc → citron
+   Police : Bourgeois Bold Italic (fournie avec le thème)
+
+   Comportements propres au thème dans global.html (themeIs('rlcs2026')) :
+   boost en 3/4 de cercle, chiffre du boost couleur d'équipe, chrono sans zéro
+   devant, scoreboard « étendu » (noms d'équipe) pendant les buts et replays.
+   L'affichage étendu ne dépend QUE de la classe .expanded du scoreboard : les
+   largeurs / opacités / display posés en ligne par l'app sont neutralisés, ce
+   qui évite un scoreboard resté bloqué en mode étendu.
+══════════════════════════════════════════════════════════ */
+
 @font-face {
   font-family: 'Bourgeois';
   src: url('Bourgeois-BoldItalic.ttf') format('truetype');
@@ -6,517 +18,749 @@
   font-style: italic;
 }
 
-/* ── RLCS 2026 — Variables ── */
+/* Centrage vertical : Bourgeois dessine ses capitales et chiffres ~10 % de la taille plus bas
+   que le centre de sa boîte de ligne. Les textes centrés reçoivent donc padding-bottom: .2em
+   (ou une hauteur de ligne équivalente), ce qui remonte l'encre de 0,1 em pile au centre. */
+
+/* Ouverture des noms d'équipe : 0 → 1 (anime largeur mini, largeur maxi et opacité ensemble) */
+@property --rc-k { syntax: '<number>'; inherits: false; initial-value: 0; }
+
 [data-theme="rlcs2026"] {
-  --blue:        #1FAFDA;
-  --blue-light:  #23AEDE;
-  --orange:      #FD5B00;
-  --orange-light:#FE5901;
-  --panel-bg:    rgba(10,10,10,.95);
-  --panel-text:  #ffffff;
-  --dot-bg:      rgba(193,193,194,.2);
-  --center-bg:   #fefefe;
-  --row-bg:      #181A1A;
-  --stat-vals-bg:#0d0d0d;
-  --replay-bg:   #111212;
-  --replay-text: #ffffff;
-  --end-bg:      #080c0c;
-  --end-mid-bg:  #040808;
-  --end-tbl-bg:  #060a0a;
+  /* les "-light" = même teinte : l'arc du boost ne change pas de couleur à 95 % et plus */
+  --blue:         #21AFD7;
+  --blue-light:   #21AFD7;
+  --orange:       #FD5C00;
+  --orange-light: #FD5C00;
+  --rc-dark:      #1b1b1c;
+  --rc-bar:       #242323;
+  --rc-logo-b:    #031311;
+  --rc-logo-o:    #160A00;
+  --rc-brand:     linear-gradient(90deg, #7E12CF 0%, #B98AE6 32%, #F3EAF5 50%, #E9F7A8 66%, #D1FD00 100%);
+  --rc-font:      'Bourgeois', 'Barlow Condensed', sans-serif;
 
-  /* ── Replay bar ── */
-  --replay-bar-h:       72px;
-  --replay-label-size:  26px;
-  --replay-scorer-size: 24px;
-  --replay-spd-size:    28px;
-
-  /* ── Notif GOAL ── */
-  --goal-bg:        #0d0d0d;
-  --goal-word-size: 76px;
-  --goal-sub-size:  18px;
-
-  /* ── Wipe LIVE / REPLAY ── */
-  --wipe-bg:          #040808;
-  --wipe-box-bg:      rgba(5,18,18,.92);
-  --wipe-word-size:   140px;
-  --wipe-duration:    2.8s;
-  --wipe-fadein-dur:  .4s;
-  --wipe-fadeout-dur: 1.2s;
-
-  /* ── Win screen ── */
-  --win-bg:        rgba(2,8,8,.97);
-  --win-bar-h:     3px;
-  --win-logo-sz:   140px;
-  --win-team-size: 72px;
+  --panel-bg:     #1b1b1c;
+  --panel-text:   #ffffff;
+  --center-bg:    transparent;
+  --row-bg:       rgba(27,27,28,.94);
+  --stat-vals-bg: #171b18;
+  --replay-bg:    transparent;
+  --replay-text:  #ffffff;
+  --end-bg:       #0d0d0f;
+  --end-mid-bg:   #0d0d0f;
+  --end-tbl-bg:   #0d0d0f;
+  --goal-bg:      #0d0d0d;
+  --wipe-bg:      transparent;
+  --win-bg:       rgba(8,8,10,.97);
+  --win-bar-h:    4px;
+  --win-logo-sz:  140px;
+  --win-team-size: 76px;
 }
-[data-theme="rlcs2026"] .team-panel.blue   { background: rgba(1,17,18,.97); }
-[data-theme="rlcs2026"] .team-panel.orange { background: rgba(23,8,0,.97); }
-[data-theme="rlcs2026"] .team-logo-outer.blue   { background: rgba(1,17,18,1); }
-[data-theme="rlcs2026"] .team-logo-outer.orange { background: rgba(23,8,0,1); }
-[data-theme="rlcs2026"] .score-box    { font-style: italic; font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
-[data-theme="rlcs2026"] #timer        { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
-[data-theme="rlcs2026"] .team-name    { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
-[data-theme="rlcs2026"] .tlo-name     { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
-[data-theme="rlcs2026"] #league-label { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; }
-[data-theme="rlcs2026"] #center-block { border-top: none; }
-[data-theme="rlcs2026"] #timer-wrap { border-left-color: rgba(0,0,0,.1); border-right-color: rgba(0,0,0,.1); }
-[data-theme="rlcs2026"] #timer { color: #0a0a0a; font-style: italic; }
-[data-theme="rlcs2026"] #timer.warn { color: #cc1111; }
-[data-theme="rlcs2026"] #timer.ot   { color: #b86000; }
-[data-theme="rlcs2026"] #timer-sub  { color: rgba(0,0,0,.38); }
-[data-theme="rlcs2026"] .sdot { outline: 1px solid rgba(193,193,194,.55); }
-[data-theme="rlcs2026"] #scoreboard { position: relative; }
-[data-theme="rlcs2026"] #scoreboard::after { content: none; }
-[data-theme="rlcs2026"] .player-row.blue   .pr-boost-fill { background: linear-gradient(90deg, #258cc7, #23AEDE); }
-[data-theme="rlcs2026"] .player-row.orange .pr-boost-fill { background: linear-gradient(90deg, #ee5613, #FD5B00); }
-[data-theme="rlcs2026"] #stat-team-tag { border-left: 5px solid var(--blue); }
 
-/* ── Layout scoreboard ── */
-[data-theme="rlcs2026"] #top-bar { position: absolute; align-items: stretch; transition: opacity .6s ease, width .45s ease; }
+/* ══════════════════════════════════════════════════════════
+   TOP BAR — barre de ligue + scoreboard + rangée des manches
+   Cotes relevées (px) : logo 73 | score 75 | chrono 143 | score 75 | logo 73
+   ligue 31 (dont filet 4) · scores 75 · manches 20 · noms étendus ≥ 245
+══════════════════════════════════════════════════════════ */
+/* largeur = contenu, centrée sans transform (la largeur posée par l'app est ignorée) */
+[data-theme="rlcs2026"] #top-bar {
+  top: 0; left: 0 !important; right: 0;
+  width: max-content !important; margin: 0 auto;
+  transform: none !important;
+  align-items: center;
+}
 [data-theme="rlcs2026"] #top-bar::after { content: none; }
+
+/* Barre de ligue : s'étire sur toute la largeur du scoreboard (sans l'élargir elle-même) */
 [data-theme="rlcs2026"] #league-label {
-  background: #1A1A1A; border-radius: 0; text-align: center;
-  font-style: italic; color: #B8BBB8; font-size: 11px;
-  padding: 4px 22px; letter-spacing: 2px;
+  position: relative; align-self: stretch;
+  width: 0; min-width: 100%; box-sizing: border-box;
+  height: 31px; padding: 4px 16px .2em; margin: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--rc-brand) top / 100% 4px no-repeat, var(--rc-bar);
+  border-radius: 0;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 20px; letter-spacing: 3px; line-height: 1; color: #cfcfcf;
+  text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%;
 }
-[data-theme="rlcs2026"] #scoreboard { height: 74px; gap: 0; }
-[data-theme="rlcs2026"] #score-main { border-radius: 0; overflow: visible; }
-[data-theme="rlcs2026"] .team-logo-outer {
-  width: 74px; height: 74px; border-radius: 0; border-top: none !important;
+/* Scoreboard en grille : les deux colonnes de noms (1fr) ont toujours la même largeur,
+   donc le bloc central reste centré sous la barre de ligue */
+[data-theme="rlcs2026"] #scoreboard {
+  position: relative;
+  display: grid; grid-template-columns: 1fr auto auto auto 1fr;
+  height: 75px; gap: 0;
+  filter: none;
 }
-[data-theme="rlcs2026"] .team-logo-outer.blue   { border-bottom: 3px solid #1FAFDA; }
-[data-theme="rlcs2026"] .team-logo-outer.orange { border-bottom: 3px solid #FD5B00; }
+[data-theme="rlcs2026"] #scoreboard::after { content: none; }
+[data-theme="rlcs2026"] #tlo-name-blue               { grid-column: 1; }
+[data-theme="rlcs2026"] .team-logo-outer.blue        { grid-column: 2; }
+[data-theme="rlcs2026"] #score-main                  { grid-column: 3; }
+[data-theme="rlcs2026"] .team-logo-outer.orange      { grid-column: 4; }
+[data-theme="rlcs2026"] #tlo-name-orange             { grid-column: 5; }
 
-/* Noms d'équipe hors flux flex */
+/* Noms d'équipe (mode étendu) : blocs plein couleur, texte blanc */
 [data-theme="rlcs2026"] .tlo-name {
-  position: absolute; top: 0; height: 74px;
-  display: none; align-items: center;
-  overflow: hidden; width: 0; opacity: 0;
-  padding: 0 22px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 21px; font-weight: 800; font-style: italic;
-  letter-spacing: 2px; white-space: nowrap; text-transform: uppercase;
-  color: #fff;
-  transition: width .45s ease, opacity .25s ease;
+  --rc-k: 0;
+  position: static;
+  display: block !important; text-align: center; line-height: 68px; text-overflow: ellipsis;
+  width: auto !important; height: 75px; box-sizing: border-box;
+  min-width: calc(var(--rc-k) * 245px); max-width: calc(var(--rc-k) * 440px);
+  opacity: calc(var(--rc-k) * 1.6) !important;
+  padding: 0 calc(var(--rc-k) * 24px);
+  overflow: hidden;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 35px; letter-spacing: 1px;
+  text-transform: uppercase; white-space: nowrap; color: #fff;
+  border: none;
+  /* !important : à l'ouverture, l'app pose transition:none en ligne pendant deux images,
+     pile au moment où la classe .expanded arrive — sans ça l'ouverture serait instantanée */
+  transition: --rc-k .5s cubic-bezier(.4,0,.2,1) !important;
 }
-[data-theme="rlcs2026"] #tlo-name-blue   { right: 100%; background: rgba(1,17,18,1);  border-bottom: 3px solid #1FAFDA; }
-[data-theme="rlcs2026"] #tlo-name-orange { left:  100%; background: rgba(23,8,0,1);   border-bottom: 3px solid #FD5B00; }
-[data-theme="rlcs2026"] .team-logo-img { width: 54px; height: 54px; }
-[data-theme="rlcs2026"] .team-logo-letter { font-size: 24px; }
-[data-theme="rlcs2026"] .team-win-count { font-size: 14px; bottom: 2px; }
+[data-theme="rlcs2026"] #scoreboard.expanded .tlo-name { --rc-k: 1; }
+[data-theme="rlcs2026"] #tlo-name-blue   { background: var(--blue); }
+[data-theme="rlcs2026"] #tlo-name-orange { background: var(--orange); }
 
-/* Panneaux équipe cachés */
-[data-theme="rlcs2026"] .team-panel,
-[data-theme="rlcs2026"] #scoreboard.expanded .team-panel {
+/* Logos : blocs sombres teintés, prolongés par l'abréviation dans la rangée du dessous */
+[data-theme="rlcs2026"] .team-logo-outer {
+  width: 73px; height: 75px;
+  border-radius: 0; border: none !important;
+}
+[data-theme="rlcs2026"] .team-logo-outer.blue   { background: var(--rc-logo-b) !important; }
+[data-theme="rlcs2026"] .team-logo-outer.orange { background: var(--rc-logo-o) !important; }
+[data-theme="rlcs2026"] .team-logo-img    { width: 52px; height: 52px; }
+[data-theme="rlcs2026"] .team-logo-letter { font-family: var(--rc-font); font-style: italic; font-size: 34px; line-height: 1; padding-bottom: .2em; }
+[data-theme="rlcs2026"] .team-logo-outer.blue   .team-logo-letter { color: var(--blue); }
+[data-theme="rlcs2026"] .team-logo-outer.orange .team-logo-letter { color: var(--orange); }
+[data-theme="rlcs2026"] .team-win-count { display: none; }
+
+/* Bloc central : score | chrono | score */
+[data-theme="rlcs2026"] #score-main { border-radius: 0; overflow: visible; }
+[data-theme="rlcs2026"] .team-panel {
   overflow: hidden; max-width: 0 !important; min-width: 0 !important;
   padding: 0 !important; border-top: none !important;
 }
-[data-theme="rlcs2026"] .team-name { font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
-[data-theme="rlcs2026"] .sdot { width: 20px; height: 8px; }
+[data-theme="rlcs2026"] #center-block { background: transparent; border-top: none; }
 [data-theme="rlcs2026"] .score-box {
-  width: 67px; height: 74px;
-  font-size: 52px; font-style: italic;
-  display: flex; align-items: center; justify-content: center;
-  line-height: 1;
-  padding-bottom: 10px;
+  width: 75px; height: 75px;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 80px; line-height: 1; color: #fff;
+  padding: 0 0 .2em;
+  border-radius: 0;
 }
-[data-theme="rlcs2026"] #center-block { border-top: none; }
-[data-theme="rlcs2026"] #timer-wrap { width: 155px; min-width: 155px; max-width: 155px; padding: 0 10px; overflow: hidden; }
-[data-theme="rlcs2026"] #timer { font-size: 38px; letter-spacing: 2px; }
-[data-theme="rlcs2026"] #timer-sub { font-size: 10px; letter-spacing: 3px; }
+[data-theme="rlcs2026"] .score-box.blue   { background: var(--blue); }
+[data-theme="rlcs2026"] .score-box.orange { background: var(--orange); }
+[data-theme="rlcs2026"] .score-box.bump   { animation: rcScoreFlash .6s ease-out; }
+@keyframes rcScoreFlash {
+  0%   { filter: brightness(2.2); }
+  100% { filter: none; }
+}
+[data-theme="rlcs2026"] #timer-wrap {
+  width: 143px; min-width: 143px; max-width: 143px; flex: 0 0 143px;
+  padding: 0; background: #fefefe; border: none;
+}
+[data-theme="rlcs2026"] #timer {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 60px; letter-spacing: 1px; line-height: 1; color: #0a0a0a;
+  padding-bottom: .2em;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="rlcs2026"] #timer.warn { color: #d41515; animation: none; }
+[data-theme="rlcs2026"] #timer.ot   { color: #0a0a0a; }
+[data-theme="rlcs2026"] #timer-sub  { display: none; }
 [data-theme="rlcs2026"] .series-dots-small { display: none; }
 
-/* Sidebars */
-[data-theme="rlcs2026"] #left-panel    { top: 115px; left: 0; gap: 6px; }
-[data-theme="rlcs2026"] #sidebar-blue  { width: 307px; }
-[data-theme="rlcs2026"] #sidebar-orange { top: 115px; right: 0; width: 307px; }
-[data-theme="rlcs2026"] .row-wrap    { margin-bottom: 6px; }
-[data-theme="rlcs2026"] #sidebar-blue   .player-row { border-radius: 0 6px 6px 0; width: 100%; }
-[data-theme="rlcs2026"] #sidebar-orange .player-row { border-radius: 6px 0 0 6px; width: 100%; }
-[data-theme="rlcs2026"] .player-row { height: 40px; background: #181A1A !important; }
-[data-theme="rlcs2026"] .pr-info    { height: 30px; }
-[data-theme="rlcs2026"] .pr-name    { font-size: 16px; letter-spacing: .5px; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-name { padding-left: 16px; padding-right: 8px; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-name { text-align: right; padding-right: 16px; padding-left: 8px; }
-[data-theme="rlcs2026"] .pr-val     { font-size: 18px; color: #fff; padding: 0 9px; min-width: 36px; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-val  { padding-right: 14px; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-val  { padding-left: 14px; }
-[data-theme="rlcs2026"] .pr-accent  { width: 4px; }
-[data-theme="rlcs2026"] .pr-boost-bar  { height: 6px; background: #000; width: 100%; }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-boost-bar { margin: 0; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-boost-bar { margin: 0; }
-
-/* Stat bar */
-[data-theme="rlcs2026"] #stat-bar {
-  height: 44px; border-radius: 0; width: 980px;
-  filter: drop-shadow(0 -4px 12px rgba(0,0,0,.7));
-}
-/* Caméra collée au sommet de la stat bar (44px au lieu des 76px par défaut) */
-[data-theme="rlcs2026"] #player-video-box { bottom: 44px; }
-[data-theme="rlcs2026"] #stat-team-tag {
-  min-width: 200px; padding: 0 18px;
-  clip-path: none; border: none;
-  transition: background .2s;
-}
-[data-theme="rlcs2026"] #stat-arrows { display: none; }
-[data-theme="rlcs2026"] #stat-player-name { font-size: 22px; letter-spacing: 2px; font-weight: 800; font-style: italic; }
-[data-theme="rlcs2026"] #stat-values { background: #0d0d0d; }
-[data-theme="rlcs2026"] .stat-item { flex-direction: row; align-items: center; justify-content: center; gap: 7px; border-right: 1px solid rgba(255,255,255,.1); }
-[data-theme="rlcs2026"] .stat-val   { font-size: 26px; font-style: italic; font-weight: 900; min-width: auto; }
-[data-theme="rlcs2026"] .stat-lbl   { font-size: 11px; letter-spacing: 1.5px; font-style: italic; color: rgba(255,255,255,.55); padding-top: 0; }
-
-/* Joueur specté */
-[data-theme="rlcs2026"] .player-row.spectating.blue   { background: #1FAFDA !important; }
-[data-theme="rlcs2026"] .player-row.spectating.orange { background: #FD5B00 !important; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-name { color: #fff; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-val  { color: #fff; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-boost-bar  { background: rgba(0,0,0,.3) !important; }
-[data-theme="rlcs2026"] .player-row.spectating .pr-boost-fill { background: rgba(255,255,255,.65) !important; }
-
-/* Sub-barre série */
+/* Rangée du dessous : abréviations sous les logos, manches au centre (le 'mid' = seuil de victoire) */
 [data-theme="rlcs2026"] #score-sub-bar {
-  display: flex; align-items: center; justify-content: center;
-  background: #111; height: 26px;
+  display: flex; align-items: stretch;
+  width: 439px; height: 20px; align-self: center;
+  background: #17191d; border: none;
 }
 [data-theme="rlcs2026"] #sub-abbr-blue,
 [data-theme="rlcs2026"] #sub-abbr-orange {
   display: flex; align-items: center; justify-content: center;
-  width: 74px; flex-shrink: 0;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px; font-weight: 800; font-style: italic;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: #fff; white-space: nowrap;
+  width: 73px; flex: 0 0 73px; padding-bottom: .2em;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 17px; letter-spacing: .5px; line-height: 1;
+  text-transform: uppercase; color: #fff; white-space: nowrap; overflow: hidden;
 }
-[data-theme="rlcs2026"] #sub-ser-track { flex: 1; justify-content: center; }
+[data-theme="rlcs2026"] #sub-abbr-blue   { background: var(--rc-logo-b); }
+[data-theme="rlcs2026"] #sub-abbr-orange { background: var(--rc-logo-o); }
 [data-theme="rlcs2026"] #sub-ser-track {
-  display: flex; align-items: center; gap: 5px;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 [data-theme="rlcs2026"] .sub-sdot {
-  width: 26px; height: 10px; border-radius: 2px;
-  background: rgba(193,193,194,.12); outline: 1px solid rgba(193,193,194,.4);
+  width: 33px; height: 9px; border-radius: 0;
+  background: #50524f; outline: none; box-shadow: none;
 }
-[data-theme="rlcs2026"] .sub-sdot.won.blue   { background: #1FAFDA; outline: none; }
-[data-theme="rlcs2026"] .sub-sdot.won.orange { background: #FD5B00; outline: none; }
-[data-theme="rlcs2026"] .sub-sdot.mid { outline: 1px solid rgba(255,255,255,.6) !important; }
+[data-theme="rlcs2026"] .sub-sdot.mid { background: #666865; box-shadow: 0 0 0 2px #e9e9e9; outline: none !important; }
+[data-theme="rlcs2026"] .sub-sdot.won.blue   { background: var(--blue); }
+[data-theme="rlcs2026"] .sub-sdot.won.orange { background: var(--orange); }
 
-/* Events — icônes statfeed */
+/* ══════════════════════════════════════════════════════════
+   SIDEBARS
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #left-panel     { top: 16px; left: 0; gap: 4px; }
+[data-theme="rlcs2026"] #sidebar-orange { top: 16px; right: 0; }
+[data-theme="rlcs2026"] .sidebar        { width: 307px; gap: 0; }
+[data-theme="rlcs2026"] .row-wrap       { margin-bottom: 7.5px; }
+
+[data-theme="rlcs2026"] #sidebar-blue .player-row,
+[data-theme="rlcs2026"] #sidebar-orange .player-row {
+  height: 38px; border-radius: 0;
+  background: var(--row-bg) !important; box-shadow: none;
+}
+/* La base décale les lignes de 14 px même une fois affichées (sélecteur #id plus fort que
+   .row-wrap.visible) : on les recale au bord de l'écran une fois visibles */
+[data-theme="rlcs2026"] #sidebar-blue   .row-wrap.visible .player-row,
+[data-theme="rlcs2026"] #sidebar-orange .row-wrap.visible .player-row { transform: none; }
+[data-theme="rlcs2026"] .pr-accent { display: none; }
+[data-theme="rlcs2026"] .pr-info   { height: 27px; padding-top: 3px; }
+[data-theme="rlcs2026"] .pr-name,
+[data-theme="rlcs2026"] .pr-val {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 24px; letter-spacing: .5px; line-height: 1; color: #fff;
+}
+[data-theme="rlcs2026"] #sidebar-blue   .pr-name { padding: 0 8px 0 27px; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-val  { padding: 0 17px 0 0; min-width: 44px; text-align: right; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-name { padding: 0 27px 0 8px; text-align: right; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-val  { padding: 0 0 0 17px; min-width: 44px; text-align: left; }
+
+[data-theme="rlcs2026"] .pr-boost-bar { height: 5px; background: #000; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-boost-bar { width: auto; margin: 2px 17px 0 27px; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-boost-bar { width: auto; margin: 2px 27px 0 17px; }
+[data-theme="rlcs2026"] .player-row.blue   .pr-boost-fill { background: var(--blue); }
+[data-theme="rlcs2026"] .player-row.orange .pr-boost-fill { background: var(--orange); }
+[data-theme="rlcs2026"] #sidebar-orange .pr-boost-fill { transform-origin: right center; }
+
+/* Joueur suivi : ligne pleine couleur d'équipe, boost blanc sur piste noire */
+[data-theme="rlcs2026"] #sidebar-blue   .player-row.spectating { background: var(--blue) !important; }
+[data-theme="rlcs2026"] #sidebar-orange .player-row.spectating { background: var(--orange) !important; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-name,
+[data-theme="rlcs2026"] .player-row.spectating .pr-val { color: #fff; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-boost-bar  { background: #000 !important; }
+[data-theme="rlcs2026"] .player-row.spectating .pr-boost-fill { background: #fff !important; }
+
+/* Événements : la ligne se remplit de couleur d'équipe côté terrain, gros pictos blancs.
+   Animation sur max-width (pas de transform) pour que les pictos se fondent dans le
+   dégradé (mix-blend-mode) : le contour prend la couleur d'équipe, comme l'original. */
 [data-theme="rlcs2026"] #sidebar-blue   .pr-icons,
 [data-theme="rlcs2026"] #sidebar-orange .pr-icons {
-  left: 0; right: 0; height: 40px;
-  gap: 2px; padding: 0;
-  overflow: hidden;
+  left: 0; right: 0; height: 38px;
+  gap: 0; padding: 0 6px; overflow: hidden;
+  align-items: center;
 }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-icons {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
-}
-[data-theme="rlcs2026"] #sidebar-orange .pr-icons {
-  flex-direction: row;
-  justify-content: flex-start;
-}
-[data-theme="rlcs2026"] .row-wrap.blue   .pr-icons:not(:empty) {
-  background: linear-gradient(to left, #1FAFDA 0%, #1FAFDA 22%, rgba(31,175,218,0) 88%);
-}
-[data-theme="rlcs2026"] .row-wrap.orange .pr-icons:not(:empty) {
-  background: linear-gradient(to right, #FD5B00 0%, #FD5B00 22%, rgba(253,91,0,0) 88%);
-}
+[data-theme="rlcs2026"] #sidebar-blue   .pr-icons { flex-direction: row-reverse; justify-content: flex-start; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-icons { flex-direction: row;         justify-content: flex-start; }
+[data-theme="rlcs2026"] .row-wrap.blue   .pr-icons:not(:empty) { background: linear-gradient(to left,  var(--blue) 0%, var(--blue) 18%, rgba(33,175,215,.55) 42%, rgba(33,175,215,0) 62%); }
+[data-theme="rlcs2026"] .row-wrap.orange .pr-icons:not(:empty) { background: linear-gradient(to right, var(--orange) 0%, var(--orange) 18%, rgba(253,92,0,.55) 42%, rgba(253,92,0,0) 62%); }
 [data-theme="rlcs2026"] .pr-icon {
-  background: transparent !important;
-  opacity: 1 !important;
-  width: 36px; height: 40px;
+  width: 44px; height: 38px; flex-shrink: 0;
+  background: transparent !important; opacity: 1 !important;
+  overflow: hidden;
+  animation: rcEvt 5s both;
 }
-[data-theme="rlcs2026"] .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="rlcs2026"] #sidebar-blue   .pr-icon { animation: iconSlideFromRight 5s forwards; }
-[data-theme="rlcs2026"] #sidebar-orange .pr-icon { animation: iconSlideFromLeft  5s forwards; }
+[data-theme="rlcs2026"] .pr-icon img {
+  width: 78px; height: 78px; max-width: none; flex-shrink: 0;
+  object-fit: contain; filter: none; mix-blend-mode: screen;
+}
+@keyframes rcEvt {
+  0%   { max-width: 0;    }
+  8%   { max-width: 44px; }
+  92%  { max-width: 44px; }
+  100% { max-width: 0;    }
+}
+/* Bannière démolition sur la ligne de la victime (dimensions du thème TXR) :
+   toute la ligne, [démolisseur] grosse bombe [victime], couleur de l'équipe du démolisseur
+   d'un côté et de la victime de l'autre. Entrée : la bannière se déroule depuis le côté
+   terrain, éclair blanc, la bombe tombe en tournant et rebondit ; sortie en sens inverse. */
+[data-theme="rlcs2026"] .pr-icons[data-pr-demo] { overflow: visible; }
+[data-theme="rlcs2026"] .pr-demo-names {
+  position: absolute; left: 0; top: 0; z-index: 3;
+  width: 100%; height: 38px; box-sizing: border-box;
+  padding: 0 16px .2em; gap: 6px;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 22px; letter-spacing: .5px; line-height: 1; color: #fff;
+}
+/* victime bleue = démolisseur orange (à gauche), et inversement */
+[data-theme="rlcs2026"] .row-wrap.blue   .pr-demo-names { background: linear-gradient(90deg, var(--orange) 0 24%, #141414 50%, var(--blue) 76% 100%) !important; }
+[data-theme="rlcs2026"] .row-wrap.orange .pr-demo-names { background: linear-gradient(90deg, var(--blue) 0 24%, #141414 50%, var(--orange) 76% 100%) !important; }
+[data-theme="rlcs2026"] #sidebar-blue   .pr-demo-names { animation: rcDemoInR 5s both; }
+[data-theme="rlcs2026"] #sidebar-orange .pr-demo-names { animation: rcDemoInL 5s both; }
+@keyframes rcDemoInR {
+  0%   { clip-path: inset(0 0 0 100%); animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+  7%   { clip-path: inset(-30px 0 -30px 0); }
+  93%  { clip-path: inset(-30px 0 -30px 0); animation-timing-function: cubic-bezier(.6,0,.8,.2); }
+  100% { clip-path: inset(-30px 0 -30px 100%); }
+}
+@keyframes rcDemoInL {
+  0%   { clip-path: inset(0 100% 0 0); animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+  7%   { clip-path: inset(-30px 0 -30px 0); }
+  93%  { clip-path: inset(-30px 0 -30px 0); animation-timing-function: cubic-bezier(.6,0,.8,.2); }
+  100% { clip-path: inset(-30px 100% -30px 0); }
+}
+/* éclair blanc à l'impact */
+[data-theme="rlcs2026"] .pr-demo-names::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: #fff; opacity: 0;
+  animation: rcDemoFlash .42s ease-out .14s both;
+}
+@keyframes rcDemoFlash { 0% { opacity: 0; } 18% { opacity: .65; } 100% { opacity: 0; } }
+[data-theme="rlcs2026"] .pr-demo-n { min-width: 0; text-shadow: 0 2px 6px rgba(0,0,0,.35); }
+/* la bombe (82 px, image à larges marges) déborde volontairement : marges négatives
+   pour ne pas voler la place des noms */
+[data-theme="rlcs2026"] .pr-demo-bomb {
+  font-size: 0; line-height: 0; margin: 0 -20px;
+  animation: rcDemoBomb .6s cubic-bezier(.2,1.6,.4,1) .12s both;
+}
+[data-theme="rlcs2026"] .pr-demo-bomb img {
+  width: 82px; height: 82px; object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,.6));
+  vertical-align: middle;
+}
+@keyframes rcDemoBomb {
+  0%   { transform: translateY(-34px) rotate(-70deg) scale(.4); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
 
-@keyframes iconSlideFromLeft {
-  0%   { transform: translateX(-110%); opacity: 0; }
-  10%  { transform: translateX(0);     opacity: 1; }
-  80%  { transform: translateX(0);     opacity: 1; }
-  100% { transform: translateX(-110%); opacity: 0; }
+/* Bandeau média (partenaires) : liseré couleur d'équipe à gauche, bande à droite */
+[data-theme="rlcs2026"] #media-banner {
+  width: 254px; height: 94px; border-radius: 0;
+  background: #1d1d1d;
+  box-shadow: inset 3px 0 0 var(--blue), inset -10px 0 0 var(--blue);
 }
-@keyframes iconSlideFromRight {
-  0%   { transform: translateX(110%);  opacity: 0; }
-  10%  { transform: translateX(0);     opacity: 1; }
-  80%  { transform: translateX(0);     opacity: 1; }
-  100% { transform: translateX(110%);  opacity: 0; }
+[data-theme="rlcs2026"] #media-banner img { padding: 12px 22px 12px 14px; }
+
+/* ══════════════════════════════════════════════════════════
+   STAT BAR (bas gauche) : nom sur la couleur d'équipe + boost, puis
+   SCORE · GOALS · SHOTS · ASSISTS · SAVES, filet couleur d'équipe dessous
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #stat-bar {
+  left: 0; bottom: 0;
+  width: 958px; height: 43px;
+  border-radius: 0; overflow: visible;
+  filter: none;
+}
+/* Cotes relevées sur l'original (px) : bandeau 38 + filet 5 ; nom calé à droite (21 px),
+   encre des capitales 10 → 25 ; boost 5 px à 7 px du bas, 28 px à gauche, 19 px à droite */
+[data-theme="rlcs2026"] #stat-team-tag {
+  position: relative;
+  width: 307px; flex: 0 0 307px; min-width: 0;
+  padding: 3px 21px 0 0; align-items: flex-start; justify-content: flex-end;
+  border: none; clip-path: none;
+}
+[data-theme="rlcs2026"] #stat-arrows { display: none; }
+[data-theme="rlcs2026"] #stat-player-name {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 25px; letter-spacing: .5px; line-height: 1; color: #fff;
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme="rlcs2026"] #stat-boost-track {
+  display: block; position: absolute; left: 28px; right: 19px; bottom: 7px;
+  height: 5px; background: #000;
+}
+[data-theme="rlcs2026"] #stat-boost-fill { height: 100%; background: #fff; transition: width .1s linear; }
+
+/* Stats : « 20 SCORE · 0 GOALS · 0 SHOTS · 0 ASSISTS · 0 SAVES », alignées sur leur ligne de base,
+   chiffre 26 px / libellé 24 px, 6 px entre chiffre et libellé, 46 px entre les groupes */
+[data-theme="rlcs2026"] #stat-values {
+  align-items: baseline; justify-content: flex-start;
+  background: var(--stat-vals-bg);
+  border-bottom: 5px solid var(--blue);
+  padding: 4px 0 0 50px;
+}
+[data-theme="rlcs2026"] .stat-item {
+  flex: 0 0 auto; flex-direction: row; align-items: baseline; justify-content: flex-start;
+  gap: 6px; margin-left: 46px; padding: 0; border-right: none;
+}
+[data-theme="rlcs2026"] .stat-item:nth-child(1) { order: 1; }   /* GOALS   */
+[data-theme="rlcs2026"] .stat-item:nth-child(3) { order: 2; }   /* SHOTS   */
+[data-theme="rlcs2026"] .stat-item:nth-child(2) { order: 3; }   /* ASSISTS */
+[data-theme="rlcs2026"] .stat-item:nth-child(4) { order: 4; }   /* SAVES   */
+[data-theme="rlcs2026"] .stat-item:nth-child(5) { display: none; }  /* DEMOS : absent de l'original */
+[data-theme="rlcs2026"] .stat-val,
+[data-theme="rlcs2026"] #stat-values::before {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 26px; line-height: 1; color: #fff; min-width: 0;
+}
+[data-theme="rlcs2026"] .stat-lbl,
+[data-theme="rlcs2026"] #stat-values::after {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 24px; letter-spacing: .3px; line-height: 1; color: #e6e6e6;
+  margin: 0; padding: 0;
+}
+/* SCORE en premier : chiffre (data-score posé par l'app) + libellé */
+[data-theme="rlcs2026"] #stat-values::before { content: attr(data-score); order: -2; margin-right: 6px; }
+[data-theme="rlcs2026"] #stat-values::after  { content: 'SCORE'; order: -1; }
+
+/* Caméra du joueur au-dessus du nom, liseré couleur d'équipe en haut et à droite */
+[data-theme="rlcs2026"] #player-video-box {
+  left: 0; bottom: 43px; width: 307px; height: 173px;
+  filter: none;
+  box-shadow: 0 -3px 0 var(--blue), 3px -3px 0 var(--blue), 3px 0 0 var(--blue);
+}
+[data-theme="rlcs2026"]:has(#stat-bar[data-team="1"]) #player-video-box {
+  box-shadow: 0 -3px 0 var(--orange), 3px -3px 0 var(--orange), 3px 0 0 var(--orange);
 }
 
-/* ── Replay bar ── */
-[data-theme="rlcs2026"] #replay-bar {
-  border-top: 2px solid rgba(255,255,255,.08);
-  border-radius: 0;
-}
-[data-theme="rlcs2026"] #replay-label {
-  border-left: 4px solid #1FAFDA;
-  color: #1FAFDA;
-  letter-spacing: 4px;
-}
-[data-theme="rlcs2026"] #replay-goal-tag {
-  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 100%, 6px 100%);
-  font-style: italic;
-}
-[data-theme="rlcs2026"] #replay-spd-unit,
-[data-theme="rlcs2026"] #replay-spd-lbl,
-[data-theme="rlcs2026"] #replay-assist-lbl { color: rgba(255,255,255,.4); }
-[data-theme="rlcs2026"] #replay-speed-block,
-[data-theme="rlcs2026"] #replay-assist-block { border-left-color: rgba(255,255,255,.08); }
-
-/* ── Notif GOAL ── */
-[data-theme="rlcs2026"] #goal-inner {
-  border-radius: 0;
-  border-bottom: 3px solid #1FAFDA;
-}
-[data-theme="rlcs2026"] #goal-word { font-style: italic; letter-spacing: 12px; }
-
-/* ── Wipe LIVE / REPLAY ── */
-[data-theme="rlcs2026"] #rw-box {
-  border-color: rgba(31,175,218,.25);
-  border-radius: 0;
-}
-[data-theme="rlcs2026"] #rw-box::before { border-color: rgba(31,175,218,.1); }
-[data-theme="rlcs2026"] #rw-word { font-style: italic; color: #e8f9fd; }
-
-/* ── Win screen ── */
-[data-theme="rlcs2026"] #win-screen { background: var(--win-bg); }
-[data-theme="rlcs2026"] #win-team-name { font-style: italic; letter-spacing: 6px; }
-[data-theme="rlcs2026"] #win-label { letter-spacing: 10px; }
-
-/* Boost meter */
+/* ══════════════════════════════════════════════════════════
+   BOOST METER (bas droite) — relevé au pixel sur l'original (rayons en % du rayon total) :
+   disque noir 0-71 % · fond gris #1A1A1A 71-100 % · piste 78-96 % : orange (rempli),
+   noire (vide, sur 3/4 du cercle de 6h à 3h), grise sur le dernier quart ;
+   repères blancs à 6h / 9h / 12h / 3h (84-96 %) ; crans sombres tous les 22,5° sur le
+   bord extérieur de l'arc ; chiffre couleur d'équipe légèrement au-dessus du centre
+══════════════════════════════════════════════════════════ */
 [data-theme="rlcs2026"] #boost-meter {
-  width: 180px; height: 180px; bottom: 50px;
-  background: rgba(0,0,0,.82); border-radius: 50%;
+  width: 209px; height: 209px;
+  right: 78px; bottom: 27px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, #000 0 70.6%, #1a1a1a 71.4% 99%, rgba(26,26,26,0) 100%);
+  box-shadow: 0 3px 12px rgba(0,0,0,.4);
 }
-[data-theme="rlcs2026"] #boost-track { fill: none; stroke: rgba(255,255,255,.28); stroke-width: 5; stroke-dasharray: 2 7; }
-[data-theme="rlcs2026"] #boost-arc  { stroke-width: 7; stroke-linecap: butt; }
-[data-theme="rlcs2026"] #boost-big  { font-size: 58px; }
-[data-theme="rlcs2026"] #speed-val  { display: none; }
+[data-theme="rlcs2026"] #boost-svg { transform: rotate(90deg); }
+/* rayon 46 conservé pour les calculs de l'app, agrandi à l'échelle (centre de la piste à 87 %) */
+[data-theme="rlcs2026"] #boost-track,
+[data-theme="rlcs2026"] #boost-arc {
+  transform-box: view-box; transform-origin: 54px 54px; transform: scale(1.02);
+  stroke-width: 9.4; stroke-linecap: butt;
+}
+[data-theme="rlcs2026"] #boost-track { fill: none; stroke: #000 !important; stroke-dasharray: 216.77 289.03; }
+[data-theme="rlcs2026"] #boost-ticks { fill: none; stroke: none; }
+/* crans sombres sur le bord extérieur de l'arc, limités aux 270° de la piste */
+[data-theme="rlcs2026"] #boost-meter::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(from -.6deg, rgba(0,0,0,.6) 0 1.2deg, transparent 1.2deg 22.5deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 0 87%, #000 87% 96%, transparent 96%),
+                conic-gradient(from 180deg, #000 0 270deg, transparent 270deg);
+  -webkit-mask-composite: source-in;
+          mask: radial-gradient(circle closest-side, transparent 0 87%, #000 87% 96%, transparent 96%),
+                conic-gradient(from 180deg, #000 0 270deg, transparent 270deg);
+          mask-composite: intersect;
+}
+/* repères blancs, par-dessus l'arc */
+[data-theme="rlcs2026"] #boost-center::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(from -.7deg, #fff 0 1.4deg, transparent 1.4deg 90deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 0 84%, #000 84% 96.5%, transparent 96.5%);
+          mask: radial-gradient(circle closest-side, transparent 0 84%, #000 84% 96.5%, transparent 96.5%);
+}
+[data-theme="rlcs2026"] #boost-center { z-index: 2; }
+[data-theme="rlcs2026"] #boost-big {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 74px; line-height: 1; padding-bottom: .3em;
+}
+[data-theme="rlcs2026"] #speed-val,
 [data-theme="rlcs2026"] #speed-unit { display: none; }
 
 /* ══════════════════════════════════════════════════════════
-   END SCREEN — RLCS 2026
+   BARRE REPLAY — pleine largeur, onglets « REPLAY » aux coins, contour lumineux
+   couleur de l'équipe qui a marqué ; buteur · vitesse du ballon · passeur au centre
 ══════════════════════════════════════════════════════════ */
-
-[data-theme="rlcs2026"] #end-screen {
-  background: #0d0d14;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
+[data-theme="rlcs2026"] #replay-bar {
+  --rc-team: 253,92,0;
+  left: 0; right: 0; bottom: 0;
+  height: 140px; padding: 73px 0 0;
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  background: transparent; border: none; border-radius: 0; filter: none;
+  transform: translateY(40px);
+  transition: opacity .35s, transform .45s cubic-bezier(.2,.9,.3,1);
 }
-
-/* ──────────────────────────────────────────
-   HEADER — panneaux équipe plein format
-────────────────────────────────────────── */
-[data-theme="rlcs2026"] #end-hdr {
-  height: 120px;
-  flex-shrink: 0;
-  border-bottom: none;
+[data-theme="rlcs2026"] #replay-bar[data-team="0"] { --rc-team: 33,175,215; }
+[data-theme="rlcs2026"] #replay-bar.show { transform: none; }
+/* fond : onglets 300 px aux coins (pan coupé vers le centre), partie centrale plus basse */
+[data-theme="rlcs2026"] #replay-bar::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(var(--rc-team), .62) 0%, rgba(var(--rc-team), .28) 45%, rgba(var(--rc-team), .1) 75%), rgba(14,12,12,.55);
+  clip-path: polygon(0 0, 300px 0, 334px 58px, calc(100% - 334px) 58px, calc(100% - 300px) 0, 100% 0, 100% 100%, 0 100%);
 }
-
-/* Côtés équipe : fond coloré plein, pas transparent */
-[data-theme="rlcs2026"] .end-side {
-  padding: 0 28px;
-  gap: 20px;
+/* contour lumineux le long du bord haut */
+[data-theme="rlcs2026"] #replay-bar::after {
+  content: ''; position: absolute; left: 0; right: 0; top: -2px; height: 64px; z-index: -1;
+  background: rgb(var(--rc-team));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='64' viewBox='0 0 1920 64'%3E%3Cpath d='M0 3H300L334 61H1586L1620 3H1920' fill='none' stroke='black' stroke-width='3'/%3E%3C/svg%3E") 0 0 / 1920px 64px no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='64' viewBox='0 0 1920 64'%3E%3Cpath d='M0 3H300L334 61H1586L1620 3H1920' fill='none' stroke='black' stroke-width='3'/%3E%3C/svg%3E") 0 0 / 1920px 64px no-repeat;
+  filter: drop-shadow(0 0 5px rgba(var(--rc-team), .95));
+}
+/* « ● REPLAY » dans l'onglet gauche, « REPLAY » dans l'onglet droit */
+/* « ● REPLAY » : légèrement incliné vers le centre de l'écran, comme l'original */
+[data-theme="rlcs2026"] #replay-label,
+[data-theme="rlcs2026"] #replay-right::after {
+  position: absolute; top: 39px; height: auto; padding: 0;
   border: none;
-  animation: none;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 33px; letter-spacing: 6px; line-height: 1;
+  color: #ff3b2a; text-shadow: 0 0 10px rgba(255,59,42,.75);
 }
-[data-theme="rlcs2026"] .end-side.blue {
-  background: #0c2038;                     /* bleu sombre saturé */
-  border-left:  6px solid #1FAFDA;
-  border-bottom: 4px solid #1FAFDA;
+[data-theme="rlcs2026"] #replay-label { left: 80px; transform: rotate(4deg); transform-origin: left center; }
+[data-theme="rlcs2026"] #replay-label::before {
+  content: ''; position: absolute; left: -35px; top: 8px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #ff2a1a; box-shadow: 0 0 10px #ff2a1a;
+  animation: rcRec 1s ease-in-out infinite;
 }
-[data-theme="rlcs2026"] .end-side.orange {
-  background: #200d00;                     /* rouge/brun sombre saturé */
-  border-right: 6px solid #FD5B00;
-  border-bottom: 4px solid #FD5B00;
-}
-[data-theme="rlcs2026"] .end-side.blue.winner   { background: #0e2d50; }
-[data-theme="rlcs2026"] .end-side.orange.winner { background: #2e1200; }
+@keyframes rcRec { 50% { opacity: .3; } }
+[data-theme="rlcs2026"] #replay-right::after { content: 'REPLAY'; right: 97px; transform: rotate(-4deg); transform-origin: right center; }
 
-/* Logo équipe — grand cercle */
-[data-theme="rlcs2026"] .end-logo-sq {
-  width: 76px; height: 76px;
-  border-radius: 50%;
-  flex-shrink: 0;
+/* contenu central : picto + texte, trois fois ; textes remontés de 0,1 em (encre centrée sur les pictos) */
+[data-theme="rlcs2026"] #replay-goal-tag {
+  width: 58px; height: 58px; margin: 0 26px 0 0; padding: 0;
+  font-size: 0; clip-path: none;
+  background: url('/notif/goal.png') center / 94px 94px no-repeat;
+  mix-blend-mode: screen;
 }
-[data-theme="rlcs2026"] .end-logo-img  { width: 56px; height: 56px; }
-[data-theme="rlcs2026"] .end-side.blue .end-logo-sq {
-  background: rgba(31,175,218,.18);
-  border: 2px solid rgba(31,175,218,.7);
+[data-theme="rlcs2026"] #replay-scorer {
+  flex: 0 1 auto; max-width: 420px; margin-right: 106px;
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 42px; letter-spacing: 1px; line-height: 1; color: #fff;
+  padding-bottom: .2em;
+  overflow: hidden; text-overflow: ellipsis;
 }
-[data-theme="rlcs2026"] .end-side.orange .end-logo-sq {
-  background: rgba(253,91,0,.18);
-  border: 2px solid rgba(253,91,0,.7);
+[data-theme="rlcs2026"] #replay-right { height: auto; gap: 106px; }
+[data-theme="rlcs2026"] #replay-speed-block,
+[data-theme="rlcs2026"] #replay-assist-block {
+  flex-direction: row; align-items: center; gap: 26px;
+  padding: 0; border: none; height: auto;
 }
-[data-theme="rlcs2026"] .end-logo-letter      { font-size: 28px; }
-[data-theme="rlcs2026"] .end-side.blue   .end-logo-letter { color: #1FAFDA; }
-[data-theme="rlcs2026"] .end-side.orange .end-logo-letter { color: #FD5B00; }
+[data-theme="rlcs2026"] #replay-speed-block::before,
+[data-theme="rlcs2026"] #replay-assist-block::before {
+  content: ''; width: 58px; height: 58px; flex-shrink: 0;
+  background: center / 94px 94px no-repeat;
+  mix-blend-mode: screen;
+}
+[data-theme="rlcs2026"] #replay-speed-block::before  { background-image: url('/notif/shot.png'); }
+[data-theme="rlcs2026"] #replay-assist-block::before { background-image: url('/notif/assist.png'); }
+[data-theme="rlcs2026"] #replay-speed-line { align-items: baseline; gap: 2px; padding-bottom: 8px; }
+[data-theme="rlcs2026"] #replay-spd,
+[data-theme="rlcs2026"] #replay-assist-name {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 42px; letter-spacing: 1px; color: #fff; line-height: 1;
+}
+[data-theme="rlcs2026"] #replay-assist-name { padding-bottom: .2em; }
+[data-theme="rlcs2026"] #replay-spd-unit {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 22px; color: #fff;
+}
+[data-theme="rlcs2026"] #replay-spd-lbl,
+[data-theme="rlcs2026"] #replay-assist-lbl { display: none; }
 
-/* Textes équipe */
+/* Caméras replay : 3 par équipe sous les sidebars, bande couleur d'équipe côté terrain */
+[data-theme="rlcs2026"] #replay-cams-blue,
+[data-theme="rlcs2026"] #replay-cams-orange { top: 250px; width: 307px; gap: 7px; }
+[data-theme="rlcs2026"] #replay-cams-blue   { align-items: flex-start; }
+[data-theme="rlcs2026"] #replay-cams-orange { align-items: flex-end; }
+[data-theme="rlcs2026"] .rc-slot { width: 297px; height: 167px; box-shadow: none; }
+[data-theme="rlcs2026"] #replay-cams-blue   .rc-slot { box-shadow: 10px 0 0 var(--blue); }
+[data-theme="rlcs2026"] #replay-cams-orange .rc-slot { box-shadow: -10px 0 0 var(--orange); }
+
+/* Pas de notification GOAL centrale (l'original agrandit le scoreboard avec les noms) */
+[data-theme="rlcs2026"] #goal-notif { display: none; }
+
+/* ══════════════════════════════════════════════════════════
+   TRANSITION REPLAY / LIVE — « obturateur »
+   Le filet de marque violet → blanc → citron jaillit du centre de l'écran, légèrement
+   incliné ; deux volets sombres se referment dessus (haut / bas) ; le mot glisse hors
+   de la jointure, souligné cyan | orange. Sortie : le mot replonge, les volets
+   s'ouvrent vers le haut et le bas, le filet se résorbe au centre.
+   L'app change le contenu au début de la sortie, l'écran est alors entièrement couvert.
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #replay-wipe { background: transparent; transition: none; overflow: hidden; }
+[data-theme="rlcs2026"] #replay-wipe.rw-active,
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout { opacity: 1; transition: none; }
+
+/* volets : jointure inclinée de 120 px sur la largeur, centrée à mi-hauteur */
+[data-theme="rlcs2026"] #replay-wipe::before,
+[data-theme="rlcs2026"] #replay-wipe::after {
+  content: ''; position: absolute; left: 0; right: 0;
+  background:
+    linear-gradient(115deg, transparent 0 46%, rgba(255,255,255,.035) 46% 54%, transparent 54%),
+    radial-gradient(ellipse 70% 120% at 50% 100%, #1d1e22 0%, #0c0c0e 70%);
+}
+[data-theme="rlcs2026"] #replay-wipe::before {
+  top: 0; height: 612px;
+  clip-path: polygon(0 0, 100% 0, 100% 492px, 0 612px);
+  transform: translateY(-101%);
+}
+[data-theme="rlcs2026"] #replay-wipe::after {
+  bottom: 0; height: 600px;
+  background:
+    linear-gradient(115deg, transparent 0 46%, rgba(255,255,255,.035) 46% 54%, transparent 54%),
+    radial-gradient(ellipse 70% 120% at 50% 0%, #1d1e22 0%, #0c0c0e 70%);
+  clip-path: polygon(0 120px, 100% 0, 100% 100%, 0 100%);
+  transform: translateY(101%);
+}
+@keyframes rcShutTop    { from { transform: translateY(-101%); } to { transform: none; } }
+@keyframes rcShutBottom { from { transform: translateY(101%); }  to { transform: none; } }
+@keyframes rcOpenTop    { from { transform: none; } to { transform: translateY(-101%); } }
+@keyframes rcOpenBottom { from { transform: none; } to { transform: translateY(101%); } }
+[data-theme="rlcs2026"] #replay-wipe.rw-active::before  { animation: rcShutTop    .42s cubic-bezier(.7,0,.25,1) .12s both; }
+[data-theme="rlcs2026"] #replay-wipe.rw-active::after   { animation: rcShutBottom .42s cubic-bezier(.7,0,.25,1) .12s both; }
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout::before { animation: rcOpenTop    .5s cubic-bezier(.65,0,.35,1) .2s both; }
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout::after  { animation: rcOpenBottom .5s cubic-bezier(.65,0,.35,1) .2s both; }
+
+[data-theme="rlcs2026"] #rw-center { z-index: 2; opacity: 1; transition: none; }
+/* filet de marque le long de la jointure */
+[data-theme="rlcs2026"] #rw-center::before {
+  content: ''; position: absolute; left: -2%; right: -2%; top: calc(50% - 3px); height: 6px;
+  background: var(--rc-brand);
+  box-shadow: 0 0 18px rgba(243,234,245,.55);
+  transform: rotate(-3.58deg) scaleX(0);
+}
+@keyframes rcSeamIn  { from { transform: rotate(-3.58deg) scaleX(0); } to { transform: rotate(-3.58deg) scaleX(1); } }
+@keyframes rcSeamOut { 0% { transform: rotate(-3.58deg) scaleX(1); opacity: 1; } 100% { transform: rotate(-3.58deg) scaleX(0); opacity: 0; } }
+[data-theme="rlcs2026"] #replay-wipe.rw-active  #rw-center::before { animation: rcSeamIn .32s cubic-bezier(.2,.8,.2,1) both; }
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout #rw-center::before { animation: rcSeamOut .4s cubic-bezier(.6,0,.4,1) .5s both; }
+
+/* le mot, posé sur la jointure */
+[data-theme="rlcs2026"] #rw-box {
+  position: relative; padding: 0 0 26px; margin-top: -40px;
+  border: none; box-shadow: none; background: transparent;
+}
+[data-theme="rlcs2026"] #rw-box::before { display: none; }
+/* soulignement cyan | orange */
+[data-theme="rlcs2026"] #rw-box::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 360px; height: 8px; margin-left: -180px;
+  background: linear-gradient(90deg, var(--blue) 50%, var(--orange) 50%);
+  transform: skewX(-20deg) scaleX(0);
+}
+@keyframes rcUnderIn  { from { transform: skewX(-20deg) scaleX(0); } to { transform: skewX(-20deg) scaleX(1); } }
+@keyframes rcUnderOut { from { transform: skewX(-20deg) scaleX(1); } to { transform: skewX(-20deg) scaleX(0); } }
+[data-theme="rlcs2026"] #replay-wipe.rw-active  #rw-box::after { animation: rcUnderIn .35s cubic-bezier(.2,.8,.2,1) .72s both; }
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout #rw-box::after { animation: rcUnderOut .2s ease-in both; }
+
+[data-theme="rlcs2026"] #rw-word {
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 150px; letter-spacing: 6px; line-height: 1; color: #fff;
+  text-shadow: 0 6px 30px rgba(0,0,0,.6);
+  clip-path: inset(0 0 100% 0);
+}
+[data-theme="rlcs2026"] #rw-word::after { display: none; }
+[data-theme="rlcs2026"] #rw-word::before { display: none; }
+/* LIVE : point rouge devant le mot */
+[data-theme="rlcs2026"] #rw-word[data-text="LIVE"]::before {
+  content: ''; display: inline-block; position: static; transform: none;
+  width: 34px; height: 34px; margin: 0 28px 0 0; vertical-align: middle;
+  border-radius: 50%; background: #ff2a1a; box-shadow: 0 0 22px #ff2a1a;
+  -webkit-text-stroke: 0;
+  animation: rcRec 1s ease-in-out infinite;
+}
+@keyframes rcWordIn {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(46px) skewX(-8deg); }
+  to   { clip-path: inset(-20% -10% -20% -10%); transform: none; }
+}
+@keyframes rcWordOut {
+  from { clip-path: inset(-20% -10% -20% -10%); transform: none; }
+  to   { clip-path: inset(100% 0 0 0); transform: translateY(46px) skewX(-8deg); }
+}
+[data-theme="rlcs2026"] #replay-wipe.rw-active  #rw-word { animation: rcWordIn .45s cubic-bezier(.2,.9,.25,1) .5s both !important; }
+[data-theme="rlcs2026"] #replay-wipe.rw-fadeout #rw-word { animation: rcWordOut .22s cubic-bezier(.5,0,.75,0) both !important; }
+
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE VICTOIRE DE SÉRIE
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #win-screen { background: var(--win-bg); }
+[data-theme="rlcs2026"] #win-screen::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--rc-brand);
+}
+[data-theme="rlcs2026"] #win-label     { font-family: var(--rc-font); font-style: italic; letter-spacing: 10px; }
+[data-theme="rlcs2026"] #win-team-name { font-family: var(--rc-font); font-style: italic; letter-spacing: 4px; }
+[data-theme="rlcs2026"] #win-subtitle  { font-family: var(--rc-font); font-style: italic; }
+[data-theme="rlcs2026"] #win-series-score { font-family: var(--rc-font); font-style: italic; }
+
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE FIN
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #end-screen {
+  background: var(--rc-brand) top / 100% 6px no-repeat, #0d0d0f;
+  flex-direction: column; justify-content: flex-start; align-items: stretch;
+}
+[data-theme="rlcs2026"] #end-hdr { height: 120px; flex-shrink: 0; margin-top: 6px; border-bottom: none; }
+[data-theme="rlcs2026"] .end-side { padding: 0 28px; gap: 20px; border: none; animation: none; }
+[data-theme="rlcs2026"] .end-side.blue   { background: var(--blue); }
+[data-theme="rlcs2026"] .end-side.orange { background: var(--orange); }
+[data-theme="rlcs2026"] .end-logo-sq { width: 84px; height: 84px; border-radius: 0; flex-shrink: 0; border: none !important; opacity: 1 !important; }
+[data-theme="rlcs2026"] .end-side.blue   .end-logo-sq { background: var(--rc-logo-b); }
+[data-theme="rlcs2026"] .end-side.orange .end-logo-sq { background: var(--rc-logo-o); }
+[data-theme="rlcs2026"] .end-logo-img  { width: 60px; height: 60px; }
+[data-theme="rlcs2026"] .end-logo-letter { font-family: var(--rc-font); font-style: italic; font-size: 34px; line-height: 1; padding-bottom: .2em; color: #fff !important; }
 [data-theme="rlcs2026"] .end-side-texts { gap: 4px; }
 [data-theme="rlcs2026"] .end-side-result {
-  font-size: 10px; letter-spacing: 5px;
-  color: rgba(255,255,255,.4); font-style: italic;
-  text-transform: uppercase;
+  font-family: var(--rc-font); font-style: italic;
+  font-size: 15px; letter-spacing: 4px; color: rgba(255,255,255,.75);
 }
-[data-theme="rlcs2026"] .end-side.blue.winner   .end-side-result { color: #1FAFDA; }
-[data-theme="rlcs2026"] .end-side.orange.winner .end-side-result { color: #FD5B00; }
+[data-theme="rlcs2026"] .end-side.winner .end-side-result { color: #fff; }
 [data-theme="rlcs2026"] .end-side-name {
-  font-size: 52px; font-weight: 900;
-  font-style: italic; letter-spacing: 4px;
-  color: #fff; line-height: 1;
-  text-shadow: 0 2px 18px rgba(0,0,0,.6);
+  font-family: var(--rc-font); font-style: italic; font-weight: 900;
+  font-size: 54px; letter-spacing: 1px; color: #fff; line-height: 1;
 }
 
-/* ──────────────────────────────────────────
-   CENTRE — scores + GAME X · BO7
-────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-mid {
   width: 300px; flex-shrink: 0;
-  background: #0d0d14;
-  border-left:  1px solid rgba(255,255,255,.08);
-  border-right: 1px solid rgba(255,255,255,.08);
-  border-bottom: 4px solid rgba(255,255,255,.12);
-  gap: 0; justify-content: center;
-  padding: 8px 0;
+  background: #fefefe; border: none; gap: 4px; padding: 8px 0;
 }
-[data-theme="rlcs2026"] .end-sc-row {
-  gap: 0; align-items: stretch;
-}
+[data-theme="rlcs2026"] .end-sc-row { gap: 0; align-items: stretch; }
 [data-theme="rlcs2026"] .end-sc-box {
-  width: 80px; height: 68px;
-  font-size: 54px; font-style: italic;
-  border-radius: 0; font-weight: 900;
-  color: #fff;
+  width: 84px; height: 76px;
+  font-family: var(--rc-font); font-size: 64px; font-style: italic; font-weight: 900;
+  line-height: 1; border-radius: 0; color: #fff; padding: 0 0 .2em;
 }
-[data-theme="rlcs2026"] .end-sc-box.blue   { background: #1FAFDA; }
-[data-theme="rlcs2026"] .end-sc-box.orange { background: #FD5B00; }
-
+[data-theme="rlcs2026"] .end-sc-box.blue   { background: var(--blue); }
+[data-theme="rlcs2026"] .end-sc-box.orange { background: var(--orange); }
 [data-theme="rlcs2026"] .end-vs-sep {
   flex: 1;
-  font-size: 9px; font-weight: 800; font-style: italic;
-  letter-spacing: 1px; color: rgba(255,255,255,.55);
+  font-family: var(--rc-font); font-size: 13px; font-weight: 900; font-style: italic;
+  letter-spacing: 1px; color: #0a0a0a;
   display: flex; align-items: center; justify-content: center;
-  text-align: center; padding: 0 3px;
-  background: #111118; white-space: pre-line; line-height: 1.4;
+  text-align: center; padding: 0 6px; white-space: pre-line; line-height: 1.3;
 }
-[data-theme="rlcs2026"] .end-ser-row {
-  font-size: 9px; font-weight: 700; font-style: italic;
-  letter-spacing: 3px; color: rgba(255,255,255,.35);
-  gap: 0; justify-content: center; padding: 3px 0;
-}
-[data-theme="rlcs2026"] .end-bo-tag               { display: none; }
-[data-theme="rlcs2026"] #end-ser-blue,
-[data-theme="rlcs2026"] #end-ser-orange            { display: none; }
+[data-theme="rlcs2026"] .end-ser-row { display: none; }
 [data-theme="rlcs2026"] #end-wins-text {
   display: block;
-  font-size: 11px; font-weight: 800; font-style: italic;
-  letter-spacing: 2px; text-transform: uppercase;
-  color: rgba(255,255,255,.7); text-align: center;
-  padding: 2px 6px; white-space: nowrap;
+  font-family: var(--rc-font); font-size: 15px; font-weight: 900; font-style: italic;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: #0a0a0a; text-align: center; padding: 2px 6px; white-space: nowrap;
 }
 
-/* ──────────────────────────────────────────
-   TABLEAU STATS — plein écran
-────────────────────────────────────────── */
 [data-theme="rlcs2026"] #end-table {
-  flex: 1;
-  padding: 0; background: #0d0d14;
-  border: none;
-  border-top: 1px solid rgba(255,255,255,.06);
-  overflow: hidden;
+  flex: 1; padding: 0; background: #0d0d0f; border: none; overflow: hidden;
 }
 [data-theme="rlcs2026"] #end-bl,
-[data-theme="rlcs2026"] #end-or {
-  align-self: stretch;
-  align-items: stretch;
-}
-
-/* Colonnes joueurs */
-[data-theme="rlcs2026"] .end-p-col {
-  height: 100%;
-  display: flex; flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,.05);
-}
+[data-theme="rlcs2026"] #end-or { align-self: stretch; align-items: stretch; }
+[data-theme="rlcs2026"] .end-p-col { height: 100%; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,.05); }
 [data-theme="rlcs2026"] #end-or .end-p-col:last-child { border-right: none; }
-
-/* Nom du joueur (en-tête colonne) */
 [data-theme="rlcs2026"] .end-p-top {
   height: 58px; flex-shrink: 0;
-  font-size: 14px; font-weight: 900; font-style: italic;
-  letter-spacing: 2px;
+  font-family: var(--rc-font); font-size: 22px; font-weight: 900; font-style: italic; letter-spacing: .5px;
+  line-height: 1;
   border-bottom: 1px solid rgba(255,255,255,.07);
-  padding: 0 16px; position: relative; overflow: visible;
+  padding: 0 16px .2em; position: relative; overflow: visible; color: #fff;
 }
-[data-theme="rlcs2026"] #end-bl .end-p-top {
-  background: rgba(31,175,218,.12);
-  border-top: 3px solid #1FAFDA;
-  color: #fff;
-}
-[data-theme="rlcs2026"] #end-or .end-p-top {
-  background: rgba(253,91,0,.12);
-  border-top: 3px solid #FD5B00;
-  color: #fff;
-}
-
-/* Étoile MVP : grande et dorée, au-dessus du nom */
-[data-theme="rlcs2026"] .end-p-top.mvp {
-  padding-top: 18px;            /* décale le nom vers le bas */
-}
+[data-theme="rlcs2026"] #end-bl .end-p-top { background: var(--rc-dark); border-top: 4px solid var(--blue); }
+[data-theme="rlcs2026"] #end-or .end-p-top { background: var(--rc-dark); border-top: 4px solid var(--orange); }
+[data-theme="rlcs2026"] .end-p-top.mvp { padding-top: 16px; }
 [data-theme="rlcs2026"] .end-p-top.mvp::before {
-  content: '★';
-  position: absolute;
-  top: 6px; left: 50%; transform: translateX(-50%);
-  font-size: 14px; font-weight: 900; line-height: 1;
-  color: #ffd700;
-  text-shadow: 0 0 10px rgba(255,215,0,.7);
+  content: 'MVP'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: 3px; line-height: 1;
+  background: var(--rc-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-[data-theme="rlcs2026"] .end-p-top.mvp::after { content: none; }   /* désactive l'ancien ::after */
-
-/* Valeurs stats */
+[data-theme="rlcs2026"] .end-p-top.mvp::after { content: none; }
 [data-theme="rlcs2026"] .end-p-cell {
   flex: 1; height: auto;
-  font-size: 38px; font-style: italic; font-weight: 900;
+  font-family: var(--rc-font); font-size: 40px; font-style: italic; font-weight: 900;
+  line-height: 1; padding-bottom: .2em;
   border-bottom: 1px solid rgba(255,255,255,.04);
+  color: rgba(255,255,255,.85) !important;
 }
-[data-theme="rlcs2026"] #end-bl .end-p-cell { color: rgba(255,255,255,.82); }
-[data-theme="rlcs2026"] #end-or .end-p-cell { color: rgba(255,255,255,.82); }
-
-/* MVP : valeurs en couleur équipe */
-[data-theme="rlcs2026"] #end-bl .end-p-col:has(.mvp) .end-p-cell { color: #1FAFDA; }
-[data-theme="rlcs2026"] #end-or .end-p-col:has(.mvp) .end-p-cell { color: #FD5B00; }
-
-/* ──────────────────────────────────────────
-   COLONNE LABELS CENTRALE
-────────────────────────────────────────── */
+[data-theme="rlcs2026"] #end-bl .end-p-col:has(.mvp) .end-p-cell { color: var(--blue) !important; }
+[data-theme="rlcs2026"] #end-or .end-p-col:has(.mvp) .end-p-cell { color: var(--orange) !important; }
 [data-theme="rlcs2026"] #end-lbl {
-  width: 180px; flex-shrink: 0;
-  background: #0d0d14;
-  border-left:  1px solid rgba(255,255,255,.07);
-  border-right: 1px solid rgba(255,255,255,.07);
-  align-self: stretch;
-  display: flex; flex-direction: column;
+  width: 180px; flex-shrink: 0; background: var(--rc-bar);
+  align-self: stretch; display: flex; flex-direction: column;
 }
-[data-theme="rlcs2026"] .end-lbl-top {
-  height: 58px; flex-shrink: 0;
-  background: #0d0d14;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-[data-theme="rlcs2026"] .end-lbl-cell {
-  flex: 1; height: auto;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  gap: 7px;
-}
-[data-theme="rlcs2026"] .end-lbl-text {
-  font-size: 12px; font-weight: 900; font-style: italic;
-  letter-spacing: 3px; color: rgba(255,255,255,.55);
-}
-[data-theme="rlcs2026"] .end-mini-bar { width: 130px; height: 5px; border-radius: 0; }
-
-/* ──────────────────────────────────────────
-   NETTOYAGE
-────────────────────────────────────────── */
-[data-theme="rlcs2026"] #end-bars         { display: none; }
+[data-theme="rlcs2026"] .end-lbl-top  { height: 58px; flex-shrink: 0; background: var(--rc-bar); border-bottom: 1px solid rgba(255,255,255,.07); }
+[data-theme="rlcs2026"] .end-lbl-cell { flex: 1; height: auto; border-bottom: 1px solid rgba(255,255,255,.05); gap: 7px; }
+[data-theme="rlcs2026"] .end-lbl-text { font-family: var(--rc-font); font-size: 16px; font-style: italic; letter-spacing: 2px; color: #cfcfcf; }
+[data-theme="rlcs2026"] .end-mini-bar { width: 130px; height: 5px; border-radius: 0; background: #000; }
+[data-theme="rlcs2026"] .end-mini-b { background: var(--blue); }
+[data-theme="rlcs2026"] .end-mini-o { background: var(--orange); }
+[data-theme="rlcs2026"] #end-bars { display: none; }
 [data-theme="rlcs2026"] #end-media-banner { margin: 0; border-radius: 0; }

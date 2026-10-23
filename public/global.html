@@ -1271,7 +1271,7 @@ const THEME_COLS = {
   onyx:     { b:'#1a5fff', bL:'#60a0ff', o:'#d96000', oL:'#ff9c33' },
   nord:     { b:'#5e81ac', bL:'#88c0d0', o:'#d08770', oL:'#ebcb8b' },
   amber:    { b:'#f59e0b', bL:'#fbbf24', o:'#ef4444', oL:'#f87171' },
-  rlcs2026: { b:'#1FAFDA', bL:'#23AEDE', o:'#FD5B00', oL:'#FE5901' },
+  rlcs2026: { b:'#21AFD7', bL:'#21AFD7', o:'#FD5C00', oL:'#FD5C00' },
   vitality:  { b:'#00AAFE', bL:'#4CC4FF', o:'#FEFF02', oL:'#FFFF66' },
   enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
   rlcs2025:  { b:'#0098EA', bL:'#33B9FF', o:'#E84A00', oL:'#FF7040' },
@@ -1538,7 +1538,7 @@ let _lastArcTeam = null, _lastArcIs34 = null, _lastArcTheme = null, _lastArcHigh
 
 function setBoostArc(pct, team) {
   const theme = document.body.dataset.theme;
-  const is34  = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup');
+  const is34  = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('rlcs2026');
   const themeOrTeamChanged = theme !== _lastArcTheme || team !== _lastArcTeam || is34 !== _lastArcIs34;
 
   /* Vitality / ENISorail : 100 % = 3/4 du cercle */
@@ -2170,7 +2170,7 @@ function render(data) {
 function fmtTimer(s) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
   /* rlcs2025 / Vitality : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
-  if (themeIs('rlcs2025') || themeIs('vitality')) return `${m}:${String(sec).padStart(2, '0')}`;
+  if (themeIs('rlcs2025') || themeIs('vitality') || themeIs('rlcs2026')) return `${m}:${String(sec).padStart(2, '0')}`;
   return fmt(s);
 }
 
@@ -2449,7 +2449,11 @@ function renderStatBar(p) {
   }
 
   const sv = document.getElementById('stat-values');
-  if (sv) sv.style.borderBottomColor = color;
+  if (sv) {
+    sv.style.borderBottomColor = color;
+    /* Score du joueur, exposé au CSS (RLCS 2026 l'affiche via attr(data-score)) */
+    sv.dataset.score = p.score ?? 0;
+  }
 
   const fill = document.getElementById('stat-boost-fill');
   if (fill) fill.style.width = `${p.boost ?? 0}%`;
@@ -2624,8 +2628,8 @@ function renderBoostMeter(p) {
   setBoostArc(boost, p.team);
   document.getElementById('boost-big').textContent = boost;
   document.getElementById('speed-val').textContent = Math.round(p.speed ?? 0);
-  /* RLCS 2025 : chiffre couleur équipe */
-  if (themeIs('rlcs2025')) {
+  /* RLCS 2025 / 2026 : chiffre couleur équipe */
+  if (themeIs('rlcs2025') || themeIs('rlcs2026')) {
     const cols = tc();
     document.getElementById('boost-big').style.color = p.team === 1 ? cols.o : cols.b;
   } else {
