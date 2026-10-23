@@ -1,6 +1,7 @@
 const express = require('express');
 const http    = require('http');
 const net     = require('net');
+const { StringDecoder } = require('string_decoder');
 const WebSocket = require('ws');
 const path    = require('path');
 const fs      = require('fs');
@@ -99,6 +100,26 @@ let roundGoalBroadcast   = false;
 let overlayVisible       = true;
 let boostVisible         = true;
 let _lastStatsBroadcast  = 0;          // throttle UpdateState → ~30 fps max
+let _statsFlushTimer     = null;
+
+/* Envoie l'état à l'overlay au plus toutes les 33 ms (~30 fps), SANS perdre la dernière
+   mise à jour : si un paquet arrive trop tôt, l'envoi est programmé à la fin de la fenêtre
+   avec l'état le plus récent. Avant, ces paquets étaient simplement ignorés, ce qui rendait
+   l'affichage irrégulier et pouvait laisser une valeur périmée à l'écran. */
+function scheduleStateBroadcast() {
+  const wait = 33 - (Date.now() - _lastStatsBroadcast);
+  if (wait <= 0) {
+    clearTimeout(_statsFlushTimer); _statsFlushTimer = null;
+    _lastStatsBroadcast = Date.now();
+    broadcast('update_state', gameState);
+  } else if (!_statsFlushTimer) {
+    _statsFlushTimer = setTimeout(() => {
+      _statsFlushTimer = null;
+      _lastStatsBroadcast = Date.now();
+      broadcast('update_state', gameState);
+    }, wait);
+  }
+}
 
 function flushGoalBroadcast() {
   if (!pendingGoalBroadcast) return;
@@ -135,6 +156,9 @@ function connectToStatsApi() {
   console.log(`[StatsAPI] Connexion à tcp://localhost:${STATS_API_PORT}...`);
 
   let buffer = '';
+  /* Décodeur UTF-8 à état : un caractère accentué (ou emoji) coupé entre deux paquets TCP
+     est recollé, au lieu de devenir un caractère invalide qui faisait échouer le JSON. */
+  const decoder = new StringDecoder('utf8');
   const socket = net.createConnection(STATS_API_PORT, 'localhost');
   statsApiClient = socket;
 
@@ -161,7 +185,7 @@ function connectToStatsApi() {
       if (gameState.hasGame) { gameState.hasGame = false; broadcast('update_state', gameState); }
     }, 15000);
 
-    buffer += chunk.toString();
+    buffer += decoder.write(chunk);
 
     // Extrait tous les objets JSON complets du buffer (pas de délimiteur garanti)
     let i = 0;
@@ -212,9 +236,8 @@ function handleStatsApiMessage(msg) {
   switch (event) {
     case 'UpdateState': {
       handleStatsApiUpdate(data);
-      /* Cap à ~30 fps : inutile d'envoyer 60-80 messages/s au client */
-      const _t = Date.now();
-      if (_t - _lastStatsBroadcast >= 33) { _lastStatsBroadcast = _t; broadcast('update_state', gameState); }
+      /* Cap à ~30 fps : inutile d'envoyer les 100 messages/s du jeu au client */
+      scheduleStateBroadcast();
       break;
     }
 

@@ -1405,7 +1405,7 @@ function setLeagueLabel(text) {
   const el = document.getElementById('league-label');
   if (!el) return;
   const t = String(text || '');
-  el.textContent = (currentTheme === 'rlcs2026' && t.length > 52) ? t.slice(0, 51) + '…' : t;
+  _setText(el, (currentTheme === 'rlcs2026' && t.length > 52) ? t.slice(0, 51) + '…' : t);
 }
 
 /* Vidéo de fond de l'écran de fin : thèmes (ou thèmes dont hérite un import/
@@ -1889,8 +1889,8 @@ function connect() {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
         const img    = document.getElementById(`${side}-logo-img`);
         const letter = document.getElementById(`${side}-logo`);
-        if (data.url) { img.src = data.url + '?t=' + Date.now(); img.classList.add('active'); letter.style.display = 'none'; }
-        else { img.classList.remove('active'); letter.style.display = ''; }
+        if (data.url) { img.dataset.logo = data.url; img.src = data.url + '?t=' + Date.now(); img.classList.add('active'); letter.style.display = 'none'; }
+        else { img.dataset.logo = ''; img.classList.remove('active'); letter.style.display = ''; }
       }
       return;
     }
@@ -2034,10 +2034,14 @@ function connect() {
         const img = document.getElementById(`${sideName}-logo-img`);
         const letter = document.getElementById(`${sideName}-logo`);
         if (data.url) {
+          /* ?t= force le rechargement (le nouveau logo garde le même nom de fichier) ;
+             dataset.logo évite que setLogo le recharge ensuite à chaque message */
+          img.dataset.logo = data.url;
           img.src = data.url + '?t=' + Date.now();
           img.classList.add('active');
           letter.style.display = 'none';
         } else {
+          img.dataset.logo = '';
           img.classList.remove('active');
           letter.style.display = '';
         }
@@ -2085,15 +2089,32 @@ function connect() {
 }
 
 /* ── Logos équipes ── */
+/* N'écrit un texte que s'il a changé. Réécrire un texte identique remplace quand même le nœud
+   texte : à 30 messages/s, cela forçait un recalcul de mise en page et un repaint de l'overlay
+   à chaque message, pour rien (source de lag dans OBS sur les machines modestes). */
+function _setText(el, v) {
+  if (!el) return;
+  v = String(v ?? '');
+  if (el.textContent !== v) el.textContent = v;
+}
+
 function setLogo(side, team) {
   const img    = document.getElementById(`${side}-logo-img`);
   const letter = document.getElementById(`${side}-logo`);
-  letter.textContent = team.name.charAt(0);
+  _setText(letter, (team.name || '').charAt(0));
   if (team.logo_url) {
-    img.src = team.logo_url;
+    /* Ne recharger l'image que si l'URL change. Réaffecter img.src relançait un téléchargement
+       complet du logo à CHAQUE message (2 logos × 30/s, cache désactivé sur /logos) : des dizaines
+       de Mo/s relus, renvoyés et redécodés en continu → lag de l'overlay et du serveur. Un logo
+       remplacé sous le même nom est rafraîchi par l'événement logo_updated (paramètre ?t=). */
+    if (img.dataset.logo !== team.logo_url) {
+      img.dataset.logo = team.logo_url;
+      img.src = team.logo_url;
+    }
     img.classList.add('active');
     letter.style.display = 'none';
   } else {
+    img.dataset.logo = '';
     img.classList.remove('active');
     letter.style.display = '';
   }
@@ -2129,8 +2150,8 @@ function autoFitTeamName(el) {
 function render(data) {
   const g = data.game;
 
-  document.getElementById('blue-name').textContent   = g.teams[0].name;
-  document.getElementById('orange-name').textContent = g.teams[1].name;
+  _setText(document.getElementById('blue-name'),   g.teams[0].name);
+  _setText(document.getElementById('orange-name'), g.teams[1].name);
   autoFitTeamName(document.getElementById('blue-name'));
   autoFitTeamName(document.getElementById('orange-name'));
   const _abbrB = document.getElementById('sub-abbr-blue');
@@ -2138,25 +2159,23 @@ function render(data) {
   /* Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup : #sub-abbr-* contient des vlt-win-pip spans.
      Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
   if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup') && !themeIs('lysorn-cup') && !themeIs('rs-cup')) {
-    if (_abbrB) _abbrB.textContent = (g.teams[0].name || 'BLU').slice(0, 4);
-    if (_abbrO) _abbrO.textContent = (g.teams[1].name || 'ORA').slice(0, 4);
+    _setText(_abbrB, (g.teams[0].name || 'BLU').slice(0, 4));
+    _setText(_abbrO, (g.teams[1].name || 'ORA').slice(0, 4));
   }
-  const tloB = document.getElementById('tlo-name-blue');
-  const tloO = document.getElementById('tlo-name-orange');
-  if (tloB) tloB.textContent = g.teams[0].name;
-  if (tloO) tloO.textContent = g.teams[1].name;
+  _setText(document.getElementById('tlo-name-blue'),   g.teams[0].name);
+  _setText(document.getElementById('tlo-name-orange'), g.teams[1].name);
   // Re-mesurer uniquement quand les noms changent
   const _nk = (g.teams[0].name || '') + '|' + (g.teams[1].name || '');
   if (_nk !== _tloNamesKey) { _tloNamesKey = _nk; _measureTloWidths(); }
   setLogo('blue',   g.teams[0]);
   setLogo('orange', g.teams[1]);
-  document.getElementById('score-blue').textContent   = g.teams[0].score;
-  document.getElementById('score-orange').textContent = g.teams[1].score;
+  _setText(document.getElementById('score-blue'),   g.teams[0].score);
+  _setText(document.getElementById('score-orange'), g.teams[1].score);
 
   renderTimer(g.time, g.isOT);
 
   if (data.meta) setLeagueLabel(data.meta.league);
-  if (data.series)       document.getElementById('bo-num').textContent = data.series.bestOf;
+  if (data.series) _setText(document.getElementById('bo-num'), data.series.bestOf);
 
   renderSeriesDots();
   renderSidebar(g.players);
@@ -2177,16 +2196,17 @@ function fmtTimer(s) {
 function renderTimer(s, isOT) {
   const el = document.getElementById('timer');
   if (isOT) {
-    el.textContent = '+' + fmtTimer(s);
-    el.className = 'ot';
+    _setText(el, '+' + fmtTimer(s));
+    if (el.className !== 'ot') el.className = 'ot';
     if (!_wasOT) {
       _wasOT = true;
       triggerOTNotif();
       /* buildSubTrack() gère le texte OVERTIME et data-ot via _wasOT */
     }
   } else {
-    el.textContent = fmtTimer(s);
-    el.className = s <= 30 && s >= 0 ? 'warn' : '';
+    _setText(el, fmtTimer(s));
+    const cls = s <= 30 && s >= 0 ? 'warn' : '';
+    if (el.className !== cls) el.className = cls;
     _wasOT = false; /* buildSubTrack retire data-ot au prochain render */
   }
 }
@@ -2347,8 +2367,8 @@ function updateRow(row, p) {
   const val   = row.querySelector('.pr-val');
   const name  = row.querySelector('.pr-name');
 
-  name.textContent = p.name;
-  val.textContent  = boost;
+  _setText(name, p.name);
+  _setText(val, boost);
   fill.style.transform = `scaleX(${boost / 100})`;
   const _fc = 'pr-boost-fill' + (boost <= 20 ? ' low' : boost >= 95 ? ' full' : '');
   if (fill.className !== _fc) fill.className = _fc;   // évite recalcul style inutile
@@ -2424,7 +2444,7 @@ function renderStatBar(p) {
   bar.dataset.team = p.team;
 
   const color = p.team === 0 ? tc().b : tc().o;
-  document.getElementById('stat-player-name').textContent = p.name;
+  _setText(document.getElementById('stat-player-name'), p.name);
 
   if (themeIs('fifa-world-cup')) {
     const grad = p.team === 0
@@ -2443,7 +2463,10 @@ function renderStatBar(p) {
     }
     const team = state?.game?.teams?.[p.team];
     const img = wrap.querySelector('img');
-    if (img) { img.src = team?.logo_url || ''; wrap.style.display = team?.logo_url ? 'flex' : 'none'; }
+    /* même règle que setLogo : ne recharger le logo que si l'URL change */
+    const url = team?.logo_url || '';
+    if (img && img.dataset.logo !== url) { img.dataset.logo = url; img.src = url; }
+    wrap.style.display = url ? 'flex' : 'none';
   } else {
     document.getElementById('stat-team-tag').style.background = color;
   }
@@ -2458,11 +2481,11 @@ function renderStatBar(p) {
   const fill = document.getElementById('stat-boost-fill');
   if (fill) fill.style.width = `${p.boost ?? 0}%`;
 
-  document.getElementById('st-goals').textContent   = p.goals   ?? 0;
-  document.getElementById('st-assists').textContent = p.assists ?? 0;
-  document.getElementById('st-shots').textContent   = p.shots   ?? 0;
-  document.getElementById('st-saves').textContent   = p.saves   ?? 0;
-  document.getElementById('st-demos').textContent   = p.demos   ?? 0;
+  _setText(document.getElementById('st-goals'),   p.goals   ?? 0);
+  _setText(document.getElementById('st-assists'), p.assists ?? 0);
+  _setText(document.getElementById('st-shots'),   p.shots   ?? 0);
+  _setText(document.getElementById('st-saves'),   p.saves   ?? 0);
+  _setText(document.getElementById('st-demos'),   p.demos   ?? 0);
 
   renderPlayerVideo(p);
 }
@@ -2626,8 +2649,8 @@ function renderBoostMeter(p) {
   meter.classList.add('show');
   const boost = (p.boost ?? 0) <= 1 ? 0 : Math.floor(p.boost);
   setBoostArc(boost, p.team);
-  document.getElementById('boost-big').textContent = boost;
-  document.getElementById('speed-val').textContent = Math.round(p.speed ?? 0);
+  _setText(document.getElementById('boost-big'), boost);
+  _setText(document.getElementById('speed-val'), Math.round(p.speed ?? 0));
   /* RLCS 2025 / 2026 : chiffre couleur équipe */
   if (themeIs('rlcs2025') || themeIs('rlcs2026')) {
     const cols = tc();

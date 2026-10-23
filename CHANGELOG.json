@@ -82,5 +82,13 @@
       "Amélioration : refonte complète du thème RLCS 2026, fidèle à l'overlay officiel (scoreboard, noms d'équipe animés, sidebars, stat bar, boost meter, barre replay, bannière de démolition) + nouvelle transition REPLAY / LIVE",
       "Correction : thème RLCS 2026 — scoreboard décalé ou cassé quand les noms d'équipe s'affichaient, et ouverture des noms non animée"
     ]
+  },
+  "1.7.9": {
+    "date": "2026-10-23",
+    "notes": [
+      "Correction : lag et informations en retard sur l'overlay — les logos d'équipe étaient retéléchargés en continu (60 fois par seconde)",
+      "Correction : les noms de joueurs avec accents ou emojis pouvaient être corrompus, ce qui faisait disparaître puis réapparaître leur ligne dans la sidebar",
+      "Amélioration : l'overlay ne redessine plus les textes qui n'ont pas changé, pour un rendu plus fluide dans OBS"
+    ]
   }
 }
