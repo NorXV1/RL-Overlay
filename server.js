@@ -36,7 +36,7 @@ settings.mediaBanner = settings.mediaBanner ?? { enabled: false };
 settings.keepPlayerLinks = settings.keepPlayerLinks ?? false;
 settings.playerLinks = settings.keepPlayerLinks ? (settings.playerLinks || {}) : {}; // remis à zéro à chaque démarrage sauf si "Conserver au redémarrage" est activé
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
-settings.animations = { goal: true, replay: true, live: true, ...(settings.animations || {}) };
+settings.animations = { goal: true, replay: true, live: true, endScreen: true, ...(settings.animations || {}) };
 settings.reviewSubmitted = settings.reviewSubmitted ?? false;
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
@@ -58,12 +58,32 @@ function findLogo(side) {
   } catch { return ''; }
 }
 
+/* ── Noms d'équipe ──
+   Priorité : 1) nom saisi dans le panneau ; 2) nom envoyé par le jeu (club, match privé, tournoi) ;
+   3) BLUE / ORANGE. Un champ vide dans le panneau = automatique : on peut toujours y revenir. */
+const DEFAULT_TEAM_NAMES = ['BLUE', 'ORANGE'];
+/* noms génériques envoyés par le jeu pour une équipe sans nom (toutes langues courantes) */
+const GENERIC_TEAM_NAMES = new Set(['', '0', '1', 'blue', 'orange', 'bleu', 'bleue', 'blau', 'azul', 'naranja', 'arancione', 'blu',
+  'team blue', 'team orange', 'blue team', 'orange team', 'équipe bleue', 'équipe orange', 'equipe bleue', 'equipe orange']);
+let gameTeamNames = ['', ''];   // dernier vrai nom d'équipe détecté en jeu (vidé à chaque nouveau match)
+
+function manualTeamName(idx) {
+  const s = idx === 0 ? settings.blue : settings.orange;
+  return String(s?.name ?? '').trim();
+}
+function refreshTeamName(idx) {
+  const team   = gameState.game.teams[idx];
+  const manual = manualTeamName(idx);
+  team.name       = manual || gameTeamNames[idx] || DEFAULT_TEAM_NAMES[idx];
+  team.nameSource = manual ? 'manual' : (gameTeamNames[idx] ? 'game' : 'default');
+}
+
 function applySettings() {
   const s = settings;
-  if (s.blue?.name)   { gameState.game.teams[0].name = s.blue.name;   gameState.game.teams[0]._nameLocked = true; }
-  if (s.orange?.name) { gameState.game.teams[1].name = s.orange.name; gameState.game.teams[1]._nameLocked = true; }
+  refreshTeamName(0);
+  refreshTeamName(1);
   if (s.league !== undefined) gameState.meta.league = s.league;
-  if (s.bestOf)       gameState.series.bestOf      = s.bestOf;
+  if (s.bestOf !== undefined && s.bestOf !== null) gameState.series.bestOf = Number(s.bestOf) || 0;   // 0 = sans BO
   if (s.series?.blue   !== undefined) gameState.series.blue   = s.series.blue;
   if (s.series?.orange !== undefined) gameState.series.orange = s.series.orange;
   gameState.game.teams[0].logo_url = findLogo('bleu');
@@ -295,6 +315,9 @@ function handleStatsApiMessage(msg) {
       specOverride = null; roundGoalBroadcast = false;
       gameState.specMode = 'auto'; gameState.hasGame = true;
       gameState.game.players = {};
+      /* nouveau match : on oublie les noms détectés du match précédent */
+      gameTeamNames = ['', ''];
+      refreshTeamName(0); refreshTeamName(1);
       broadcast('match_created', {}); broadcast('update_state', gameState);
       break;
 
@@ -317,8 +340,10 @@ function handleStatsApiMessage(msg) {
     case 'MatchEnded': {
       gameState.hasGame = false;
       const winner = data.WinnerTeamNum ?? -1;
-      if (winner === 0) { gameState.series.blue++;   settings.series = { ...(settings.series||{}), blue:   gameState.series.blue   }; saveSettings(); broadcast('series_update', gameState.series); }
-      if (winner === 1) { gameState.series.orange++;  settings.series = { ...(settings.series||{}), orange: gameState.series.orange }; saveSettings(); broadcast('series_update', gameState.series); }
+      /* Sans BO (bestOf = 0) : pas de série, on ne compte pas les manches */
+      const counts = !!gameState.series.bestOf;
+      if (counts && winner === 0) { gameState.series.blue++;   settings.series = { ...(settings.series||{}), blue:   gameState.series.blue   }; saveSettings(); broadcast('series_update', gameState.series); }
+      if (counts && winner === 1) { gameState.series.orange++;  settings.series = { ...(settings.series||{}), orange: gameState.series.orange }; saveSettings(); broadcast('series_update', gameState.series); }
       if (winner === 0 || winner === 1) {
         broadcast('game_end_stats', { winner, teams: gameState.game.teams, series: gameState.series, players: gameState.game.players });
       }
@@ -348,9 +373,10 @@ function handleStatsApiUpdate(data) {
     const idx = t.TeamNum;
     if (idx !== 0 && idx !== 1) return;
     gameState.game.teams[idx].score = t.Score ?? 0;
-    const n = t.Name || '';
-    if (!gameState.game.teams[idx]._nameLocked && n && n !== 'Blue' && n !== 'Orange' && n !== `${idx}`)
-      gameState.game.teams[idx].name = n;
+    /* Nom détecté en jeu (utilisé seulement si aucun nom n'est saisi dans le panneau) */
+    const n = String(t.Name ?? '').trim();
+    gameTeamNames[idx] = GENERIC_TEAM_NAMES.has(n.toLowerCase()) ? '' : n;
+    refreshTeamName(idx);
   });
 
   const seenIds = new Set();
@@ -429,8 +455,9 @@ app.get('/api/settings', (req, res) => res.json({
 app.post('/api/settings', (req, res) => {
   const { league, blue, orange, bestOf, series } = req.body;
   if (league !== undefined)     settings.league = league;
-  if (blue?.name !== undefined) { settings.blue = { ...(settings.blue || {}), name: blue.name }; gameState.game.teams[0]._nameLocked = true; }
-  if (orange?.name !== undefined) { settings.orange = { ...(settings.orange || {}), name: orange.name }; gameState.game.teams[1]._nameLocked = true; }
+  /* nom vide = retour au nom automatique (détecté en jeu) — appliqué par applySettings() */
+  if (blue?.name   !== undefined) settings.blue   = { ...(settings.blue   || {}), name: String(blue.name   ?? '').trim() };
+  if (orange?.name !== undefined) settings.orange = { ...(settings.orange || {}), name: String(orange.name ?? '').trim() };
   if (bestOf !== undefined)     settings.bestOf = bestOf;
   if (series !== undefined)     settings.series = series;
   saveSettings();
@@ -474,12 +501,12 @@ app.post('/api/media-banner', (req, res) => {
 });
 
 app.post('/api/swap-teams', (req, res) => {
-  const n0 = gameState.game.teams[0].name;
-  const n1 = gameState.game.teams[1].name;
-  gameState.game.teams[0].name = n1;
-  gameState.game.teams[1].name = n0;
-  settings.blue   = { ...(settings.blue   || {}), name: n1 };
-  settings.orange = { ...(settings.orange || {}), name: n0 };
+  /* On inverse les noms SAISIS (pas les noms affichés) : un nom automatique reste automatique,
+     au lieu d'être figé dans les réglages (ex. "BLUE" enregistré comme nom de l'équipe orange). */
+  const m0 = manualTeamName(0), m1 = manualTeamName(1);
+  settings.blue   = { ...(settings.blue   || {}), name: m1 };
+  settings.orange = { ...(settings.orange || {}), name: m0 };
+  refreshTeamName(0); refreshTeamName(1);
 
   const bleuDir   = path.join(LOGOS_DIR, 'bleu');
   const orangeDir = path.join(LOGOS_DIR, 'orange');
@@ -586,10 +613,11 @@ app.post('/api/player-video-toggle', (req, res) => {
 });
 
 app.post('/api/animations', (req, res) => {
-  const { goal, replay, live } = req.body;
-  if (goal   !== undefined) settings.animations.goal   = !!goal;
-  if (replay !== undefined) settings.animations.replay = !!replay;
-  if (live   !== undefined) settings.animations.live   = !!live;
+  const { goal, replay, live, endScreen } = req.body;
+  if (goal      !== undefined) settings.animations.goal      = !!goal;
+  if (replay    !== undefined) settings.animations.replay    = !!replay;
+  if (live      !== undefined) settings.animations.live      = !!live;
+  if (endScreen !== undefined) settings.animations.endScreen = !!endScreen;
   saveSettings();
   broadcast('animations_settings', settings.animations);
   res.json({ ok: true, animations: settings.animations });
@@ -704,8 +732,14 @@ app.get('/api/review-status/refresh', async (req, res) => {
 
 app.post('/api/teams', (req, res) => {
   const { blue, orange, league } = req.body;
-  if (blue)   { gameState.game.teams[0] = { ...gameState.game.teams[0], ...blue }; if (blue.name) { settings.blue = { ...(settings.blue||{}), name: blue.name }; gameState.game.teams[0]._nameLocked = true; } }
-  if (orange) { gameState.game.teams[1] = { ...gameState.game.teams[1], ...orange }; if (orange.name) { settings.orange = { ...(settings.orange||{}), name: orange.name }; gameState.game.teams[1]._nameLocked = true; } }
+  /* { name: '' } = repasser en nom automatique (détecté en jeu) */
+  [[blue, 0, 'blue'], [orange, 1, 'orange']].forEach(([t, idx, key]) => {
+    if (!t) return;
+    const { name, ...rest } = t;
+    Object.assign(gameState.game.teams[idx], rest);
+    if (name !== undefined) settings[key] = { ...(settings[key] || {}), name: String(name ?? '').trim() };
+    refreshTeamName(idx);
+  });
   if (league !== undefined) { gameState.meta.league = league; settings.league = league; }
   saveSettings();
   broadcast('update_state', gameState);
@@ -750,6 +784,7 @@ app.post('/api/time', (req, res) => {
 app.post('/api/reset', (req, res) => {
   specOverride = null;
   gameState = createDefaultState();
+  gameTeamNames = ['', ''];
   applySettings();
   broadcast('init', gameState);
   res.json({ ok: true });

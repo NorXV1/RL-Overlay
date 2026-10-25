@@ -667,6 +667,10 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div><div class="toggle-label">Animation LIVE</div><div class="toggle-sub">Transition au retour au direct</div></div>
         <label class="switch"><input type="checkbox" id="anim-live-toggle" checked onchange="setAnimation('live', this.checked)"><span class="slider"></span></label>
       </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Écran de fin</div><div class="toggle-sub">Tableau des stats affiché à la fin du match</div></div>
+        <label class="switch"><input type="checkbox" id="anim-end-toggle" checked onchange="setAnimation('endScreen', this.checked)"><span class="slider"></span></label>
+      </div>
       <div class="fb" id="fb-anim"></div>
     </div>
 
@@ -1079,8 +1083,8 @@ input:checked + .slider:before { transform:translateX(18px); }
       <label>Label ligue</label>
       <input type="text" id="league-input" placeholder="SEMAINE 1 // LIGUE 1" maxlength="80">
       <div class="row">
-        <div><label>Bleue</label><input type="text" id="blue-name" placeholder="BLUE" maxlength="40"></div>
-        <div><label>Orange</label><input type="text" id="orange-name" placeholder="ORANGE" maxlength="40"></div>
+        <div><label>Bleue</label><input type="text" id="blue-name" placeholder="Auto (détecté en jeu)" maxlength="40" title="Laisser vide : nom de l'équipe détecté en jeu (club, match privé), sinon BLUE"></div>
+        <div><label>Orange</label><input type="text" id="orange-name" placeholder="Auto (détecté en jeu)" maxlength="40" title="Laisser vide : nom de l'équipe détecté en jeu (club, match privé), sinon ORANGE"></div>
       </div>
       <button class="btn btn-blue" onclick="applyTeams()">Appliquer &amp; Sauvegarder</button>
       <div class="fb" id="fb-teams"></div>
@@ -1094,7 +1098,8 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div><label>Blue</label><input type="number" id="s-blue" value="0" min="0" max="7" oninput="renderSeriesDots()"></div>
         <div><label>Orange</label><input type="number" id="s-orange" value="0" min="0" max="7" oninput="renderSeriesDots()"></div>
         <div><label>Format</label>
-          <select id="s-bo" onchange="renderSeriesDots()">
+          <select id="s-bo" onchange="renderSeriesDots()" title="Aucun : pas de série (ni BO, ni manches, ni écran de victoire de série)">
+            <option value="0">Aucun</option>
             <option value="1">BO1</option><option value="3">BO3</option>
             <option value="5">BO5</option><option value="7" selected>BO7</option>
           </select>
@@ -1388,8 +1393,9 @@ ws.onmessage = e => {
     if (type === 'init') {
       const set = (id,val) => { if (val!=null&&val!=='') { const el=document.getElementById(id); if(!el.value) el.value=val; } };
       set('league-input', data.meta?.league);
-      set('blue-name',    data.game.teams[0].name!=='BLUE'   ? data.game.teams[0].name : '');
-      set('orange-name',  data.game.teams[1].name!=='ORANGE' ? data.game.teams[1].name : '');
+      /* seuls les noms saisis vont dans les champs : un nom détecté en jeu reste automatique */
+      set('blue-name',    data.game.teams[0].nameSource === 'manual' ? data.game.teams[0].name : '');
+      set('orange-name',  data.game.teams[1].nameSource === 'manual' ? data.game.teams[1].name : '');
       document.getElementById('s-blue').value   = data.series?.blue   ?? 0;
       document.getElementById('s-orange').value = data.series?.orange ?? 0;
       document.getElementById('s-bo').value     = data.series?.bestOf ?? 7;
@@ -1408,6 +1414,7 @@ ws.onmessage = e => {
     document.getElementById('anim-goal-toggle').checked   = data.goal   ?? true;
     document.getElementById('anim-replay-toggle').checked = data.replay ?? true;
     document.getElementById('anim-live-toggle').checked   = data.live   ?? true;
+    document.getElementById('anim-end-toggle').checked    = data.endScreen ?? true;
   }
   if (type === 'review_status') document.getElementById('review-btn').style.display = data.submitted ? 'none' : '';
   if (type === 'logo_updated') { const img=document.querySelector(`#prev-${data.side} img`); if(img) img.dataset.url=''; setLogoPreview(data.side, data.url); }
@@ -1422,13 +1429,14 @@ async function loadSettings() {
     set('league-input',s.league); set('blue-name',s.blue?.name); set('orange-name',s.orange?.name);
     if(s.series?.blue!==undefined)   document.getElementById('s-blue').value   = s.series.blue;
     if(s.series?.orange!==undefined) document.getElementById('s-orange').value = s.series.orange;
-    if(s.bestOf)                     document.getElementById('s-bo').value     = s.bestOf;
+    if(s.bestOf!=null)               { document.getElementById('s-bo').value = s.bestOf; renderSeriesDots(); }
     document.getElementById('media-toggle').checked = s.mediaBanner?.enabled ?? false;
     document.getElementById('player-video-toggle').checked = s.playerVideoEnabled ?? false;
     const anim = s.animations || {};
     document.getElementById('anim-goal-toggle').checked   = anim.goal   ?? true;
     document.getElementById('anim-replay-toggle').checked = anim.replay ?? true;
     document.getElementById('anim-live-toggle').checked   = anim.live   ?? true;
+    document.getElementById('anim-end-toggle').checked    = anim.endScreen ?? true;
     document.getElementById('review-btn').style.display = s.reviewSubmitted ? 'none' : '';
     if (!s.reviewSubmitted) scheduleAutoReviewPopup();
     document.getElementById('keep-player-links-toggle').checked = s.keepPlayerLinks ?? false;
@@ -1440,11 +1448,15 @@ loadSettings();
 
 /* ── Series dots ── */
 function renderSeriesDots() {
-  const bo=parseInt(document.getElementById('s-bo').value)||7;
+  const raw=parseInt(document.getElementById('s-bo').value);
+  const bo=Number.isNaN(raw)?7:raw;   // 0 = sans BO
   const blue=parseInt(document.getElementById('s-blue').value)||0;
   const orange=parseInt(document.getElementById('s-orange').value)||0;
   const wins=Math.ceil(bo/2);
   const el=document.getElementById('series-dots'); el.innerHTML='';
+  /* Sans BO : les scores de série n'ont pas de sens, on les grise */
+  ['s-blue','s-orange'].forEach(id=>{ const i=document.getElementById(id); i.disabled=!bo; i.style.opacity=bo?'':'.4'; });
+  if(!bo) { el.innerHTML='<span style="font-size:11px;color:var(--muted);">Pas de série — aucun BO affiché sur l\'overlay</span>'; return; }
   for(let i=0;i<wins;i++) { const d=document.createElement('div'); d.className='sdot'+(i<blue?' won blue':''); d.style.width='26px'; el.appendChild(d); }
   const sep=document.createElement('div'); sep.className='sdot sep'; el.appendChild(sep);
   for(let i=0;i<wins;i++) { const d=document.createElement('div'); d.className='sdot'+(i<orange?' won orange':''); d.style.width='26px'; el.appendChild(d); }
@@ -1649,7 +1661,7 @@ async function setMediaBanner(e) {
 async function selectPlayer(name) { await post('/api/spectate-player',{name}); fb('fb-player',`✓ ${name} affiché`); }
 async function clearSpec() { await post('/api/spectate-clear',{}); fb('fb-player','✓ Stat bar masquée'); }
 document.addEventListener('keydown',async e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; const n=parseInt(e.key); if(n>=1&&n<=9){const res=await post('/api/spectate-shortcut',{shortcut:n});if(res.ok) fb('fb-player',`✓ [${n}] ${res.name}`);}});
-async function applyTeams() { const league=document.getElementById('league-input').value.trim(),blue=document.getElementById('blue-name').value.trim(),orange=document.getElementById('orange-name').value.trim(); await post('/api/teams',{blue:blue?{name:blue}:undefined,orange:orange?{name:orange}:undefined,league}); reloadPreview(); fb('fb-teams','✓ Mis à jour & sauvegardé'); }
+async function applyTeams() { const league=document.getElementById('league-input').value.trim(),blue=document.getElementById('blue-name').value.trim(),orange=document.getElementById('orange-name').value.trim(); await post('/api/teams',{blue:{name:blue},orange:{name:orange},league}); /* champ vide = nom automatique */ reloadPreview(); fb('fb-teams','✓ Mis à jour & sauvegardé'); }
 async function applySeries() { await post('/api/series',{blue:parseInt(document.getElementById('s-blue').value),orange:parseInt(document.getElementById('s-orange').value),bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Série mise à jour'); }
 async function resetSeries() { document.getElementById('s-blue').value=document.getElementById('s-orange').value=0; renderSeriesDots(); await post('/api/series',{blue:0,orange:0,bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Reset'); }
 function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling; btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1800); }); }
@@ -1660,8 +1672,8 @@ async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
 async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); }
 async function setKeepPlayerLinks(v) { await post('/api/keep-player-links', {enabled:v}); fb('fb-pl-modal', v?'✓ Les liens seront conservés au redémarrage':'✓ Les liens seront réinitialisés au redémarrage'); }
-const ANIM_LABELS = { goal: 'GOAL', replay: 'REPLAY', live: 'LIVE' };
-async function setAnimation(key, v) { await post('/api/animations', {[key]:v}); fb('fb-anim', `✓ Animation ${ANIM_LABELS[key]} ${v?'activée':'désactivée'}`); }
+const ANIM_LABELS = { goal: 'Animation GOAL', replay: 'Animation REPLAY', live: 'Animation LIVE', endScreen: 'Écran de fin' };
+async function setAnimation(key, v) { const e = key === 'endScreen' ? '' : 'e'; await post('/api/animations', {[key]:v}); fb('fb-anim', `✓ ${ANIM_LABELS[key]} ${v?'activé':'désactivé'}${e}`); }
 
 /* ── Avis ── */
 let _reviewRating = 0;

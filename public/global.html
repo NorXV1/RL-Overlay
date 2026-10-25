@@ -243,6 +243,15 @@ body {
   text-transform: uppercase; margin-top: 2px;
 }
 
+/* Sans BO (format « Aucun » dans le panneau) — pour TOUS les thèmes : le « BOx » sous le chrono
+   et la ligne de série de l'écran de fin sont masqués. En prolongation, #timer-sub garde sa place
+   (texte du BO caché) pour les thèmes qui y affichent OVERTIME via un pseudo-élément. Les points
+   de série, pips et « GAME X ► BEST OF X » ne sont simplement plus générés (voir buildSubTrack). */
+body[data-series="off"] #timer:not(.ot) + #timer-sub { display: none !important; }
+body[data-series="off"] #timer.ot + #timer-sub       { font-size: 0 !important; }
+body[data-series="off"] .end-ser-row,
+body[data-series="off"] .end-bo-tag                  { display: none !important; }
+
 /* ════════════════════════════════════════════════════
    SIDEBARS JOUEURS
 ════════════════════════════════════════════════════ */
@@ -1264,6 +1273,25 @@ body {
 </div>
 
 <script>
+/* ── Verrou anti-décalage ──
+   La page fait 1920×1080 mais des éléments masqués dépassent du cadre (caméras replay rangées
+   hors écran à droite, stat bar et barre replay glissées sous le bas). Il n'y a pas de barre de
+   défilement, mais le navigateur peut quand même faire « défiler » la page (focus d'un lecteur
+   vidéo intégré, fenêtre Interagir d'OBS…) : tout l'overlay glisse alors vers le haut / la gauche
+   dans OBS, le haut du scoreboard est coupé et les caméras dépassent à droite. On remet donc
+   immédiatement à zéro tout défilement, de la page comme de n'importe quel élément. */
+function _lockScroll(e) {
+  const t = e && e.target;
+  if (!t || t === window || t === document || t === document.documentElement || t === document.body) {
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+  } else if (t.scrollTop || t.scrollLeft) {
+    t.scrollTop = 0; t.scrollLeft = 0;
+  }
+}
+document.addEventListener('scroll', _lockScroll, true);   // capture : les éléments aussi
+window.addEventListener('scroll', _lockScroll);
+window.addEventListener('load', () => _lockScroll());
+
 /* ── Thème ── */
 const THEME_COLS = {
   rlcs:     { b:'#1a5fff', bL:'#60a0ff', o:'#d96000', oL:'#ff9c33' },
@@ -1592,7 +1620,7 @@ let lastPrimaryId = null;
 let overlayForcedOff = false;
 let boostForcedOff   = false;
 let playerVideoEnabled = false;
-let animSettings = { goal: true, replay: true, live: true };
+let animSettings = { goal: true, replay: true, live: true, endScreen: true };
 let afterPreCountdown = false;
 let collapseScoreT;
 let _wasOT = false;
@@ -1887,10 +1915,7 @@ function connect() {
       if (type === 'utils_updated') onUtilsUpdated(data.files);
       if (type === 'logo_updated') {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
-        const img    = document.getElementById(`${side}-logo-img`);
-        const letter = document.getElementById(`${side}-logo`);
-        if (data.url) { img.dataset.logo = data.url; img.src = data.url + '?t=' + Date.now(); img.classList.add('active'); letter.style.display = 'none'; }
-        else { img.dataset.logo = ''; img.classList.remove('active'); letter.style.display = ''; }
+        _showLogo(document.getElementById(`${side}-logo-img`), document.getElementById(`${side}-logo`), data.url, !!data.url);
       }
       return;
     }
@@ -1974,8 +1999,10 @@ function connect() {
         }
         break;
       case 'game_end_stats': {
+        /* Écran de fin désactivé dans les réglages : on ne l'affiche pas (la victoire de série reste) */
+        if (!animSettings.endScreen) break;
         const winDelay = document.getElementById('win-screen').classList.contains('show') ? 5500 : 1200;
-        setTimeout(() => showEndScreen(data), winDelay);
+        setTimeout(() => { if (animSettings.endScreen) showEndScreen(data); }, winDelay);
         break;
       }
       case 'match_ended': {
@@ -2017,7 +2044,9 @@ function connect() {
         renderPlayerVideo(state ? findSpectated(state.game?.players ?? {}) : null);
         break;
       case 'animations_settings':
-        animSettings = { goal: true, replay: true, live: true, ...data };
+        animSettings = { goal: true, replay: true, live: true, endScreen: true, ...data };
+        /* écran de fin désactivé pendant qu'il est affiché : on le retire tout de suite */
+        if (!animSettings.endScreen && document.getElementById('end-screen').classList.contains('visible')) hideEndScreen();
         break;
       case 'sos_disconnected':
         hideOverlay(0);
@@ -2031,20 +2060,8 @@ function connect() {
         break;
       case 'logo_updated': {
         const sideName = data.side === 'bleu' ? 'blue' : 'orange';
-        const img = document.getElementById(`${sideName}-logo-img`);
-        const letter = document.getElementById(`${sideName}-logo`);
-        if (data.url) {
-          /* ?t= force le rechargement (le nouveau logo garde le même nom de fichier) ;
-             dataset.logo évite que setLogo le recharge ensuite à chaque message */
-          img.dataset.logo = data.url;
-          img.src = data.url + '?t=' + Date.now();
-          img.classList.add('active');
-          letter.style.display = 'none';
-        } else {
-          img.dataset.logo = '';
-          img.classList.remove('active');
-          letter.style.display = '';
-        }
+        /* nouveau logo : rechargement forcé (même nom de fichier) ; supprimé : logo de remplacement */
+        _showLogo(document.getElementById(`${sideName}-logo-img`), document.getElementById(`${sideName}-logo`), data.url, !!data.url);
         break;
       }
       case 'teams_swapped':
@@ -2074,6 +2091,7 @@ function connect() {
           const prevBlue = state.series?.blue   ?? 0;
           const prevOrg  = state.series?.orange ?? 0;
           state.series = data;
+          _setText(document.getElementById('bo-num'), data.bestOf);
           if (data.blue   > prevBlue) bumpWinCount('blue');
           if (data.orange > prevOrg)  bumpWinCount('orange');
           renderSeriesDots();
@@ -2098,26 +2116,32 @@ function _setText(el, v) {
   if (el.textContent !== v) el.textContent = v;
 }
 
+/* Logo de remplacement (emblème Rocket League) affiché quand une équipe n'a pas de logo — pour
+   TOUS les thèmes, partout où un logo d'équipe apparaît : scoreboard, écran de fin, victoire de
+   série, stat bar (FIFA) et aperçu du panneau. La lettre de l'équipe n'est plus utilisée. */
+const FALLBACK_LOGO = '/img/logo-fallback.png';
+
+/* Affiche le logo (ou le logo de remplacement) sur une <img>.
+   Ne recharge l'image que si l'adresse change : réaffecter img.src relançait un téléchargement
+   complet du logo à CHAQUE message (2 logos × 30/s, cache désactivé sur /logos) → lag.
+   force = recharger la même adresse (logo remplacé sous le même nom de fichier). */
+function _showLogo(img, letter, url, force) {
+  if (!img) return;
+  const src = url || FALLBACK_LOGO;
+  if (force || img.dataset.logo !== src) {
+    img.dataset.logo = src;
+    img.src = force ? src + '?t=' + Date.now() : src;
+  }
+  img.classList.add('active');
+  img.classList.toggle('logo-fallback', !url);   // repère pour les thèmes qui voudraient le styler
+  if (letter) letter.style.display = 'none';
+}
+
 function setLogo(side, team) {
   const img    = document.getElementById(`${side}-logo-img`);
   const letter = document.getElementById(`${side}-logo`);
   _setText(letter, (team.name || '').charAt(0));
-  if (team.logo_url) {
-    /* Ne recharger l'image que si l'URL change. Réaffecter img.src relançait un téléchargement
-       complet du logo à CHAQUE message (2 logos × 30/s, cache désactivé sur /logos) : des dizaines
-       de Mo/s relus, renvoyés et redécodés en continu → lag de l'overlay et du serveur. Un logo
-       remplacé sous le même nom est rafraîchi par l'événement logo_updated (paramètre ?t=). */
-    if (img.dataset.logo !== team.logo_url) {
-      img.dataset.logo = team.logo_url;
-      img.src = team.logo_url;
-    }
-    img.classList.add('active');
-    letter.style.display = 'none';
-  } else {
-    img.dataset.logo = '';
-    img.classList.remove('active');
-    letter.style.display = '';
-  }
+  _showLogo(img, letter, team.logo_url);
 }
 
 /* ── Render complet ── */
@@ -2235,6 +2259,8 @@ function renderSeriesDots() {
   const _sk = `${ser.blue}|${ser.orange}|${ser.bestOf}|${_wasOT ? 1 : 0}`;
   if (_sk !== _lastSerKey) {
     _lastSerKey = _sk;
+    /* body[data-series="off"] : masque les indicateurs de série dans tous les thèmes (voir CSS) */
+    document.body.dataset.series = ser.bestOf ? 'on' : 'off';
     buildDots('blue-sdots',   ser.blue,   wins, 'blue');
     buildDots('orange-sdots', ser.orange, wins, 'orange');
     buildSubTrack(ser.blue, ser.orange, ser.bestOf);
@@ -2248,8 +2274,29 @@ function renderSeriesDots() {
 function buildSubTrack(blue, orange, bo) {
   const track = document.getElementById('sub-ser-track');
   if (!track) return;
-  bo = bo || 5; blue = blue || 0; orange = orange || 0;
+  if (bo == null) bo = 5;
+  blue = blue || 0; orange = orange || 0;
   track.innerHTML = '';
+
+  /* Sans BO (format « Aucun ») : ni « GAME X ► BEST OF X », ni pips de victoire, ni points de
+     série. Les thèmes qui affichent OVERTIME dans cette barre le gardent en prolongation. */
+  if (!bo) {
+    const pipThemes = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup');
+    if (pipThemes) {
+      ['sub-abbr-blue', 'sub-abbr-orange'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    }
+    const sb = document.getElementById('score-sub-bar');
+    if ((themeIs('rlcs2025') || themeIs('lysorn-cup') || themeIs('rs-cup')) && _wasOT) {
+      const span = document.createElement('span');
+      span.className = 'sub-game-text';
+      span.textContent = 'OVERTIME';
+      track.appendChild(span);
+      if (sb) sb.dataset.ot = 'true';
+    } else if (sb) {
+      delete sb.dataset.ot;
+    }
+    return;
+  }
 
   /* Vitality / ENISorail / FIFA WC / Lysorn Cup : affiche "GAME X  ►  BEST OF X" + pips de victoire */
   if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
@@ -2464,9 +2511,9 @@ function renderStatBar(p) {
     const team = state?.game?.teams?.[p.team];
     const img = wrap.querySelector('img');
     /* même règle que setLogo : ne recharger le logo que si l'URL change */
-    const url = team?.logo_url || '';
+    const url = team?.logo_url || FALLBACK_LOGO;
     if (img && img.dataset.logo !== url) { img.dataset.logo = url; img.src = url; }
-    wrap.style.display = url ? 'flex' : 'none';
+    wrap.style.display = 'flex';
   } else {
     document.getElementById('stat-team-tag').style.background = color;
   }
@@ -2666,7 +2713,8 @@ function checkSeriesWin() {
   const ser = state.series, wins = Math.ceil(ser.bestOf / 2);
   const screen = document.getElementById('win-screen');
 
-  if (ser.blue >= wins || ser.orange >= wins) {
+  /* Sans BO : pas de série, donc jamais d'écran de victoire de série */
+  if (ser.bestOf && (ser.blue >= wins || ser.orange >= wins)) {
     const w = ser.blue >= wins ? 0 : 1;
     const team  = state.game.teams[w];
     const color = w === 0 ? tc().bL : tc().oL;
@@ -2678,17 +2726,7 @@ function checkSeriesWin() {
     document.getElementById('win-bar-top').style.background = color;
     document.getElementById('win-bar-bot').style.background = color;
 
-    const img    = document.getElementById('win-logo-img');
-    const letter = document.getElementById('win-logo-letter');
-    if (team.logo_url) {
-      img.src = team.logo_url; img.classList.add('active');
-      letter.style.display = 'none';
-    } else {
-      img.src = ''; img.classList.remove('active');
-      letter.textContent   = (team.name || '?').charAt(0).toUpperCase();
-      letter.style.color   = color;
-      letter.style.display = '';
-    }
+    _showLogo(document.getElementById('win-logo-img'), document.getElementById('win-logo-letter'), team.logo_url);
 
     document.getElementById('stat-bar').classList.remove('show');
     renderPlayerVideo(null);
@@ -2984,15 +3022,7 @@ function setEndLogo(side, team) {
   const letter = document.getElementById(`end-logo-letter-${side}`);
   if (!img || !letter) return;
   letter.textContent = (team?.name || side).charAt(0).toUpperCase();
-  if (team?.logo_url) {
-    img.src = team.logo_url;
-    img.classList.add('active');
-    letter.style.display = 'none';
-  } else {
-    img.src = '';
-    img.classList.remove('active');
-    letter.style.display = '';
-  }
+  _showLogo(img, letter, team?.logo_url);
 }
 
 function showEndScreen(data) {
@@ -3019,8 +3049,8 @@ function buildEndScreen({ winner, teams, series, players }) {
   const winsEl = document.getElementById('end-wins-text');
   if (winsEl) winsEl.textContent = '';
 
-  // ── Overrides RLCS 2026 ──
-  if (document.body.dataset.theme === 'rlcs2026') {
+  // ── Overrides RLCS 2026 (série uniquement si un BO est défini) ──
+  if (document.body.dataset.theme === 'rlcs2026' && series?.bestOf) {
     const gameNum = (series?.blue ?? 0) + (series?.orange ?? 0);
     if (vsEl) vsEl.textContent = `GAME ${gameNum}  ·  BO${series?.bestOf ?? 7}`;
     if (winsEl) {
@@ -3153,19 +3183,11 @@ if (IS_PREVIEW) {
     // Logos
     const logoUrlB = s.teams?.[0]?.logo_url || s.blue?.logo_url;
     const logoUrlO = s.teams?.[1]?.logo_url || s.orange?.logo_url;
-    if (logoUrlB) {
-      const img = document.getElementById('blue-logo-img');
-      img.src = logoUrlB; img.classList.add('active');
-      document.getElementById('blue-logo').style.display = 'none';
-    }
-    if (logoUrlO) {
-      const img = document.getElementById('orange-logo-img');
-      img.src = logoUrlO; img.classList.add('active');
-      document.getElementById('orange-logo').style.display = 'none';
-    }
+    _showLogo(document.getElementById('blue-logo-img'),   document.getElementById('blue-logo'),   logoUrlB);
+    _showLogo(document.getElementById('orange-logo-img'), document.getElementById('orange-logo'), logoUrlO);
 
     // Série (bestOf est au niveau racine dans settings.json)
-    const bestOf    = s.bestOf || s.series?.bestOf || 5;
+    const bestOf    = s.bestOf ?? s.series?.bestOf ?? 5;   // 0 = sans BO
     const serBlue   = s.series?.blue   || 0;
     const serOrange = s.series?.orange || 0;
     document.getElementById('bo-num').textContent = bestOf;
@@ -3308,17 +3330,7 @@ window.addEventListener('message', ({ data }) => {
     document.getElementById('win-glow').style.background    = color;
     document.getElementById('win-bar-top').style.background = color;
     document.getElementById('win-bar-bot').style.background = color;
-    const img    = document.getElementById('win-logo-img');
-    const letter = document.getElementById('win-logo-letter');
-    if (team.logo_url) {
-      img.src = team.logo_url; img.classList.add('active');
-      letter.style.display = 'none';
-    } else {
-      img.src = ''; img.classList.remove('active');
-      letter.textContent   = (team.name || '?').charAt(0).toUpperCase();
-      letter.style.color   = color;
-      letter.style.display = '';
-    }
+    _showLogo(document.getElementById('win-logo-img'), document.getElementById('win-logo-letter'), team.logo_url);
     screen.classList.remove('show');
     void screen.offsetWidth;
     screen.classList.add('show');

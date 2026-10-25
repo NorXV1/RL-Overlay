@@ -90,5 +90,16 @@
       "Correction : les noms de joueurs avec accents ou emojis pouvaient être corrompus, ce qui faisait disparaître puis réapparaître leur ligne dans la sidebar",
       "Amélioration : l'overlay ne redessine plus les textes qui n'ont pas changé, pour un rendu plus fluide dans OBS"
     ]
+  },
+  "1.8.0": {
+    "date": "2026-10-25",
+    "notes": [
+      "Nouveau : logo de remplacement (emblème Rocket League) affiché sur tous les thèmes quand une équipe n'a pas de logo",
+      "Nouveau : noms d'équipe automatiques — sans nom saisi, l'overlay affiche le nom détecté en jeu (club, match privé), sinon BLUE / ORANGE. Vider le champ dans le panneau repasse en automatique",
+      "Nouveau : interrupteur « Écran de fin » dans la carte Animations pour ne pas afficher le tableau des stats en fin de match",
+      "Nouveau : format de série « Aucun » — plus de BO, de manches ni d'écran de victoire de série sur l'overlay",
+      "Correction : l'overlay pouvait se décaler dans OBS (haut du scoreboard coupé, caméras replay visibles sur le bord droit)",
+      "Correction : un nom d'équipe effacé dans le panneau restait affiché, et inverser les équipes figeait les noms automatiques"
+    ]
   }
 }
