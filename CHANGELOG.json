@@ -101,5 +101,13 @@
       "Correction : l'overlay pouvait se décaler dans OBS (haut du scoreboard coupé, caméras replay visibles sur le bord droit)",
       "Correction : un nom d'équipe effacé dans le panneau restait affiché, et inverser les équipes figeait les noms automatiques"
     ]
+  },
+  "1.8.1": {
+    "date": "2026-10-26",
+    "notes": [
+      "Nouveau : renommer un thème depuis le panneau de contrôle (crayon ✎ au survol de sa carte) — seul le nom affiché change, un nom vide remet le nom d'origine",
+      "Nouveau (thèmes custom) : options « timerFormat » (chrono 5:00 au lieu de 05:00) et « wipeText » (mot REPLAY / LIVE animé lettre par lettre) dans le meta.json",
+      "Correction : un nom de thème trop long élargissait sa carte — il est maintenant coupé avec « … » et affiché en entier au survol"
+    ]
   }
 }

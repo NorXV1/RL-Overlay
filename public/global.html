@@ -1316,6 +1316,13 @@ let currentThemeWipe = null;
 /* Fond de l'écran de fin propre au thème ("endBackground" du meta.json), null si aucun :
    { file: 'fond.webm', kind: 'video' } ou { file: 'fond.png', kind: 'image' } */
 let currentThemeEndBg = null;
+/* Chrono court « 5:00 » au lieu de « 05:00 » ("timerFormat": "m:ss" du meta.json) — pour qu'un
+   thème custom autonome (basedOn = lui-même) puisse l'avoir sans hériter d'un thème intégré. */
+let currentThemeTimerShort = false;
+/* Mot REPLAY/LIVE découpé en lettres ("wipeText": "letters" du meta.json) : chaque lettre devient
+   un <span class="rw-l" data-l="R" style="--i;--c"> (rang, écart au centre) qu'un thème custom
+   peut animer séparément, sans branche dédiée dans ce fichier. */
+let currentThemeWipeLetters = false;
 
 /* Vérifie si le thème actif (ou son thème source / ses alias) correspond à name */
 function themeIs(name) { return currentTheme === name || currentThemeBase === name || currentThemeAliases.includes(name); }
@@ -1361,7 +1368,7 @@ const END_BG_VIDEO_EXT = new Set(['webm', 'mp4', 'mov']);
 const END_BG_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']);
 
 function _loadThemeMeta(theme) {
-  const none = { aliases: [], wipe: null, endBg: null };
+  const none = { aliases: [], wipe: null, endBg: null, timerShort: false, wipeLetters: false };
   if (!theme || theme === 'rlcs' || THEME_COLS[theme]) return Promise.resolve(none);
   return fetch(`/themes/${theme}/meta.json`)
     .then(r => r.json())
@@ -1377,7 +1384,7 @@ function _loadThemeMeta(theme) {
         const kind = END_BG_VIDEO_EXT.has(ext) ? 'video' : (END_BG_IMAGE_EXT.has(ext) ? 'image' : null);
         if (kind) endBg = { file: ebFile, kind };
       }
-      return { aliases: [].concat(m.alias || []), wipe, endBg };
+      return { aliases: [].concat(m.alias || []), wipe, endBg, timerShort: m.timerFormat === 'm:ss', wipeLetters: m.wipeText === 'letters' };
     })
     .catch(() => none);
 }
@@ -1446,6 +1453,8 @@ function applyTheme(t) {
   currentThemeAliases = [];
   currentThemeWipe = null;
   currentThemeEndBg = null;
+  currentThemeTimerShort = false;
+  currentThemeWipeLetters = false;
   _invalidateTc();
   document.body.dataset.theme = currentTheme === 'rlcs' ? '' : currentTheme;
   const link = document.getElementById('theme-stylesheet');
@@ -1461,6 +1470,13 @@ function applyTheme(t) {
     currentThemeAliases = meta.aliases;
     currentThemeWipe = meta.wipe;
     currentThemeEndBg = meta.endBg;
+    currentThemeTimerShort = meta.timerShort;
+    currentThemeWipeLetters = meta.wipeLetters;
+    /* Aperçu du panneau : le chrono est figé, on le réécrit au format du thème */
+    if (new URLSearchParams(location.search).has('preview')) {
+      const tm = document.getElementById('timer');
+      if (tm && !tm.classList.contains('ot')) _setText(tm, fmtTimer(300));
+    }
     _syncThemeWipeVideos();
     if (meta.endBg) {
       /* Nouveau système générique ("endBackground" du meta.json) : prioritaire s'il est déclaré. */
@@ -1756,6 +1772,12 @@ function doReplayWipe(word, onDone, hold = 1600) {
       ch === ' '
         ? `<span class="ens-letter" style="--ens-i:${i}">&nbsp;</span>`
         : `<span class="ens-letter" style="--ens-i:${i}">${ch}</span>`
+    ).join('');
+  } else if (currentThemeWipeLetters) {
+    lbl.dataset.text = word;
+    const mid = (word.length - 1) / 2;
+    lbl.innerHTML = [...word].map((ch, i) =>
+      `<span class="rw-l" data-l="${ch === ' ' ? '' : ch}" style="--i:${i};--c:${i - mid}">${ch === ' ' ? '&nbsp;' : ch}</span>`
     ).join('');
   } else {
     lbl.textContent = lbl.dataset.text = word;
@@ -2213,7 +2235,7 @@ function render(data) {
 function fmtTimer(s) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
   /* rlcs2025 / Vitality : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
-  if (themeIs('rlcs2025') || themeIs('vitality') || themeIs('rlcs2026')) return `${m}:${String(sec).padStart(2, '0')}`;
+  if (themeIs('rlcs2025') || themeIs('vitality') || themeIs('rlcs2026') || currentThemeTimerShort) return `${m}:${String(sec).padStart(2, '0')}`;
   return fmt(s);
 }
 
@@ -3251,7 +3273,7 @@ if (IS_PREVIEW) {
   // Forcer l'affichage du scoreboard
   document.getElementById('score-blue').textContent   = '0';
   document.getElementById('score-orange').textContent = '0';
-  document.getElementById('timer').textContent        = '5:00';
+  document.getElementById('timer').textContent        = fmtTimer(300);   // « 5:00 » ou « 05:00 » selon le thème
   document.getElementById('timer').className          = '';
 
   // Rendre visible

@@ -400,6 +400,7 @@ input:checked + .slider:before { transform:translateX(18px); }
 /* ─── THEME PICKER ───────────────────────────────── */
 #themes-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:9px; }
 .tc {
+  position:relative;
   display:flex; flex-direction:column; align-items:center; gap:6px;
   cursor:pointer; padding:6px; border-radius: var(--radius-sm);
   border:2px solid transparent;
@@ -424,9 +425,24 @@ input:checked + .slider:before { transform:translateX(18px); }
 .tc-card-left  { flex:1; border-radius:3px; }
 .tc-card-right { flex:1; border-radius:3px; }
 .tc-name { font-size:9px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:center; transition: color var(--dur) var(--ease); }
+/* Un nom trop long ne doit pas élargir la carte : coupé avec « … », nom complet au survol */
+.tc { min-width:0; }
+.tc-name { min-width:0; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .tc.active .tc-name { color:var(--blue); }
 .tc-check { display:none; width:14px; height:14px; border-radius:50%; background:var(--blue); align-items:center; justify-content:center; font-size:9px; color:#fff; }
 .tc.active .tc-check { display:flex; }
+/* Renommer un thème (nom affiché seulement) : crayon au survol, champ à la place du nom */
+.tc-rename {
+  position:absolute; top:2px; left:2px; z-index:2;
+  width:16px; height:16px; padding:0; border:none; border-radius:3px;
+  background:rgba(0,0,0,.6); color:#fff; font-size:10px; line-height:1; cursor:pointer;
+  opacity:0; transition: opacity var(--dur) var(--ease);
+}
+.tc:hover .tc-rename, .tc-rename:focus-visible { opacity:1; }
+.tc-name-input {
+  width:100%; min-width:60px; padding:1px 3px; border:1px solid var(--blue); border-radius:3px; outline:none;
+  background:rgba(0,0,0,.45); color:#fff; font:inherit; letter-spacing:1px; text-align:center;
+}
 /* Thèmes premium verrouillés */
 .tc-locked { opacity:.55; cursor:not-allowed; }
 .tc-locked:hover { transform:none !important; }
@@ -1215,9 +1231,64 @@ function setTheme(t) {
   _applyThemeRaw(t);
 }
 
+/* Noms affichés des thèmes, choisis via le crayon ✎ (settings.json côté serveur) :
+   seul le libellé change, le dossier du thème et le lien des sources OBS restent identiques. */
+let _themeNames = {};
+function _themeNameEl(card) {
+  const n = card.querySelector('.tc-name');
+  if (n && n.dataset.default === undefined) n.dataset.default = n.textContent.trim();
+  return n;
+}
+function renderThemeNames() {
+  document.querySelectorAll('.tc[data-t]').forEach(card => {
+    const n = _themeNameEl(card);
+    if (!n || n.querySelector('input')) return;
+    const custom = _themeNames[card.dataset.t];
+    n.parentElement.style.maxWidth = '100%';   // la ligne nom + ✓ reste dans la carte, le nom se coupe
+    n.textContent = custom || n.dataset.default;
+    n.title = custom ? `${custom} (${n.dataset.default})` : n.dataset.default;
+    if (!card.querySelector('.tc-rename')) {
+      const b = document.createElement('button');
+      b.className = 'tc-rename'; b.title = 'Renommer'; b.textContent = '✎';
+      b.addEventListener('click', e => { e.stopPropagation(); editThemeName(card); });
+      card.appendChild(b);
+    }
+  });
+}
+function editThemeName(card) {
+  const n = _themeNameEl(card), t = card.dataset.t;
+  if (!n || n.querySelector('input')) return;
+  const input = document.createElement('input');
+  input.className = 'tc-name-input'; input.maxLength = 40;
+  input.value = _themeNames[t] || n.dataset.default;
+  input.placeholder = n.dataset.default;
+  n.textContent = ''; n.appendChild(input);
+  ['click', 'mousedown'].forEach(ev => input.addEventListener(ev, e => e.stopPropagation()));
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    let label = input.value.trim();
+    input.remove();
+    /* vide ou identique au nom d'origine = retour au nom d'origine */
+    if (label.toUpperCase() === n.dataset.default.toUpperCase()) label = '';
+    if (save && label !== (_themeNames[t] || '')) {
+      try {
+        const r = await post(`/api/themes/${encodeURIComponent(t)}/label`, { label });
+        if (r.ok) _themeNames = r.names || {};
+      } catch {}
+    }
+    renderThemeNames();
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
+  input.addEventListener('blur', () => finish(true));
+  input.focus(); input.select();
+}
+
 function loadImportedThemes() {
-  return fetch('/api/themes').then(r => r.json()).then(({ themes, current }) => {
+  return fetch('/api/themes').then(r => r.json()).then(({ themes, current, names }) => {
     _allThemes = themes;
+    _themeNames = names || {};
     const imported = themes.filter(t => !BUILTIN.has(t));
     const row  = document.getElementById('imported-themes-row');
     const grid = document.getElementById('imported-themes-grid');
@@ -1227,7 +1298,7 @@ function loadImportedThemes() {
       const wrap = document.createElement('div');
       wrap.className = 'tc' + (t === current ? ' active' : '');
       wrap.dataset.t = t;
-      wrap.style.cssText = 'position:relative;min-width:80px;';
+      wrap.style.cssText = 'width:80px;';
       wrap.innerHTML = `
         <div class="tc-preview" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
           <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:1px;">CSS</div>
@@ -1242,6 +1313,7 @@ function loadImportedThemes() {
     });
     // Mettre à jour active sur les cartes built-in aussi
     document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === current));
+    renderThemeNames();
   }).catch(() => {});
 }
 

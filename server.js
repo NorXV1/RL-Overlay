@@ -38,6 +38,7 @@ settings.playerLinks = settings.keepPlayerLinks ? (settings.playerLinks || {}) :
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
 settings.animations = { goal: true, replay: true, live: true, endScreen: true, ...(settings.animations || {}) };
 settings.reviewSubmitted = settings.reviewSubmitted ?? false;
+settings.themeNames = settings.themeNames || {}; // noms affichés choisis dans le panneau ({ dossier: "Nom" })
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
 
@@ -810,7 +811,19 @@ function listThemes() {
 }
 
 app.get('/api/themes', (req, res) => {
-  res.json({ themes: listThemes(), current: currentTheme });
+  res.json({ themes: listThemes(), current: currentTheme, names: settings.themeNames });
+});
+
+/* Renomme un thème dans le panneau : seul le nom affiché change (le dossier, les sélecteurs
+   [data-theme] du CSS et les liens des sources OBS restent identiques). Nom vide = nom d'origine. */
+app.post('/api/themes/:name/label', (req, res) => {
+  const name = req.params.name;
+  if (!listThemes().includes(name)) return res.status(404).json({ error: 'thème introuvable' });
+  const label = String(req.body?.label ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (label) settings.themeNames[name] = label;
+  else delete settings.themeNames[name];
+  saveSettings();
+  res.json({ ok: true, names: settings.themeNames });
 });
 
 app.post('/api/theme', (req, res) => {
@@ -1052,6 +1065,7 @@ app.delete('/api/themes/:name', (req, res) => {
   if (builtinProtected.includes(name)) return res.status(403).json({ error: 'thème protégé' });
   const themeDir = path.join(THEMES_DIR, name);
   if (fs.existsSync(themeDir)) fs.rmSync(themeDir, { recursive: true });
+  if (settings.themeNames[name]) { delete settings.themeNames[name]; saveSettings(); }
   if (currentTheme === name) {
     currentTheme = 'rlcs'; settings.theme = 'rlcs'; saveSettings();
     broadcast('theme_change', { theme: 'rlcs' });
