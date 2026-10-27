@@ -1038,7 +1038,22 @@ app.post('/api/themes/download-by-id', async (req, res) => {
       }
     }
     const { id, name } = resolved.body;
-    const localName = id.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || ('theme' + Date.now());
+    const base = id.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase() || ('theme' + Date.now());
+
+    /* Dossier local : jamais celui d'un AUTRE thème. Avant, le dossier portait simplement l'id
+       du site : un thème du site nommé comme un thème déjà présent (ex. « rbrs ») écrasait ce
+       dernier sans rien ajouter à la liste. Le meta.json d'un thème téléchargé retient son id
+       du site ("siteId") : le même thème est mis à jour à sa place, sinon on prend le premier
+       nom libre (rbrs-2, rbrs-3…). */
+    const siteIdOf = dir => { try { return JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8')).siteId || null; } catch { return null; } };
+    let localName = base, updated = false;
+    for (let n = 1; ; n++) {
+      const cand = n === 1 ? base : `${base}-${n}`;
+      if (cand === 'rlcs') continue;   // thème intégré sans dossier
+      const dir = path.join(THEMES_DIR, cand);
+      if (!fs.existsSync(dir)) { localName = cand; break; }
+      if (siteIdOf(dir) === id) { localName = cand; updated = true; break; }
+    }
 
     broadcast('theme_download_progress', { status: 'downloading', percent: 0, name });
     const zipBuffer = await downloadWithProgress(
@@ -1047,12 +1062,25 @@ app.post('/api/themes/download-by-id', async (req, res) => {
     );
 
     broadcast('theme_download_progress', { status: 'extracting', percent: 100, name });
+    // Extraction à part puis remplacement du dossier : une mise à jour ne garde pas les fichiers
+    // retirés du thème, et un ZIP invalide ne touche pas au thème déjà installé.
     const themeDir = path.join(THEMES_DIR, localName);
-    fs.mkdirSync(themeDir, { recursive: true });
-    await extractThemeZip(zipBuffer, themeDir, localName, null);
+    const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'rl-theme-'));
+    try {
+      await extractThemeZip(zipBuffer, tmpDir, localName, null);
+      const metaPath = path.join(tmpDir, 'meta.json');
+      let meta = {};
+      try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+      meta.siteId = id;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+      fs.rmSync(themeDir, { recursive: true, force: true });
+      fs.cpSync(tmpDir, themeDir, { recursive: true });
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
 
-    broadcast('theme_download_progress', { status: 'done', percent: 100, name, id: localName });
-    res.json({ ok: true, id: localName, name });
+    broadcast('theme_download_progress', { status: 'done', percent: 100, name, id: localName, updated });
+    res.json({ ok: true, id: localName, name, updated });
   } catch (e) {
     broadcast('theme_download_progress', { status: 'error', error: e.message || 'Erreur de téléchargement' });
     res.status(500).json({ error: e.message || 'Erreur de téléchargement' });

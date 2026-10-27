@@ -1387,7 +1387,8 @@ function onThemeDownloadProgress(data) {
     label.textContent = 'Installation…';
     bar.style.width = '100%'; pct.textContent = '100%';
   } else if (data.status === 'done') {
-    label.textContent = `✓ "${data.name || ''}" installé !`;
+    /* id = dossier local : il diffère du nom quand un autre thème avait déjà ce nom (« rbrs-2 ») */
+    label.textContent = data.updated ? `✓ "${data.name || ''}" mis à jour !` : `✓ "${data.name || ''}" installé (${data.id || ''}) !`;
     btn.disabled = false;
     document.getElementById('theme-code-input').value = '';
     loadImportedThemes();

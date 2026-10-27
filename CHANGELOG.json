@@ -109,5 +109,12 @@
       "Nouveau (thèmes custom) : options « timerFormat » (chrono 5:00 au lieu de 05:00) et « wipeText » (mot REPLAY / LIVE animé lettre par lettre) dans le meta.json",
       "Correction : un nom de thème trop long élargissait sa carte — il est maintenant coupé avec « … » et affiché en entier au survol"
     ]
+  },
+  "1.8.2": {
+    "date": "2026-10-27",
+    "notes": [
+      "Correction : télécharger un thème par code (ou avec « Installer sur l'app » du site) pouvait écraser un autre thème du même nom sans rien ajouter à la liste — il s'installe maintenant à côté (ex. « rbrs-2 »)",
+      "Amélioration : retélécharger le même thème par code le met à jour à sa place (fichiers retirés du thème supprimés), et un ZIP invalide ne touche plus au thème déjà installé"
+    ]
   }
 }
