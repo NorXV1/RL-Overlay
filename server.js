@@ -33,6 +33,7 @@ function saveSettings() {
 const _isFreshInstall = !fs.existsSync(SETTINGS_PATH); // avant toute écriture de settings.json
 let settings = readSettings();
 settings.mediaBanner = settings.mediaBanner ?? { enabled: false };
+settings.mediaBanner.interval = settings.mediaBanner.interval ?? 60; // secondes par média du bandeau
 settings.keepPlayerLinks = settings.keepPlayerLinks ?? false;
 settings.playerLinks = settings.keepPlayerLinks ? (settings.playerLinks || {}) : {}; // remis à zéro à chaque démarrage sauf si "Conserver au redémarrage" est activé
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
@@ -431,7 +432,7 @@ overlayWss.on('connection', ws => {
   console.log('[Overlay] Client connecté');
   ws.send(JSON.stringify({ type: 'init', data: gameState }));
   ws.send(JSON.stringify({ type: 'theme_change', data: { theme: currentTheme } }));
-  ws.send(JSON.stringify({ type: 'media_banner', data: { enabled: settings.mediaBanner?.enabled ?? false } }));
+  ws.send(JSON.stringify({ type: 'media_banner', data: { enabled: settings.mediaBanner?.enabled ?? false, interval: settings.mediaBanner.interval } }));
   ws.send(JSON.stringify({ type: 'utils_updated', data: { files: listUtils() } }));
   ws.send(JSON.stringify({ type: 'overlay_visible', data: { visible: overlayVisible } }));
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
@@ -492,13 +493,19 @@ app.post('/api/delete-logo/:side', (req, res) => {
   res.json({ ok: true });
 });
 
+/* Active/désactive le bandeau et/ou règle la durée d'affichage de chaque média (3 s → 1 h) */
 app.post('/api/media-banner', (req, res) => {
   if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
-  const { enabled } = req.body;
-  settings.mediaBanner = { enabled: !!enabled };
+  const { enabled, interval } = req.body || {};
+  if (interval !== undefined) {
+    const sec = Math.round(Number(interval));
+    if (!Number.isFinite(sec) || sec < 3 || sec > 3600) return res.status(400).json({ error: 'Durée entre 3 et 3600 secondes' });
+    settings.mediaBanner.interval = sec;
+  }
+  if (enabled !== undefined) settings.mediaBanner.enabled = !!enabled;
   saveSettings();
-  broadcast('media_banner', { enabled: !!enabled });
-  res.json({ ok: true });
+  broadcast('media_banner', { enabled: settings.mediaBanner.enabled, interval: settings.mediaBanner.interval });
+  res.json({ ok: true, mediaBanner: settings.mediaBanner });
 });
 
 app.post('/api/swap-teams', (req, res) => {
@@ -660,6 +667,13 @@ app.post('/api/submit-review', async (req, res) => {
 
   try {
     const r = await postJSON('https://overlay.rscast.fr/api/reviews', { license: _session.license, rating, review, suggestion });
+    // un seul avis par compte : déjà voté depuis un autre PC / une autre installation
+    if (r.status === 409) {
+      settings.reviewSubmitted = true;
+      saveSettings();
+      broadcast('review_status', { submitted: true });
+      return res.status(409).json({ error: 'Tu as déjà laissé un avis avec ce compte', alreadySubmitted: true });
+    }
     if (r.status !== 200 || !r.body?.ok) return res.status(r.status || 500).json({ error: r.body?.error || 'Erreur serveur' });
     settings.reviewSubmitted = true;
     saveSettings();
@@ -712,23 +726,27 @@ function downloadWithProgress(url, onProgress) {
   });
 }
 
-/* Si l'avis a été refusé (ou supprimé) par l'admin, on ré-autorise l'utilisateur à en
-   soumettre un nouveau (le bouton réapparaît). Appelé à l'ouverture du panneau de contrôle.
-   On ne garde le bouton masqué que si un avis est encore actif (pending/approved) côté
-   serveur — tout autre statut (rejected, ou null si la ligne a été supprimée) le réaffiche. */
+/* Un avis par COMPTE (pas par installation) : à l'ouverture du panneau, le site dit si le compte
+   connecté a un avis actif (pending/approved). Il fait foi dans les deux sens — avis laissé depuis
+   un autre PC ou une autre installation → plus de demande ici ; avis refusé ou supprimé par
+   l'admin → le bouton réapparaît. Sans réponse du site (hors ligne), on garde la valeur locale. */
 app.get('/api/review-status/refresh', async (req, res) => {
-  if (settings.reviewSubmitted && _session?.license) {
+  let checked = false;
+  if (_session?.license) {
     try {
       const r = await getJSON(`https://overlay.rscast.fr/api/reviews/mine?license=${encodeURIComponent(_session.license)}`);
-      const stillActive = r.status === 200 && (r.body?.status === 'pending' || r.body?.status === 'approved');
-      if (r.status === 200 && !stillActive) {
-        settings.reviewSubmitted = false;
-        saveSettings();
-        broadcast('review_status', { submitted: false });
+      if (r.status === 200) {
+        checked = true;
+        const active = r.body?.status === 'pending' || r.body?.status === 'approved';
+        if (active !== settings.reviewSubmitted) {
+          settings.reviewSubmitted = active;
+          saveSettings();
+          broadcast('review_status', { submitted: active });
+        }
       }
     } catch {}
   }
-  res.json({ submitted: settings.reviewSubmitted });
+  res.json({ submitted: settings.reviewSubmitted, checked });
 });
 
 app.post('/api/teams', (req, res) => {

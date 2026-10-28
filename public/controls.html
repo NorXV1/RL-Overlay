@@ -1165,6 +1165,13 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div><div class="toggle-label">Activer</div><div class="toggle-sub">Vidéo / logo — sidebar bleue</div></div>
         <label class="switch"><input type="checkbox" id="media-toggle" onchange="setMediaBanner(this.checked)"><span class="slider"></span></label>
       </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Durée par média</div><div class="toggle-sub">Temps d'affichage de chaque image / vidéo</div></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="media-interval" min="3" max="3600" step="1" value="60" style="width:78px;margin:0;text-align:center;" onchange="setMediaInterval(this.value)">
+          <span style="font-size:11px;font-weight:700;color:var(--muted);">s</span>
+        </div>
+      </div>
       <div class="fb" id="fb-media"></div>
     </div>
 
@@ -1504,6 +1511,7 @@ async function loadSettings() {
     if(s.series?.orange!==undefined) document.getElementById('s-orange').value = s.series.orange;
     if(s.bestOf!=null)               { document.getElementById('s-bo').value = s.bestOf; renderSeriesDots(); }
     document.getElementById('media-toggle').checked = s.mediaBanner?.enabled ?? false;
+    document.getElementById('media-interval').value = s.mediaBanner?.interval ?? 60;
     document.getElementById('player-video-toggle').checked = s.playerVideoEnabled ?? false;
     const anim = s.animations || {};
     document.getElementById('anim-goal-toggle').checked   = anim.goal   ?? true;
@@ -1511,7 +1519,6 @@ async function loadSettings() {
     document.getElementById('anim-live-toggle').checked   = anim.live   ?? true;
     document.getElementById('anim-end-toggle').checked    = anim.endScreen ?? true;
     document.getElementById('review-btn').style.display = s.reviewSubmitted ? 'none' : '';
-    if (!s.reviewSubmitted) scheduleAutoReviewPopup();
     document.getElementById('keep-player-links-toggle').checked = s.keepPlayerLinks ?? false;
     _playerLinks = s.playerLinks || {};
     renderSeriesDots();
@@ -1731,6 +1738,14 @@ async function setMediaBanner(e) {
   await post('/api/media-banner', { enabled: e });
   fb('fb-media', e ? '✓ Bandeau activé' : '✓ Désactivé');
 }
+async function setMediaInterval(v) {
+  if (_userTier !== 'premium') { fb('fb-media', '★ Fonctionnalité réservée aux comptes Premium'); return; }
+  const sec = Math.round(Number(v));
+  if (!Number.isFinite(sec) || sec < 3 || sec > 3600) { fb('fb-media', '⚠ Entre 3 et 3600 secondes'); return; }
+  document.getElementById('media-interval').value = sec;
+  const r = await post('/api/media-banner', { interval: sec });
+  fb('fb-media', r.ok ? `✓ ${sec} s par média` : '✗ ' + (r.error || 'Erreur'));
+}
 async function selectPlayer(name) { await post('/api/spectate-player',{name}); fb('fb-player',`✓ ${name} affiché`); }
 async function clearSpec() { await post('/api/spectate-clear',{}); fb('fb-player','✓ Stat bar masquée'); }
 document.addEventListener('keydown',async e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return; const n=parseInt(e.key); if(n>=1&&n<=9){const res=await post('/api/spectate-shortcut',{shortcut:n});if(res.ok) fb('fb-player',`✓ [${n}] ${res.name}`);}});
@@ -1825,6 +1840,10 @@ async function submitReview() {
       closeReviewModal();
       document.getElementById('review-btn').style.display = 'none';
       hFb('✓ Merci pour votre avis !');
+    } else if (r.alreadySubmitted) {
+      closeReviewModal();
+      document.getElementById('review-btn').style.display = 'none';
+      hFb('✓ ' + r.error);
     } else {
       fbEl.style.color = '#e05'; fbEl.textContent = r.error || 'Erreur lors de l\'envoi.';
     }
@@ -1851,13 +1870,17 @@ function closeChangelogModal() {
   } catch {}
 })();
 
-/* Si l'avis précédent a été refusé côté admin, le serveur remet le drapeau à false
-   et on réaffiche le bouton — vérifié à chaque ouverture du panneau. */
+/* Un avis par compte : le site dit à chaque ouverture du panneau si le compte a déjà voté
+   (depuis n'importe quel PC). La popup automatique ne s'affiche qu'après cette vérification,
+   et seulement si le compte n'a pas d'avis actif. */
 (async () => {
+  let submitted = true;
   try {
     const r = await fetch('/api/review-status/refresh').then(r => r.json());
-    document.getElementById('review-btn').style.display = r.submitted ? 'none' : '';
+    submitted = !!r.submitted;
   } catch {}
+  document.getElementById('review-btn').style.display = submitted ? 'none' : '';
+  if (!submitted) scheduleAutoReviewPopup();
 })();
 
 function fb(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
@@ -1960,9 +1983,11 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.textContent = '★ PREMIUM';
         titleEl.appendChild(badge);
       }
-      // Griser le toggle
+      // Griser le toggle et la durée
       const switchEl = mediaCard.querySelector('.switch');
       if (switchEl) switchEl.style.opacity = '0.4';
+      const intervalEl = document.getElementById('media-interval');
+      if (intervalEl) { intervalEl.disabled = true; intervalEl.style.opacity = '0.4'; }
     }
 
     /* ── Fichiers média — verrouillés si non premium ── */

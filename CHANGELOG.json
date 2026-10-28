@@ -116,5 +116,12 @@
       "Correction : télécharger un thème par code (ou avec « Installer sur l'app » du site) pouvait écraser un autre thème du même nom sans rien ajouter à la liste — il s'installe maintenant à côté (ex. « rbrs-2 »)",
       "Amélioration : retélécharger le même thème par code le met à jour à sa place (fichiers retirés du thème supprimés), et un ZIP invalide ne touche plus au thème déjà installé"
     ]
+  },
+  "1.8.3": {
+    "date": "2026-10-28",
+    "notes": [
+      "Nouveau : durée d'affichage de chaque média du bandeau réglable dans la carte « Bandeau Médias » (de 3 s à 1 h, 60 s par défaut)",
+      "Correction : la demande d'avis revenait sur une autre installation alors que le compte avait déjà voté — c'est désormais un avis par compte, vérifié auprès du site à l'ouverture du panneau"
+    ]
   }
 }

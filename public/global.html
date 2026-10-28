@@ -1931,9 +1931,7 @@ function connect() {
     /* En mode preview : thème, logos et bandeau média sont traités */
     if (IS_PREVIEW) {
       if (type === 'theme_change') applyTheme(data.theme);
-      if (type === 'media_banner') {
-        if (data.enabled) startMediaBanner(); else stopMediaBanner();
-      }
+      if (type === 'media_banner') onMediaBannerMsg(data);
       if (type === 'utils_updated') onUtilsUpdated(data.files);
       if (type === 'logo_updated') {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
@@ -2074,8 +2072,7 @@ function connect() {
         hideOverlay(0);
         break;
       case 'media_banner':
-        if (data.enabled) startMediaBanner();
-        else stopMediaBanner();
+        onMediaBannerMsg(data);
         break;
       case 'utils_updated':
         onUtilsUpdated(data.files);
@@ -2808,6 +2805,7 @@ let _mbTimer  = null;
 let _mbFiles  = [];
 let _mbIdx    = 0;
 let _mbEnabled = false;
+let _mbInterval = 60;   // secondes par média, réglable dans le panneau
 
 function _mbApplyToEl(vEl, iEl, file) {
   const wasActive = vEl.classList.contains('mb-active') || iEl.classList.contains('mb-active');
@@ -2849,8 +2847,19 @@ function _mbStartCycle() {
   clearInterval(_mbTimer);
   _mbTimer = null;
   if (_mbFiles.length > 1) {
-    _mbTimer = setInterval(() => _mbShowIdx((_mbIdx + 1) % _mbFiles.length), 60000);
+    _mbTimer = setInterval(() => _mbShowIdx((_mbIdx + 1) % _mbFiles.length), _mbInterval * 1000);
   }
+}
+
+/* Message 'media_banner' du serveur : { enabled, interval }. Changer seulement la durée
+   relance le minuteur sans revenir au premier média. */
+function onMediaBannerMsg(data) {
+  const sec = Number(data.interval);
+  const intervalChanged = sec >= 3 && sec !== _mbInterval;
+  if (intervalChanged) _mbInterval = sec;
+  if (data.enabled && !_mbEnabled) startMediaBanner();
+  else if (!data.enabled && _mbEnabled) stopMediaBanner();
+  else if (data.enabled && intervalChanged) _mbStartCycle();
 }
 
 async function startMediaBanner() {
@@ -3192,6 +3201,7 @@ if (IS_PREVIEW) {
   fetch('/api/settings').then(r => r.json()).then(s => {
     if (s.theme) applyTheme(s.theme);
     setLeagueLabel(s.league);
+    if (s.mediaBanner?.interval >= 3) _mbInterval = s.mediaBanner.interval;
     if (s.mediaBanner?.enabled) startMediaBanner();
 
     // Noms d'équipes (settings stocke s.blue.name / s.orange.name)
