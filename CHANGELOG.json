@@ -123,5 +123,13 @@
       "Nouveau : durée d'affichage de chaque média du bandeau réglable dans la carte « Bandeau Médias » (de 3 s à 1 h, 60 s par défaut)",
       "Correction : la demande d'avis revenait sur une autre installation alors que le compte avait déjà voté — c'est désormais un avis par compte, vérifié auprès du site à l'ouverture du panneau"
     ]
+  },
+  "1.8.4": {
+    "date": "2026-11-08",
+    "notes": [
+      "Nouveau : thèmes saisonniers Noël et Halloween pour le panneau de contrôle, activés automatiquement en même temps que sur le site (logo de saison, bandeau, neige ou chauves-souris, couleurs adaptées)",
+      "Amélioration : la demande d'avis se ferme maintenant au bout de 3 s si on ne vote pas (au lieu de 10 s)",
+      "Correction : caractères bizarres (« ƒÜÇ ») dans la console au lancement avec npm run electron"
+    ]
   }
 }

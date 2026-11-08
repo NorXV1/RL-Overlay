@@ -439,8 +439,34 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled } }));
   ws.send(JSON.stringify({ type: 'animations_settings', data: settings.animations }));
   ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
+  ws.send(JSON.stringify({ type: 'season', data: { season: currentSeason } }));
   ws.on('close', () => console.log('[Overlay] Client déconnecté'));
 });
+
+/* ─────────────────── THÈME SAISONNIER ───────────────────
+   Noël / Halloween, activé depuis le panneau admin du site : relu toutes les minutes et
+   diffusé au panneau de contrôle (message 'season'). La dernière valeur connue est gardée
+   dans settings.json pour s'appliquer même si le site ne répond pas au démarrage. */
+const SEASONS = ['christmas', 'halloween'];
+let currentSeason = SEASONS.includes(settings.season) ? settings.season : '';
+
+async function refreshSeason() {
+  try {
+    const r = await fetch('https://overlay.rscast.fr/api/season', { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return;
+    const { season } = await r.json();
+    const next = SEASONS.includes(season) ? season : '';
+    if (next === currentSeason) return;
+    currentSeason = next;
+    settings.season = next;
+    saveSettings();
+    broadcast('season', { season: next });
+  } catch {}
+}
+refreshSeason();
+setInterval(refreshSeason, 60 * 1000);
+
+app.get('/api/season', (req, res) => res.json({ season: currentSeason }));
 
 /* ─────────────────── REST API ─────────────────── */
 app.get('/api/state', (req, res) => res.json(gameState));

@@ -1,0 +1,37 @@
+/* Thème saisonnier (Noël / Halloween) — commun au site et à l'app. Voir season.js. */
+
+.season-canvas,
+.season-deco { position: fixed; pointer-events: none; z-index: 9990; }
+.season-canvas { inset: 0; width: 100vw; height: 100vh; }
+
+/* ── Noël : guirlande lumineuse en haut de l'écran ── */
+.season-lights {
+  left: 0; right: 0; top: 0; height: 18px;
+  background:
+    radial-gradient(circle at 12px 9px, #ff3b4a 0 4px, rgba(255,59,74,.35) 5px, transparent 8px) 0 0 / 96px 18px repeat-x,
+    radial-gradient(circle at 36px 11px, #ffd23f 0 4px, rgba(255,210,63,.35) 5px, transparent 8px) 0 0 / 96px 18px repeat-x,
+    radial-gradient(circle at 60px 9px, #2ecc71 0 4px, rgba(46,204,113,.35) 5px, transparent 8px) 0 0 / 96px 18px repeat-x,
+    radial-gradient(circle at 84px 11px, #4aa8ff 0 4px, rgba(74,168,255,.35) 5px, transparent 8px) 0 0 / 96px 18px repeat-x;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,.35));
+  animation: seasonTwinkle 1.6s steps(2) infinite;
+}
+.season-lights::before {   /* le fil */
+  content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 2px;
+  background: repeating-linear-gradient(90deg, #1d3b26 0 24px, #2b5233 24px 48px);
+  opacity: .9;
+}
+@keyframes seasonTwinkle { 50% { opacity: .55; } }
+
+/* ── Halloween : toile d'araignée en coin + lueur orange/violette en bas ── */
+.season-web {
+  left: 0; top: 0; width: 150px; height: 150px; opacity: .3;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220' fill='none' stroke='%23e9e3f5' stroke-width='1.3'%3E%3Cpath d='M0 0L220 40M0 0L190 120M0 0L120 190M0 0L40 220'/%3E%3Cpath d='M44 8Q40 26 38 33Q31 37 8 42M88 16Q82 46 76 66Q60 76 16 86M132 24Q122 68 114 99Q91 113 24 130M176 32Q162 90 152 132Q122 152 32 174M216 40Q200 112 190 165Q152 190 40 218'/%3E%3Cpath d='M150 128L150 168' stroke-width='1'/%3E%3Ccircle cx='150' cy='172' r='5' fill='%23e9e3f5'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+.season-glow {
+  left: 0; right: 0; bottom: 0; height: 160px;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(255,120,20,.16), rgba(140,60,200,.08) 55%, transparent 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-lights { animation: none; }
+}

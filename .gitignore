@@ -17,6 +17,8 @@ public/themes/bsk/
 public/themes/rbrs/
 public/themes/coupe-de-france/
 public/themes/rbrs2/
+public/themes/k2b/
+public/themes/elerix/
 *.log
 .DS_Store
 Thumbs.db

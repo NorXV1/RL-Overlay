@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "electron": "electron .",
+    "electron": "chcp 65001 >nul && electron .",
     "package": "electron-builder --win",
     "build": "node build.js"
   },

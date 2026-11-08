@@ -264,6 +264,69 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 
 #header-bar { position:relative; display:flex; align-items:center; justify-content:space-between; padding:6px 18px; background:rgba(0,0,0,.22); }
 #header-bar h1 { font-size:9px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
+
+/* ─── THÈME SAISONNIER (activé depuis l'admin du site, voir /season/season.js) ───
+   Noël : neige accumulée sur l'en-tête et le haut des cartes, flocons derrière l'interface
+   (floutés par le verre des cartes), bannière « Joyeuses fêtes » avec le logo de Noël.
+   Halloween : coulures orange sous l'en-tête, toiles d'araignée dans le coin des cartes,
+   chauves-souris derrière l'interface, bannière « Happy Halloween ». Rien ne change hors saison. */
+#season-banner { display:none; }
+html[data-season="christmas"] #season-banner,
+html[data-season="halloween"] #season-banner { display:flex; align-items:center; gap:14px; padding:12px 16px; flex-shrink:0; min-height:88px; }
+#season-banner img { height:62px; width:auto; flex-shrink:0; filter: drop-shadow(0 4px 10px rgba(0,0,0,.55)); }
+#season-banner .sb-title { font-size:20px; font-weight:900; letter-spacing:2px; text-transform:uppercase; line-height:1.05; color:#fff; }
+#season-banner .sb-sub { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+html[data-season] #main { position:relative; z-index:1; }
+html[data-season] .season-canvas { z-index:0; }
+html[data-season] .card { position:relative; }
+
+/* — Noël — */
+html[data-season="christmas"] body { background: radial-gradient(ellipse 900px 500px at 10% -10%, rgba(226,58,74,.11), transparent 60%), radial-gradient(ellipse 900px 500px at 100% 115%, rgba(31,174,91,.09), transparent 60%), var(--bg); }
+html[data-season="christmas"] #header::after,
+html[data-season="christmas"] .card::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 18'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23d3e2f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M0 7C8 7 14 2 24 2C36 2 40 7 52 7C62 7 68 1 80 1C94 1 100 7 110 7C114 7 118 7 120 7V11H104C103 11 102.5 12 102.5 13.5C102.5 15.5 101.5 16.5 100.5 16.5C99.5 16.5 98.5 15.5 98.5 13.5C98.5 12 98 11 97 11H62C61 11 60.6 12 60.6 13C60.6 14.5 59.8 15 59 15C58.2 15 57.4 14.5 57.4 13C57.4 12 57 11 56 11H22C21 11 20.6 12 20.6 14C20.6 16.6 19.6 17.6 18.5 17.6C17.4 17.6 16.4 16.6 16.4 14C16.4 12 16 11 15 11H0Z'/%3E%3C/svg%3E") 0 0 / 120px 18px repeat-x;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+html[data-season="christmas"] #header::after { height:18px; bottom:-9px; opacity:1; }
+html[data-season="christmas"] .card::before {
+  content:''; position:absolute; left:8px; right:8px; top:-8px; height:18px; pointer-events:none;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+          mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+}
+html[data-season="christmas"] .card-title::before { background:#e23a4a !important; }
+html[data-season="christmas"] .card:nth-child(even) .card-title::before { background:#1fae5b !important; }
+html[data-season="christmas"] input:checked + .slider { background:#1fae5b; box-shadow: 0 0 14px -2px #1fae5b; }
+html[data-season="christmas"] #season-banner {
+  background:
+    radial-gradient(circle at 18% 30%, rgba(255,255,255,.5) 0 1.5px, transparent 2.5px) 0 0 / 46px 38px,
+    radial-gradient(circle at 70% 75%, rgba(255,255,255,.35) 0 1px, transparent 2px) 0 0 / 34px 30px,
+    linear-gradient(120deg, #9b1625 0%, #5a0d16 55%, #0f3a22 100%);
+  border-color: rgba(255,255,255,.18);
+}
+html[data-season="christmas"] #season-banner .sb-sub { color:#ffd76a; }
+
+/* — Halloween — */
+html[data-season="halloween"] body { background: radial-gradient(ellipse 900px 500px at 10% -10%, rgba(255,138,30,.11), transparent 60%), radial-gradient(ellipse 900px 500px at 100% 115%, rgba(139,61,209,.12), transparent 60%), var(--bg); }
+html[data-season="halloween"] #header::after {
+  height:20px; bottom:-15px; opacity:1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 20'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffb347'/%3E%3Cstop offset='1' stop-color='%23ff6a00'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%232a0f3a' stroke-width='1.2' d='M-1 -1H141V5H112C110.5 5 110 6 110 8V14A5 5 0 0 1 100 14V8C100 6 99.5 5 98 5H66V11A3 3 0 0 1 60 11V5H27V13A4.5 4.5 0 0 1 18 13V5H-1Z'/%3E%3C/svg%3E") 0 0 / 140px 20px repeat-x;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
+}
+html[data-season="halloween"] .card::before {
+  content:''; position:absolute; right:0; top:0; width:58px; height:58px; pointer-events:none; opacity:.28;
+  clip-path: inset(0 round 0 var(--radius) 0 0);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60' fill='none' stroke='%23efe7ff' stroke-width='.8'%3E%3Cpath d='M60 0L0 8M60 0L12 34M60 0L34 56M60 0L54 60'/%3E%3Cpath d='M48 2Q48 8 51 11Q55 12 58 12M36 3Q37 14 42 20Q50 24 58 24M24 5Q26 20 33 30Q46 37 57 37M12 6Q16 26 24 40Q42 50 56 49'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html[data-season="halloween"] .card-title::before { background:#ff8a1e !important; }
+html[data-season="halloween"] .card:nth-child(even) .card-title::before { background:#9b4dff !important; }
+html[data-season="halloween"] input:checked + .slider { background:#ff8a1e; box-shadow: 0 0 14px -2px #ff8a1e; }
+html[data-season="halloween"] #season-banner {
+  background:
+    radial-gradient(120% 140% at 0% 50%, rgba(255,138,30,.35), transparent 60%),
+    linear-gradient(120deg, #3a1406 0%, #2a0f3a 60%, #12081c 100%);
+  border-color: rgba(255,138,30,.3);
+}
+html[data-season="halloween"] #season-banner .sb-sub { color:#ff9c3a; }
 #hdr-fb { font-size:11px; letter-spacing:1px; color:#22c55e; min-width:120px; text-align:right; opacity:0; transition:opacity .3s var(--ease); }
 #version-wrap { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; }
 #version-badge { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:var(--radius-xs); padding:2px 7px; }
@@ -499,6 +562,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:4px; transition: background var(--dur) var(--ease); }
 ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.24); }
 </style>
+<link rel="stylesheet" href="/season/season.css">
+<script src="/season/season.js" data-mode="app"></script>
 </head>
 <body>
 
@@ -558,6 +623,15 @@ input:checked + .slider:before { transform:translateX(18px); }
 
   <!-- ── LEFT ── -->
   <div id="left">
+
+    <!-- THÈME SAISONNIER (affiché seulement quand une saison est active sur le site) -->
+    <div class="card" id="season-banner">
+      <img id="season-banner-logo" alt="">
+      <div>
+        <div class="sb-title" id="season-banner-title"></div>
+        <div class="sb-sub" id="season-banner-sub"></div>
+      </div>
+    </div>
 
     <!-- COMPTE -->
     <div class="card" id="account-card" style="display:none">
@@ -1499,7 +1573,22 @@ ws.onmessage = e => {
   if (type === 'review_status') document.getElementById('review-btn').style.display = data.submitted ? 'none' : '';
   if (type === 'logo_updated') { const img=document.querySelector(`#prev-${data.side} img`); if(img) img.dataset.url=''; setLogoPreview(data.side, data.url); }
   if (type === 'theme_download_progress') onThemeDownloadProgress(data);
+  if (type === 'season') setSeason(data.season);
 };
+
+/* ── Thème saisonnier (choisi dans l'admin du site, relayé par le serveur local) ── */
+const SEASON_TEXT = {
+  christmas: ['Joyeuses fêtes !', 'Thème de Noël · RS Cast'],
+  halloween: ['Happy Halloween !', 'Thème Halloween · RS Cast'],
+};
+function setSeason(season) {
+  if (window.applySeason) window.applySeason(season || '');
+  if (!SEASON_TEXT[season]) return;
+  document.getElementById('season-banner-logo').src = `/season/${season}.png`;
+  document.getElementById('season-banner-title').textContent = SEASON_TEXT[season][0];
+  document.getElementById('season-banner-sub').textContent   = SEASON_TEXT[season][1];
+}
+fetch('/api/season').then(r => r.json()).then(r => setSeason(r.season)).catch(() => {});
 
 /* ── Settings ── */
 async function loadSettings() {
@@ -1775,7 +1864,7 @@ function setReviewRating(v) { _reviewRating = v; renderReviewStars(v); }
 function previewReviewStars(v) { renderReviewStars(v || _reviewRating); }
 
 /* ── Ouverture manuelle (bouton "⭐ Laisser un avis") vs automatique (popup au chargement) ──
-   En mode auto, le bouton "Passer" reste désactivé 10s (le temps de retenir l'attention),
+   En mode auto, le bouton "Passer" reste désactivé 3s (le temps de retenir l'attention),
    affichant un compte à rebours, avant de redevenir cliquable comme un "Annuler" normal. */
 let _reviewSkipTimer = null;
 function openReviewModal(auto) {
@@ -1789,7 +1878,7 @@ function openReviewModal(auto) {
   const skipBtn = document.getElementById('review-skip-btn');
   clearInterval(_reviewSkipTimer);
   if (auto) {
-    let remaining = 10;
+    let remaining = 3;
     skipBtn.disabled = true; skipBtn.style.opacity = '0.4'; skipBtn.style.cursor = 'not-allowed';
     skipBtn.textContent = `Passer (${remaining})`;
     _reviewSkipTimer = setInterval(() => {
