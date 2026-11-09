@@ -557,6 +557,51 @@ input:checked + .slider:before { transform:translateX(18px); }
 .cl-notes li { font-size:15px; line-height:1.55; color:var(--text); padding-left:20px; position:relative; }
 .cl-notes li::before { content:'—'; position:absolute; left:0; color:var(--muted); }
 
+/* ─── BIBLIOTHÈQUE DE THÈMES (site → app) ────────── */
+.store-open {
+  display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; padding:12px 14px;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--blue) 22%, transparent), color-mix(in srgb, var(--blue) 6%, transparent));
+  border:1px solid color-mix(in srgb, var(--blue) 45%, transparent); border-radius:var(--radius-sm);
+  color:var(--text); font-family:inherit; text-align:left; cursor:pointer;
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.store-open:hover { transform:translateY(-1px); border-color:var(--blue); box-shadow:0 8px 24px -10px var(--blue); }
+.store-open .so-ico { width:34px; height:34px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:9px; background:var(--blue); font-size:16px; }
+.store-open .so-t { font-size:12px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; }
+.store-open .so-s { font-size:11px; color:var(--muted); margin-top:2px; }
+.store-open .so-go { margin-left:auto; font-size:16px; color:var(--muted); }
+
+.store-box { width:860px; height:min(84vh, 760px); display:flex; flex-direction:column; padding:26px; background:color-mix(in srgb, var(--bg) 94%, var(--blue)); }
+.store-head { display:flex; align-items:flex-start; gap:14px; margin-bottom:16px; }
+.store-title { font-size:19px; font-weight:800; letter-spacing:.4px; color:var(--text); }
+.store-sub { font-size:12px; color:var(--muted); margin-top:3px; }
+.store-close { margin-left:auto; width:32px; height:32px; flex-shrink:0; border:1px solid var(--border); border-radius:9px; background:var(--btnbg); color:var(--text); font-size:13px; cursor:pointer; }
+.store-close:hover { filter:brightness(1.3); }
+.store-tools { display:flex; gap:8px; margin-bottom:14px; }
+.store-tools input { flex:1; margin:0; }
+.store-count { align-self:center; font-size:11px; color:var(--muted); white-space:nowrap; }
+.store-grid { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows:max-content; gap:14px; align-content:start; padding-right:4px; }
+.store-msg { grid-column:1/-1; padding:50px 10px; text-align:center; color:var(--muted); font-size:13px; }
+.store-msg .btn { width:auto; margin-top:12px; }
+
+.st-card { display:flex; flex-direction:column; background:var(--subtle); border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.st-card:hover { border-color:color-mix(in srgb, var(--blue) 55%, transparent); transform:translateY(-2px); }
+.st-img { position:relative; flex-shrink:0; aspect-ratio:16/9; background:rgba(0,0,0,.35); overflow:hidden; }
+.st-img img { width:100%; height:100%; object-fit:cover; display:block; transition: transform .4s var(--ease); }
+.st-card:hover .st-img img { transform:scale(1.04); }
+.st-badge { position:absolute; top:8px; left:8px; padding:3px 8px; border-radius:20px; font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; background:rgba(4,6,12,.75); color:#22c55e; border:1px solid rgba(34,197,94,.45); backdrop-filter:blur(4px); }
+.st-badge.on { color:#fff; background:var(--blue); border-color:transparent; }
+.st-body { display:flex; flex-direction:column; gap:6px; padding:12px; flex:1; }
+.st-name { font-size:14px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.st-desc { font-size:11px; line-height:1.45; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:32px; }
+.st-foot { display:flex; align-items:center; gap:6px; margin-top:auto; padding-top:4px; }
+.st-code { font-family:monospace; font-size:11px; letter-spacing:2px; color:var(--muted); margin-right:auto; }
+.st-foot .btn { margin:0; }
+.st-foot .btn:disabled { opacity:.6; cursor:default; transform:none; filter:none; }
+.st-prog { height:4px; border-radius:2px; background:var(--btnbg); overflow:hidden; display:none; }
+.st-prog > div { height:100%; width:0; background:var(--blue); transition:width .2s var(--ease); }
+.st-card.busy .st-prog { display:block; }
+
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:4px; transition: background var(--dur) var(--ease); }
@@ -722,6 +767,24 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div id="changelog-version-lbl" style="font-size:13px;color:var(--muted);margin-bottom:22px;"></div>
         <div id="changelog-body" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:24px;"></div>
         <button class="btn" style="margin-top:22px;padding:12px 16px;font-size:13px;background:var(--blue);" onclick="closeChangelogModal()">Compris !</button>
+      </div>
+    </div>
+
+    <!-- Bibliothèque de thèmes (thèmes custom publics du site) -->
+    <div id="store-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeThemeStore()">
+      <div class="modal-box store-box">
+        <div class="store-head">
+          <div>
+            <div class="store-title">🛍️ Bibliothèque de thèmes</div>
+            <div class="store-sub">Thèmes custom publiés sur overlay.rscast.fr — un clic pour les installer</div>
+          </div>
+          <button class="store-close" onclick="closeThemeStore()" title="Fermer">✕</button>
+        </div>
+        <div class="store-tools">
+          <input type="text" id="store-search" placeholder="Rechercher un thème…" oninput="renderThemeStore()">
+          <span class="store-count" id="store-count"></span>
+        </div>
+        <div id="store-grid" class="store-grid"></div>
       </div>
     </div>
 
@@ -1122,6 +1185,13 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div id="imported-themes-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
 
+      <!-- Bibliothèque : thèmes custom du site -->
+      <button class="store-open" onclick="openThemeStore()">
+        <span class="so-ico">🛍️</span>
+        <span><div class="so-t">Installer un thème</div><div class="so-s">Parcourir les thèmes custom du site et les installer en un clic</div></span>
+        <span class="so-go">›</span>
+      </button>
+
       <!-- Import -->
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
         <div style="font-size:10px;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px;">IMPORTER UN THÈME</div>
@@ -1457,6 +1527,7 @@ function onThemeDownloadProgress(data) {
   const pct   = document.getElementById('theme-download-percent');
   const label = document.getElementById('theme-download-label');
   const btn   = document.getElementById('theme-code-btn');
+  if (_store.busy) storeProgress(data);
   wrap.style.display = 'block';
   if (data.status === 'resolving') {
     label.textContent = 'Résolution du code…';
@@ -1479,6 +1550,107 @@ function onThemeDownloadProgress(data) {
     btn.disabled = false;
     setTimeout(() => { wrap.style.display = 'none'; }, 4000);
   }
+}
+
+/* Les fenêtres modales sont écrites dans #main ; en saison, #main a son propre z-index (au-dessus
+   de la neige), ce qui les faisait passer sous l'en-tête → on les rattache directement au body. */
+document.querySelectorAll('.modal-overlay').forEach(m => document.body.appendChild(m));
+
+/* ── Bibliothèque : thèmes custom publics du site, installables en un clic ── */
+const _store ={ themes: [], current: '', loaded: false, busy: null, err: null };
+const _esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function openThemeStore() {
+  document.getElementById('store-modal-overlay').style.display = 'flex';
+  document.getElementById('store-search').value = '';
+  if (_store.loaded) renderThemeStore();
+  loadThemeStore();
+}
+function closeThemeStore() { document.getElementById('store-modal-overlay').style.display = 'none'; }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('store-modal-overlay').style.display === 'flex') closeThemeStore();
+});
+
+async function loadThemeStore() {
+  const grid = document.getElementById('store-grid');
+  if (!_store.loaded) { grid.innerHTML = '<div class="store-msg">Chargement des thèmes…</div>'; document.getElementById('store-count').textContent = ''; }
+  try {
+    const r = await fetch('/api/site-themes').then(r => r.json());
+    if (!r.ok) throw new Error(r.error);
+    _store.themes = r.themes.map(t => ({ ...t, code: String(t.code).replace(/[^A-Z0-9]/gi, '').toUpperCase() }));
+    _store.current = r.current; _store.loaded = true;
+    renderThemeStore();
+  } catch (e) {
+    if (_store.loaded) return;
+    grid.innerHTML = `<div class="store-msg">✗ ${_esc(e.message || 'Site injoignable')}<br><button class="btn btn-gray btn-sm" onclick="loadThemeStore()">Réessayer</button></div>`;
+  }
+}
+
+function renderThemeStore() {
+  const grid = document.getElementById('store-grid');
+  const q = document.getElementById('store-search').value.trim().toLowerCase();
+  const list = _store.themes.filter(t => !q || `${t.name} ${t.description} ${t.code}`.toLowerCase().includes(q));
+  const current = document.querySelector('.tc.active')?.dataset.t || _store.current;
+  document.getElementById('store-count').textContent = `${list.length} thème${list.length > 1 ? 's' : ''}`;
+  if (!list.length) {
+    grid.innerHTML = `<div class="store-msg">${_store.themes.length ? 'Aucun thème ne correspond à ta recherche.' : 'Aucun thème custom publié sur le site pour le moment.'}</div>`;
+    return;
+  }
+  const lock = _store.busy ? 'disabled' : '';
+  grid.innerHTML = list.map(t => {
+    const active = !!t.local && t.local === current, busy = _store.busy === t.code;
+    const err = _store.err && _store.err.code === t.code ? _store.err.msg : '';
+    const badge = t.local ? `<span class="st-badge${active ? ' on' : ''}">${active ? '✓ Actif' : 'Installé'}</span>` : '';
+    const btns = busy ? `<button class="btn btn-blue btn-sm st-pct" disabled>0%</button>`
+      : !t.local ? `<button class="btn btn-blue btn-sm" ${lock} onclick="storeInstall('${t.code}')">⬇ Télécharger</button>`
+      : `<button class="btn btn-gray btn-sm" title="Retélécharger la dernière version du site" ${lock} onclick="storeInstall('${t.code}')">↻</button>`
+        + (active ? '<button class="btn btn-gray btn-sm" disabled>✓ Utilisé</button>'
+                  : `<button class="btn btn-blue btn-sm" ${lock} onclick="storeUse('${t.code}')">Utiliser</button>`);
+    return `<div class="st-card${busy ? ' busy' : ''}" data-code="${t.code}">
+      <div class="st-img">${t.image ? `<img src="${_esc(t.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${badge}</div>
+      <div class="st-body">
+        <div class="st-name" title="${_esc(t.name)}">${_esc(t.name)}</div>
+        <div class="st-desc"${err ? ' style="color:#f87171"' : ''}>${err ? '✗ ' + _esc(err) : (_esc(t.description) || 'Thème custom RL Overlay')}</div>
+        <div class="st-prog"><div></div></div>
+        <div class="st-foot"><span class="st-code">${t.code}</span>${btns}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* Même téléchargement que « par code » : la progression arrive par le WS theme_download_progress */
+async function storeInstall(code) {
+  if (_store.busy) return;
+  _store.busy = code; _store.err = null;
+  renderThemeStore();
+  try {
+    const r = await post('/api/themes/download-by-id', { shareId: code });
+    if (!r.ok) throw new Error(r.error || 'Erreur');
+    const t = _store.themes.find(t => t.code === code);
+    if (t) t.local = r.id;
+    await loadImportedThemes();
+  } catch (e) {
+    _store.err = { code, msg: e.message || 'Erreur de téléchargement' };
+  }
+  _store.busy = null;
+  renderThemeStore();
+}
+
+function storeProgress(data) {
+  const card = document.querySelector(`.st-card[data-code="${_store.busy}"]`);
+  if (!card) return;
+  const pct = data.status === 'downloading' ? data.percent : data.status === 'extracting' || data.status === 'done' ? 100 : 0;
+  card.querySelector('.st-prog > div').style.width = pct + '%';
+  const b = card.querySelector('.st-pct');
+  if (b) b.textContent = data.status === 'extracting' ? 'Installation…' : data.status === 'resolving' ? '…' : pct + '%';
+}
+
+async function storeUse(code) {
+  const t = _store.themes.find(t => t.code === code);
+  if (!t || !t.local) return;
+  if (!_allThemes.includes(t.local)) await loadImportedThemes();
+  setTheme(t.local);
+  renderThemeStore();
 }
 
 /* Auto-remplissage NOM + BASÉ SUR quand on choisit un ZIP */

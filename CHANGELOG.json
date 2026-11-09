@@ -131,5 +131,12 @@
       "Amélioration : la demande d'avis se ferme maintenant au bout de 3 s si on ne vote pas (au lieu de 10 s)",
       "Correction : caractères bizarres (« ƒÜÇ ») dans la console au lancement avec npm run electron"
     ]
+  },
+  "1.8.5": {
+    "date": "2026-11-09",
+    "notes": [
+      "Nouveau : bouton « Installer un thème » dans la carte Thème — une bibliothèque affiche tous les thèmes custom publiés sur le site (aperçu, description, code) et les installe en un clic, avec « Utiliser » pour l'appliquer directement",
+      "Correction : en mode saison, les fenêtres du panneau (avis, nouveautés…) passaient sous l'en-tête"
+    ]
   }
 }

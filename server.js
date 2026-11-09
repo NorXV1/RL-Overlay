@@ -858,6 +858,34 @@ app.get('/api/themes', (req, res) => {
   res.json({ themes: listThemes(), current: currentTheme, names: settings.themeNames });
 });
 
+/* Bibliothèque du panneau de contrôle : thèmes custom publics du site (aperçu, code) avec leur
+   état local — « local » = dossier du thème déjà installé (repéré par le siteId de son meta.json). */
+app.get('/api/site-themes', async (req, res) => {
+  const SITE = 'https://overlay.rscast.fr';
+  try {
+    const r = await fetch(`${SITE}/api/themes`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const list = await r.json();
+    const local = {};
+    for (const name of listThemes()) {
+      try {
+        const id = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, name, 'meta.json'), 'utf8')).siteId;
+        if (id && !local[id]) local[id] = name;
+      } catch {}
+    }
+    const themes = (Array.isArray(list) ? list : [])
+      .filter(t => !t.builtin && t.shareId && !t.private && (!t.status || t.status === 'approved'))
+      .map(t => ({
+        id: t.id, name: t.name, description: t.description || '', code: t.shareId,
+        image: t.imageUrl ? new URL(t.imageUrl, SITE).href : null,
+        local: local[t.id] || null,
+      }));
+    res.json({ ok: true, themes, current: currentTheme });
+  } catch {
+    res.status(502).json({ error: 'Impossible de joindre le site — vérifie ta connexion' });
+  }
+});
+
 /* Renomme un thème dans le panneau : seul le nom affiché change (le dossier, les sélecteurs
    [data-theme] du CSS et les liens des sources OBS restent identiques). Nom vide = nom d'origine. */
 app.post('/api/themes/:name/label', (req, res) => {
