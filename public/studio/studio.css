@@ -324,6 +324,14 @@ select.in option { background:var(--panel-2); color:var(--text); }
 .m-sub { margin:14px 0 2px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text); }
 .m-sub:first-child { margin-top:2px; }
 .m-item.share .btn { flex-shrink:0; height:28px; padding:0 8px; }
+/* éditeur de forme libre (lignes des sidebars) */
+.poly-wrap { margin:6px 0 4px; }
+.poly-ed { display:block; width:100%; height:auto; background:repeating-conic-gradient(#20232c 0 25%, #1a1c24 0 50%) 0 0/14px 14px; border:1px solid var(--border); border-radius:8px; touch-action:none; user-select:none; }
+.poly-ed .pe-box { fill:none; stroke:rgba(255,255,255,.25); stroke-dasharray:4 3; }
+.poly-ed .pe-pt { fill:#fff; stroke:var(--accent); stroke-width:2; cursor:grab; }
+.poly-ed .pe-pt:hover { fill:var(--accent-2); }
+.poly-ed .pe-add { fill:rgba(255,255,255,.35); stroke:none; cursor:copy; }
+.poly-ed .pe-add:hover { fill:#fff; }
 .share-code { flex-shrink:0; margin-left:auto; padding:3px 9px; border-radius:6px; background:var(--panel); border:1px solid var(--border-2); color:var(--text); font:800 13px/1.2 ui-monospace, Consolas, monospace; letter-spacing:.14em; }
 .share-big { margin:6px 0 14px; padding:16px; border-radius:10px; background:var(--panel-2); border:1px dashed var(--accent); color:var(--text); text-align:center; font:900 34px/1 ui-monospace, Consolas, monospace; letter-spacing:.3em; user-select:all; }
 .share-input { width:100%; margin:10px 0 4px; height:44px; text-align:center; font:800 22px/1 ui-monospace, Consolas, monospace !important; letter-spacing:.3em; text-transform:uppercase; }

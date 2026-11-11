@@ -157,5 +157,14 @@
     "notes": [
       "Amélioration : dans le Studio, un texte trop long pour sa case (ex. un nom d'équipe long) rétrécit tout seul pour rester dedans, puis reprend sa taille — option « Réduire pour tenir » du calque texte, activée par défaut"
     ]
+  },
+  "1.8.8": {
+    "date": "2026-11-12",
+    "notes": [
+      "Nouveau : dans le Studio, forme des lignes des sidebars entièrement personnalisable — côtés gauche et droit réglés séparément (droit, coupé, pointe, encoche, arrondi, taille négative pour inverser), forme libre en déplaçant les points, ou ligne inclinée ; le nom et le boost se décalent pour ne jamais être coupés",
+      "Nouveau : formes séparées pour la sidebar bleue et l'orange, avec un bouton pour recopier la forme en miroir",
+      "Nouveau : notifications des sidebars personnalisables — forme (dont « inclinée comme les lignes »), hauteur, largeur, taille de l'image en px, espace entre plusieurs événements, et plan devant / derrière la ligne (elles sortent de derrière avec « Sort de la ligne »)",
+      "Amélioration : couleurs du boost, de la bande d'équipe et du fond des notifications réglables séparément pour le bleu et l'orange"
+    ]
   }
 }

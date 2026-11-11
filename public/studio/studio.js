@@ -755,17 +755,146 @@ function mediaCss(s, m, box) {
 /* Sidebars : lignes, textes, barre de boost et notifications (!important : les thèmes de base les stylent fortement) */
 const NOTIF_ANIMS = [['default', 'Glisse du bas (origine)'], ['side', 'Sort de la ligne'], ['down', 'Tombe du haut'], ['bounce', 'Rebond'], ['pop', 'Pop'],
   ['zoom', 'Zoom'], ['fade', 'Fondu'], ['flip', 'Bascule'], ['spin', 'Tourbillon']];
+/* couleurs propres à chaque équipe : jamais recopiées d'une sidebar à l'autre, même liées */
+const SB_TEAM_KEYS = ['accentColor', 'boostC1', 'boostC2', 'notifBg'];
+/* forme des lignes et des notifications : propre à chaque sidebar (bleue / orange), même liées */
+const SB_SHAPE_KEYS = ['shape', 'skew', 'edgeL', 'edgeR', 'pts', 'cut', 'notifShape', 'notifSkew', 'notifSkewSync'];
+const SB_SIDE_KEYS = [...SB_TEAM_KEYS, ...SB_SHAPE_KEYS];
+/* forme des lignes joueurs (les 3 lignes d'une sidebar) */
+const ROW_MODES = [['rect', 'Rectangle'], ['edges', 'Par côté (gauche / droite séparés)'], ['free', 'Libre (je place les points)'], ['skew', 'Inclinée (toute la ligne)'], ['pill', 'Arrondie (pilule)']];
+/* modèles rapides du mode « par côté » : ils remplissent les deux côtés, ajustables ensuite */
+const ROW_TEMPLATES = [
+  ['Biseau', { edgeL: { t: 'straight' }, edgeR: { t: 'cut-bottom', k: 16 } }], ['Parallélogramme', { edgeL: { t: 'cut-top', k: 14 }, edgeR: { t: 'cut-bottom', k: 14 } }],
+  ['Trapèze', { edgeL: { t: 'cut-bottom', k: 14 }, edgeR: { t: 'cut-bottom', k: 14 } }], ['Flèche', { edgeL: { t: 'straight' }, edgeR: { t: 'point', k: 18 } }],
+  ['Étiquette', { edgeL: { t: 'notch', k: 12 }, edgeR: { t: 'point', k: 16 } }], ['Arrondi à droite', { edgeL: { t: 'straight' }, edgeR: { t: 'round', k: 20 } }]];
+const NOTIF_SHAPES = [['square', 'Carré'], ['skew', 'Inclinée (comme les lignes)'], ['circle', 'Rond'], ['hexagon', 'Hexagone'], ['diamond', 'Losange'], ['parallelogram', 'Parallélogramme'], ['slant', 'Biseau'], ['chevron', 'Chevron'], ['shield', 'Écusson']];
+const NOTIF_CLIPS = { ...CLIPS, shield: 'polygon(0 0,100% 0,100% 68%,50% 100%,0 68%)' };
+/* polygone en % retourné gauche ↔ droite (côté orange) */
+const mirrorPoly = p => 'polygon(' + p.replace(/^polygon\(|\)$/g, '').split(',').map(q => { const [x, y] = q.trim().split(/\s+/); return `${round(100 - parseFloat(x), 2)}% ${y}`; }).join(', ') + ')';
+/* Forme « par côté » : profil du côté gauche et du côté droit de la ligne, chacun avec sa taille (px).
+   Points en coordonnées CSS ; le côté droit est parcouru de haut en bas, le gauche de bas en haut. */
+const EDGE_TYPES = [['straight', 'Droit'], ['cut-top', 'Coupé en haut'], ['cut-bottom', 'Coupé en bas'], ['point', 'Pointe'], ['notch', 'Encoche'], ['round', 'Arrondi']];
+const EDGE_LEGACY = { bevel: 'cut-bottom', 'bevel-top': 'cut-top', arrow: 'point', notch: 'notch' };
+/* taille négative = même profil dans l'autre sens (coupé en haut ↔ en bas, pointe ↔ encoche) */
+const EDGE_FLIP = { 'cut-top': 'cut-bottom', 'cut-bottom': 'cut-top', point: 'notch', notch: 'point' };
+function normEdge(e) {
+  if (!e) return e;
+  const k = e.k ?? 14;
+  return k < 0 && EDGE_FLIP[e.t] ? { t: EDGE_FLIP[e.t], k: -k } : { t: e.t, k: Math.abs(k) };
+}
+function edgesPoly(eL, eR) {
+  const l = normEdge(eL) || {}, r = normEdge(eR) || {}, kl = l.k ?? 14, kr = r.k ?? 14, IN = `calc(100% - ${kr}px)`, K = `${kl}px`;
+  const right = { 'cut-top': [[IN, '0'], ['100%', '100%']], 'cut-bottom': [['100%', '0'], [IN, '100%']],
+    point: [[IN, '0'], ['100%', '50%'], [IN, '100%']], notch: [['100%', '0'], [IN, '50%'], ['100%', '100%']] }[r.t] || [['100%', '0'], ['100%', '100%']];
+  const left = { 'cut-top': [['0', '100%'], [K, '0']], 'cut-bottom': [[K, '100%'], ['0', '0']],
+    point: [[K, '100%'], ['0', '50%'], [K, '0']], notch: [['0', '100%'], [K, '50%'], ['0', '0']] }[l.t] || [['0', '100%'], ['0', '0']];
+  return [...right, ...left];
+}
+/* abscisse CSS retournée gauche ↔ droite */
+function mirrorX(x) {
+  let m;
+  if (x === '0') return '100%';
+  if (x === '100%') return '0';
+  if ((m = x.match(/^calc\(100% - ([\d.]+)px\)$/))) return `${m[1]}px`;
+  if ((m = x.match(/^([\d.]+)px$/))) return `calc(100% - ${m[1]}px)`;
+  if ((m = x.match(/^([\d.]+)%$/))) return `${round(100 - parseFloat(m[1]), 2)}%`;
+  return x;
+}
+/* contenu de la ligne (bande, nom, boost) décalé vers l'intérieur de la forme pour ne jamais être coupé :
+   l / r = marges gauche / droite (sens de la sidebar bleue), retournées côté orange */
+function rowContentInset(l, r, mirror, add) {
+  const [a, b] = mirror ? [r, l] : [l, r];
+  if (!a && !b) return;
+  add(' .pr-info', `padding-left:${a || 0} !important; padding-right:${b || 0} !important; box-sizing:border-box !important;`);
+}
+const edgeInset = e => { e = normEdge(e); return !e || !e.t || e.t === 'straight' ? 0 : e.t === 'round' ? Math.round((e.k ?? 14) * 0.35) : (e.k ?? 14); };
+/* pente du bord intérieur des lignes (sens de la sidebar bleue) : décalage horizontal par px de hauteur,
+   > 0 quand le bas part vers l'extérieur (« / »), < 0 dans l'autre sens (« \ ») */
+function rowSlope(c) {
+  const rowH = c.rowH ?? 40, rowW = c.width ?? 210, shape = c.shape;
+  if (shape === 'skew') return Math.tan((c.skew ?? 12) * Math.PI / 180);
+  if (shape === 'free' && Array.isArray(c.pts)) {
+    const inner = c.pts.filter(([x]) => x > 50);
+    if (inner.length < 2) return 0;
+    const top = inner.reduce((a, b) => (b[1] < a[1] ? b : a)), bot = inner.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const dy = (bot[1] - top[1]) / 100 * rowH;
+    return dy > 0 ? ((top[0] - bot[0]) / 100 * rowW) / dy : 0;
+  }
+  const eR = normEdge(EDGE_LEGACY[shape] ? { t: EDGE_LEGACY[shape], k: c.cut ?? 14 } : shape === 'edges' ? c.edgeR : null);
+  if (!eR) return 0;
+  return eR.t === 'cut-bottom' ? (eR.k ?? 14) / rowH : eR.t === 'cut-top' ? -(eR.k ?? 14) / rowH : 0;
+}
+/* décalage (px, signé) d'une notification « inclinée » : pente des lignes ou valeur choisie */
+function notifSlantOff(c) {
+  const nh = c.notifSize ?? c.rowH ?? 40;
+  return c.notifSkewSync === false ? (c.notifSkew ?? 10) : rowSlope(c) * nh;
+}
+/* vide horizontal laissé entre deux notifications par leur forme (inclinée, parallélogramme, chevron) :
+   retiré de l'espacement pour qu'à 0 px les formes se touchent */
+function notifShapeGap(c) {
+  const w = c.notifW ?? c.notifSize ?? c.rowH ?? 40;
+  if (c.notifShape === 'skew') return Math.abs(notifSlantOff(c));
+  if (c.notifShape === 'parallelogram') return w * 0.12;
+  if (c.notifShape === 'chevron') return w * 0.15;
+  return 0;
+}
+/* notification inclinée : parallélogramme dont les côtés suivent la pente donnée (px de décalage sur sa hauteur) */
+function slantPoly(off) {
+  const s = Math.abs(round(off, 1));
+  if (!s) return null;
+  return off > 0 ? `polygon(${s}px 0, 100% 0, calc(100% - ${s}px) 100%, 0 100%)` : `polygon(0 0, calc(100% - ${s}px) 0, 100% 100%, ${s}px 100%)`;
+}
+/* forme des lignes d'une sidebar → règles CSS (clip-path, arrondis, inclinaison) */
+function rowShapeCss(c, R, mirror, add) {
+  const shape = c.shape;
+  if (!shape || shape === 'rect') return;
+  if (shape === 'skew') {
+    const a = (c.skew ?? 12) * (mirror ? 1 : -1);
+    add(' .row-wrap', `transform:skewX(${a}deg);`);
+    add(` .pr-name, ${R} .pr-val, ${R} .pr-icons`, `transform:skewX(${-a}deg);`);   // textes et notifications restent droits
+    return;
+  }
+  if (shape === 'pill') {
+    add(' .player-row', 'border-radius:999px !important;');
+    const m = `${Math.round((c.rowH ?? 40) * 0.35)}px`;
+    rowContentInset(m, m, mirror, add);
+    return;
+  }
+  if (shape === 'free') {
+    if (!Array.isArray(c.pts) || c.pts.length < 3) return;
+    const pts = c.pts.map(([x, y]) => `${round(mirror ? 100 - x : x, 2)}% ${round(y, 2)}%`);
+    add(' .player-row', `clip-path:polygon(${pts.join(', ')}) !important;`);
+    /* le point le plus rentré de chaque moitié donne la marge de ce côté (en % de la largeur de la ligne) */
+    const l = Math.max(0, ...c.pts.filter(([x]) => x < 50).map(([x]) => x)), r = Math.max(0, ...c.pts.filter(([x]) => x > 50).map(([x]) => 100 - x));
+    rowContentInset(l ? `calc(${round(l, 2)}% + 4px)` : 0, r ? `calc(${round(r, 2)}% + 4px)` : 0, mirror, add);
+    return;
+  }
+  let eL = c.edgeL, eR = c.edgeR;
+  if (EDGE_LEGACY[shape]) { eL = null; eR = { t: EDGE_LEGACY[shape], k: c.cut ?? 14 }; }   // formes prédéfinies d'avant
+  else if (shape !== 'edges') return;
+  eL = normEdge(eL); eR = normEdge(eR);
+  let pts = edgesPoly(eL, eR);
+  if (mirror) pts = pts.map(([x, y]) => [mirrorX(x), y]);
+  const cut = pts.some(([x, y]) => !['0', '100%'].includes(x) || !['0', '100%'].includes(y));
+  if (cut) add(' .player-row', `clip-path:polygon(${pts.map(p => p.join(' ')).join(', ')}) !important;`);
+  const rl = eL && eL.t === 'round' ? (eL.k ?? 14) : 0, rr = eR && eR.t === 'round' ? (eR.k ?? 14) : 0;
+  if (rl || rr) { const [a, b] = mirror ? [rr, rl] : [rl, rr]; add(' .player-row', `border-radius:${a}px ${b}px ${b}px ${a}px !important;`); }
+  const il = edgeInset(eL), ir = edgeInset(eR);
+  rowContentInset(il ? `${il + 4}px` : 0, ir ? `${ir + 4}px` : 0, mirror, add);
+}
 function sidebarsCss(sel) {
   const out = [];
   for (const side of ['blue', 'orange']) {
     const c = (S.p.sidebar && S.p.sidebar[side]) || {};
     if (!Object.keys(c).length) continue;
-    const R = `html ${sel} #sidebar-${side}`;
+    const R = `html ${sel} #sidebar-${side}`, mirror = side === 'orange';
     const add = (sub, p) => out.push(`${R}${sub} { ${p} }`);
     if (c.width != null) add('', `width:${c.width}px !important;`);
     if (c.gap != null) add('', `gap:${c.gap}px !important;`);
     if (c.rowH != null) add(' .pr-info', `height:${c.rowH}px !important;`);
     if (c.radius != null) add(' .player-row', `border-radius:${c.radius}px !important;`);
+    /* forme des lignes : la même sur les 3 joueurs, en miroir côté orange */
+    rowShapeCss(c, R, mirror, add);
     if (c.rowBg) add(' .player-row:not(.spectating)', `background:${c.rowBg} !important;`);
     if (c.specBg) add(' .player-row.spectating', `background:${c.specBg} !important;`);
     if (c.accentW != null) add(' .pr-accent', `width:${c.accentW}px !important;`);
@@ -789,8 +918,45 @@ function sidebarsCss(sel) {
     if (ns != null) { add(' .pr-icon', `width:${ns}px !important; height:${ns}px !important;`); add(' .pr-icons', `height:${ns}px !important;`); }
     if (c.notifGap != null) add(' .pr-icons', `${side === 'blue' ? 'left' : 'right'}:calc(100% + ${c.notifGap}px) !important;`);
     if (c.notifY != null) add(' .pr-icons', `top:${c.notifY}px !important;`);
+    if (c.notifW != null) add(' .pr-icon', `width:${c.notifW}px !important;`);
+    /* plan des notifications : derrière la ligne (elles en sortent, ex. « Sort de la ligne ») ou devant.
+       Par défaut derrière avec « Sort de la ligne », devant sinon (comme l'overlay d'origine). */
+    if (c.notifPlane ? c.notifPlane === 'behind' : c.notifAnim === 'side') {
+      add(' .row-wrap', 'isolation:isolate;');
+      add(' .player-row', 'position:relative; z-index:2;');
+      add(' .pr-icons', 'z-index:1 !important;');
+    } else if (c.notifPlane === 'front') add(' .pr-icons', 'z-index:3 !important;');
+    /* image de l'événement : taille en px (centrée, peut dépasser de la case) — ou en % pour les réglages d'avant */
+    if (c.notifImgPx != null || c.notifImg != null || c.notifImgFit) {
+      const px = c.notifImgPx, pc = c.notifImg ?? 100;
+      const sz = px != null ? `${px}px` : `${pc}%`, fit = c.notifImgFit || (px != null || pc < 100 ? 'contain' : 'cover');
+      add(' .pr-icon img', `width:${sz} !important; height:${sz} !important; max-width:none !important; flex-shrink:0 !important; object-fit:${fit} !important;`);
+      const box = Math.min(c.notifSize ?? c.rowH ?? 40, c.notifW ?? Infinity);
+      if (px != null && px > box) { add(' .pr-icons', 'overflow:visible !important;'); add(' .pr-icon', 'overflow:visible !important;'); }
+    }
+    /* espace entre 2 événements ou plus (marges entre voisins : peuvent être négatives pour coller les formes inclinées) */
+    const shapeGap = notifShapeGap(c);
+    if (c.notifSpacing != null || shapeGap) {
+      add(' .pr-icons', 'gap:0 !important;');
+      add(' .pr-icons > * + *', `margin-${side === 'blue' ? 'left' : 'right'}:${round((c.notifSpacing ?? 2) - shapeGap, 1)}px !important;`);
+    }
     if (c.notifBg) add(' .pr-icon', `background:${c.notifBg} !important; opacity:1 !important;`);
-    if (c.notifRadius != null) add(' .pr-icon', `border-radius:${c.notifRadius}px !important;`);
+    if (c.notifShape === 'circle') add(' .pr-icon', 'border-radius:50% !important;');
+    else if (c.notifShape === 'skew' || (c.notifShape && NOTIF_CLIPS[c.notifShape])) {
+      /* la forme découpe le fond (pseudo-élément derrière l'image), pas l'image : une grande image dépasse librement */
+      let poly;
+      if (c.notifShape === 'skew') {
+        /* inclinée comme les lignes (même pente que leur bord intérieur) ou d'un décalage choisi en px */
+        const sp = slantPoly(notifSlantOff(c));
+        poly = sp && mirror ? `polygon(${sp.replace(/^polygon\(|\)$/g, '').split(',').map(q => { const [x, y] = q.trim().split(/\s+(?![^(]*\))/); return `${mirrorX(x)} ${y}`; }).join(', ')})` : sp;
+        if (poly) add(' .pr-demo-names', `clip-path:${poly} !important;`);   // bandeau démolition incliné pareil
+      } else poly = mirror ? mirrorPoly(NOTIF_CLIPS[c.notifShape]) : NOTIF_CLIPS[c.notifShape];
+      if (poly) {
+        add(' .pr-icon', 'background:transparent !important; position:relative !important; border-radius:0 !important;');
+        add(' .pr-icon::before', `content:''; position:absolute; inset:0; z-index:0; background:${c.notifBg || `var(--${side})`}; clip-path:${poly};`);
+        add(' .pr-icon img', 'position:relative; z-index:1;');
+      }
+    } else if (c.notifRadius != null) add(' .pr-icon', `border-radius:${c.notifRadius}px !important;`);
     if (c.notifAnim && c.notifAnim !== 'default') {
       const n = c.notifAnim === 'side' ? `st-notif-side-${side}` : `st-notif-${c.notifAnim}`;
       add(' .pr-icon, ' + R + ' .pr-demo-names', `animation:${n} 5s ${EASES[c.notifEase || 'smooth']} forwards !important;`);
@@ -2575,23 +2741,136 @@ function sidebarSections(side) {
   const conf = () => S.p.sidebar[side] || {};
   const G = (k, d) => conf()[k] ?? m[k] ?? d;
   const set = k => v => {
-    for (const s of S.p.sidebar.link !== false ? [side, other] : [side]) {
+    /* forme et couleurs d'équipe : seulement la sidebar sélectionnée, même liée */
+    for (const s of S.p.sidebar.link !== false && !SB_SIDE_KEYS.includes(k) ? [side, other] : [side]) {
       S.p.sidebar[s] ||= {};
       if (v === null || v === undefined || v === '') delete S.p.sidebar[s][k]; else S.p.sidebar[s][k] = v;
     }
   };
   const sl = (k, label, min, max, def, unit = ' px', step = 1) => row(label, slider(() => G(k, def), set(k), { min, max, step, unit }));
   const col = (k, label, def) => row(label, colorField(() => G(k, def), set(k), { reset: () => set(k)(null), isSet: () => conf()[k] != null }));
+  /* couleur d'équipe : réglée séparément pour le bleu et l'orange (les deux champs quand les sidebars sont liées) */
+  const linked = S.p.sidebar.link !== false;
+  const teamCol = (k, label, defB, defO) => (linked ? ['blue', 'orange'] : [side]).map(s => {
+    const c = () => S.p.sidebar[s] || {};
+    const setS = v => { S.p.sidebar[s] ||= {}; if (v == null || v === '') delete S.p.sidebar[s][k]; else S.p.sidebar[s][k] = v; };
+    return row(`${label}${linked ? (s === 'blue' ? ' — bleu' : ' — orange') : ''}`, colorField(() => c()[k] ?? (s === 'blue' ? defB : defO), setS, { reset: () => setS(null), isSet: () => c()[k] != null }));
+  });
   const testNotif = () => { try { const w = frame.contentWindow; w.showStatIcon(side === 'blue' ? 'p1' : 'p5', side === 'blue' ? 'Ayyjayy' : 'Joyo', 'goal'); } catch (e) {} };
+  /* deux événements d'affilée sur la même ligne : pour régler l'espace entre les notifications */
+  const testNotifs = () => {
+    try {
+      const w = frame.contentWindow, id = side === 'blue' ? 'p1' : 'p5', nm = side === 'blue' ? 'Ayyjayy' : 'Joyo';
+      w.showStatIcon(id, nm, 'goal'); setTimeout(() => w.showStatIcon(id, nm, 'shot'), 250); setTimeout(() => w.showStatIcon(id, nm, 'save'), 500);
+    } catch (e) {}
+  };
+  const shape = G('shape', 'rect');
+  /* ── Forme des lignes : par côté (gauche / droite séparés) ou libre (points), stockée dans le sens de la
+     sidebar bleue (edgeL = bord de l'écran) ; la sidebar orange la reçoit en miroir ── */
+  function rowShapeControls() {
+    const mode = EDGE_LEGACY[shape] ? 'edges' : shape;
+    const mir = side === 'orange';
+    const edgeOf = k => {
+      const c = conf();
+      if (c[k]) return c[k];
+      if (EDGE_LEGACY[c.shape]) return k === 'edgeR' ? { t: EDGE_LEGACY[c.shape], k: c.cut ?? 14 } : { t: 'straight' };
+      return { t: 'straight' };
+    };
+    const setEdges = (eL, eR) => { set('shape')('edges'); set('edgeL')(eL); set('edgeR')(eR); set('cut')(null); };
+    const edgeRows = (k, label) => {
+      const e = edgeOf(k), o = k === 'edgeL' ? 'edgeR' : 'edgeL';
+      const upd = patch => { const ne = { ...edgeOf(k), ...patch }, no = edgeOf(o); if (k === 'edgeL') setEdges(ne, no); else setEdges(no, ne); };
+      return [
+        row(label, selectField(EDGE_TYPES, () => edgeOf(k).t || 'straight', v => upd({ t: v }), { rebuild: true })),
+        e.t && e.t !== 'straight' ? row(e.t === 'round' ? 'Rayon' : 'Taille', slider(() => edgeOf(k).k ?? 14, v => upd({ k: v }), e.t === 'round' ? { min: 2, max: 120, unit: ' px' } : { min: -120, max: 120, unit: ' px' })) : null,
+      ];
+    };
+    /* éditeur de points : glisser, ajouter (petits ronds au milieu des côtés), retirer (double-clic) */
+    const polyEditor = () => {
+      const NS = 'http://www.w3.org/2000/svg', W = 300, H = 60, P = 10, RECT = [[0, 0], [100, 0], [100, 100], [0, 100]];
+      const pts = () => (Array.isArray(conf().pts) && conf().pts.length >= 3 ? conf().pts : RECT);
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', `${-P} ${-P} ${W + 2 * P} ${H + 2 * P}`);
+      svg.setAttribute('class', 'poly-ed');
+      const color = mir ? '#d96000' : '#1a5fff';
+      const toPx = ([x, y]) => [(mir ? 100 - x : x) / 100 * W, y / 100 * H];
+      const toPct = e => {
+        const r = svg.getBoundingClientRect();
+        let x = ((e.clientX - r.left) * (W + 2 * P) / r.width - P) / W * 100, y = ((e.clientY - r.top) * (H + 2 * P) / r.height - P) / H * 100;
+        if (e.shiftKey) { x = Math.round(x / 5) * 5; y = Math.round(y / 5) * 5; }
+        else for (const v of [0, 50, 100]) { if (Math.abs(x - v) < 1.5) x = v; if (Math.abs(y - v) < 5) y = v; }
+        x = clamp(x, 0, 100); y = clamp(y, 0, 100);
+        return [round(mir ? 100 - x : x, 1), round(y, 1)];
+      };
+      const draw = () => {
+        svg.innerHTML = '';
+        const mk = (tag, a) => { const el = document.createElementNS(NS, tag); for (const k in a) el.setAttribute(k, a[k]); svg.appendChild(el); return el; };
+        mk('rect', { x: 0, y: 0, width: W, height: H, class: 'pe-box' });
+        const p = pts();
+        mk('polygon', { points: p.map(q => toPx(q).join(',')).join(' '), fill: color, 'fill-opacity': .5, stroke: color, 'stroke-width': 1.5 });
+        p.forEach((q, i) => { const [x1, y1] = toPx(q), [x2, y2] = toPx(p[(i + 1) % p.length]); mk('circle', { cx: (x1 + x2) / 2, cy: (y1 + y2) / 2, r: 3.5, class: 'pe-add', 'data-add': i }); });
+        p.forEach((q, i) => { const [x, y] = toPx(q); mk('circle', { cx: x, cy: y, r: 5.5, class: 'pe-pt', 'data-i': i }); });
+      };
+      const save = (p, commitMode) => { set('shape')('free'); set('pts')(p); changed('css', { commit: commitMode }); };
+      svg.addEventListener('pointerdown', e => {
+        const t = e.target;
+        if (t.dataset.add != null) { const p = pts().map(q => [...q]); p.splice(+t.dataset.add + 1, 0, toPct(e)); save(p, 'now'); draw(); return; }
+        if (t.dataset.i == null) return;
+        e.preventDefault();
+        const i = +t.dataset.i;
+        svg.setPointerCapture(e.pointerId);
+        const mv = ev => { const p = pts().map(q => [...q]); p[i] = toPct(ev); save(p, false); draw(); };
+        const up = () => { svg.removeEventListener('pointermove', mv); svg.removeEventListener('pointerup', up); commit(); };
+        svg.addEventListener('pointermove', mv);
+        svg.addEventListener('pointerup', up);
+      });
+      svg.addEventListener('dblclick', e => {
+        const t = e.target;
+        if (t.dataset.i != null && pts().length > 3) { save(pts().filter((_, j) => j !== +t.dataset.i), 'now'); draw(); }
+      });
+      reg(draw);
+      return h('div', { class: 'poly-wrap' }, svg,
+        h('div', { class: 'btns', style: 'margin-top:6px' }, btn('Revenir au rectangle', 'replay', () => { save(RECT.map(q => [...q]), 'now'); draw(); })));
+    };
+    const outer = mir ? 'Côté droit (bord de l\'écran)' : 'Côté gauche (bord de l\'écran)', inner = mir ? 'Côté gauche (vers le centre)' : 'Côté droit (vers le centre)';
+    return [
+      row('Forme', selectField(ROW_MODES, () => mode, v => {
+        if (v === 'edges' && !conf().edgeL && !conf().edgeR && !EDGE_LEGACY[conf().shape]) setEdges({ t: 'straight' }, { t: 'cut-bottom', k: 16 });
+        else set('shape')(v === 'rect' ? null : v);
+      }, { rebuild: true })),
+      mode === 'rect' ? sl('radius', 'Arrondi', 0, 40, 6) : null,
+      mode === 'skew' ? sl('skew', 'Inclinaison', -35, 35, 12, '°') : null,
+      ...(mode === 'edges' ? [
+        h('div', { class: 'lbl', style: 'width:auto;margin:6px 0' }, 'Modèles rapides (modifiables ensuite)'),
+        h('div', { class: 'chips toggles' }, ...ROW_TEMPLATES.map(([l, t]) => h('button', { class: 'chip', onclick: () => { setEdges(clone(t.edgeL), clone(t.edgeR)); changed('css', { commit: 'now', inspector: true }); } }, l))),
+        ...edgeRows('edgeL', outer), ...edgeRows('edgeR', inner)] : []),
+      mode === 'free' ? polyEditor() : null,
+      mode === 'free' ? note('Glisse les points · clique un petit rond au milieu d\'un côté pour ajouter un point · double-clique un point pour le retirer · <b>Maj</b> : par pas de 5 %.') : null,
+      mode === 'edges' ? note('Taille négative : même profil dans l\'autre sens (coupé en haut ↔ coupé en bas, pointe ↔ encoche).') : null,
+      note(`Forme de la sidebar <b>${mir ? 'orange' : 'bleue'}</b> seulement (3 lignes) : sélectionne la sidebar ${mir ? 'bleue' : 'orange'} pour régler la sienne, ou recopie celle-ci en miroir.`),
+      h('div', { class: 'btns' }, btn(`Copier sur la sidebar ${mir ? 'bleue' : 'orange'} (miroir)`, 'copy', () => {
+        /* la forme est stockée en « bord de l'écran / vers le centre » : la même valeur donne le miroir de l'autre côté */
+        S.p.sidebar[other] ||= {};
+        SB_SHAPE_KEYS.forEach(k => { const v = conf()[k]; if (v == null) delete S.p.sidebar[other][k]; else S.p.sidebar[other][k] = clone(v); });
+        changed('css', { commit: 'now' });
+        toast(`Forme recopiée sur la sidebar ${mir ? 'bleue' : 'orange'}`, 'ok');
+      })),
+    ];
+  }
   const out = [];
   out.push(sec('Sidebars', 'list',
-    row('Lier bleu et orange', toggle(() => S.p.sidebar.link !== false, v => { S.p.sidebar.link = v; if (v) S.p.sidebar[other] = clone(S.p.sidebar[side] || {}); }, { rebuild: true })),
+    row('Lier bleu et orange', toggle(() => S.p.sidebar.link !== false, v => {
+      S.p.sidebar.link = v;
+      /* en liant : l'autre sidebar reprend ces réglages, mais garde ses couleurs d'équipe */
+      if (v) { const keep = {}; SB_SIDE_KEYS.forEach(k => { if (S.p.sidebar[other] && S.p.sidebar[other][k] != null) keep[k] = S.p.sidebar[other][k]; }); const cp = clone(S.p.sidebar[side] || {}); SB_SIDE_KEYS.forEach(k => delete cp[k]); S.p.sidebar[other] = { ...cp, ...keep }; }
+    }, { rebuild: true })),
     note(S.p.sidebar.link !== false ? 'Les réglages s\'appliquent aux <b>deux</b> sidebars.' : `Réglages de la sidebar <b>${side === 'blue' ? 'bleue' : 'orange'}</b> uniquement.`),
     h('div', { class: 'btns' }, btn('Réinitialiser', 'replay', () => { S.p.sidebar[side] = {}; if (S.p.sidebar.link !== false) S.p.sidebar[other] = {}; changed('css', { commit: 'now', inspector: true }); }))));
   out.push(sec('Lignes joueurs', 'list',
-    sl('width', 'Largeur', 120, 480, 210), sl('rowH', 'Hauteur', 20, 90, 40), sl('gap', 'Espacement', 0, 40, 3), sl('radius', 'Arrondi', 0, 40, 6),
+    sl('width', 'Largeur', 120, 480, 210), sl('rowH', 'Hauteur', 20, 90, 40), sl('gap', 'Espacement', 0, 40, 3),
+    ...rowShapeControls(),
     col('rowBg', 'Fond', 'rgba(8,8,20,0.88)'), col('specBg', 'Joueur suivi', '#ffffff'),
-    sl('accentW', 'Bande d\'équipe', 0, 30, 5), col('accentColor', 'Couleur bande', side === 'blue' ? '#1a5fff' : '#d96000')));
+    sl('accentW', 'Bande d\'équipe', 0, 30, 5), ...teamCol('accentColor', 'Couleur bande', '#1a5fff', '#d96000')));
   out.push(sec('Textes', 'text',
     sl('nameSize', 'Taille du nom', 8, 40, 16), col('nameColor', 'Couleur du nom', '#ffffff'),
     sl('valSize', 'Taille du boost', 8, 48, 22), col('valColor', 'Couleur du boost', '#ffd700')));
@@ -2600,15 +2879,35 @@ function sidebarSections(side) {
     row('Position', selectField([['bottom', 'Sous le nom'], ['top', 'Au-dessus du nom'], ['fill', 'Remplit la ligne (derrière le nom)'], ['hide', 'Masquée']], () => G('boost', 'bottom'), v => { set('boost')(v); }, { rebuild: true })),
     fillMode ? row('Opacité', slider(() => Math.round((G('boostAlpha', .6)) * 100), v => set('boostAlpha')(v / 100), { min: 10, max: 100, unit: ' %' })) : sl('boostH', 'Épaisseur', 1, 30, 6),
     fillMode ? note('La ligne du joueur se remplit avec son boost, derrière son nom (côté orange : depuis la droite).') : null,
-    col('boostC1', 'Couleur début', side === 'blue' ? '#1a5fff' : '#d96000'),
-    col('boostC2', 'Couleur fin', side === 'blue' ? '#60a0ff' : '#ff9c33'), col('boostBg', 'Fond de la barre', 'rgba(255,255,255,0.07)')));
+    ...teamCol('boostC1', 'Couleur début', '#1a5fff', '#d96000'),
+    ...teamCol('boostC2', 'Couleur fin', '#60a0ff', '#ff9c33'),
+    col('boostBg', 'Fond de la barre', 'rgba(255,255,255,0.07)'),
+    note('Les couleurs du boost se règlent séparément pour l\'équipe bleue et l\'équipe orange.')));
+  const nShape = G('notifShape', 'square');
   out.push(sec('Notifications', 'zap',
     note('Icônes d\'événement (but, arrêt, démo…) qui apparaissent à côté de la ligne du joueur pendant 5 s.'),
     row('Animation', selectField(NOTIF_ANIMS, () => G('notifAnim', 'default'), v => { set('notifAnim')(v === 'default' ? null : v); setTimeout(testNotif, 60); })),
     row('Courbe', selectField(EASE_OPTS, () => G('notifEase', 'smooth'), set('notifEase'))),
-    sl('notifSize', 'Taille', 16, 100, 40), sl('notifGap', 'Écart', -40, 120, 0), sl('notifY', 'Décalage vertical', -60, 60, 0),
-    col('notifBg', 'Fond', side === 'blue' ? '#1a5fff' : '#d96000'), sl('notifRadius', 'Arrondi', 0, 50, 4),
-    h('div', { class: 'btns' }, btn('Voir une notification', 'play', testNotif, 'primary'))));
+    row('Plan', selectField([['', 'Auto (derrière avec « Sort de la ligne »)'], ['behind', 'Derrière la ligne'], ['front', 'Devant la ligne']],
+      () => conf().notifPlane || '', v => { set('notifPlane')(v || null); setTimeout(testNotif, 60); })),
+    row('Forme', selectField(NOTIF_SHAPES, () => nShape, v => { set('notifShape')(v === 'square' ? null : v); setTimeout(testNotif, 60); }, { rebuild: true })),
+    note(`Forme et inclinaison des notifications de la sidebar <b>${side === 'orange' ? 'orange' : 'bleue'}</b> seulement.`),
+    nShape === 'skew' ? row('Même inclinaison que les lignes', toggle(() => conf().notifSkewSync !== false, v => set('notifSkewSync')(v ? null : false), { rebuild: true })) : null,
+    nShape === 'skew' && conf().notifSkewSync === false ? sl('notifSkew', 'Inclinaison', -60, 60, 10) : null,
+    nShape === 'skew' ? note(conf().notifSkewSync === false
+      ? 'Décalage en px entre le haut et le bas de la notification (négatif : dans l\'autre sens).'
+      : 'Les notifications prennent la pente du côté intérieur des lignes (forme inclinée, par côté ou libre) et la suivent si tu changes la forme.') : null,
+    sl('notifSize', 'Hauteur', 16, 160, 40), sl('notifW', 'Largeur', 16, 320, G('notifSize', 40)),
+    row('Taille de l\'image', slider(() => conf().notifImgPx ?? Math.round((conf().notifImg ?? 100) / 100 * G('notifSize', 40)),
+      v => { set('notifImgPx')(v); set('notifImg')(null); }, { min: 8, max: 240, unit: ' px' })),
+    row('Image', selectField([['', 'Automatique'], ['contain', 'Entière (sans rognage)'], ['cover', 'Remplit sa zone (rognée)']], () => conf().notifImgFit || '', v => set('notifImgFit')(v || null))),
+    note('Taille de l\'image de l\'événement en px, centrée dans sa case. Plus grande que la case, elle dépasse : la forme et le fond restent derrière.'),
+    sl('notifSpacing', 'Espace entre notifs', 0, 60, 2),
+    note('Espace entre plusieurs événements affichés en même temps sur une ligne (ex. but + tir). Avec une forme inclinée, 0 px = formes collées.'),
+    sl('notifGap', 'Écart avec la ligne', -40, 120, 0), sl('notifY', 'Décalage vertical', -60, 60, 0),
+    ...teamCol('notifBg', 'Fond', '#1a5fff', '#d96000'),
+    nShape === 'square' ? sl('notifRadius', 'Arrondi', 0, 50, 4) : null,
+    h('div', { class: 'btns' }, btn('Voir une notification', 'play', testNotif, 'primary'), btn('Voir 3 notifications', 'play', testNotifs))));
   return out;
 }
 /* Annonce de but : texte, buteur, durée, animations, style, ou masquée pour faire la sienne avec des calques */
