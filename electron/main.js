@@ -207,6 +207,62 @@ if (!gotLock) { app.exit(0); } else {
     }
   });
 
+  /* ── IPC : Studio de thèmes (fenêtre dédiée, plein écran) ────── */
+  let studioWindow = null;
+  ipcMain.on('open-studio', () => {
+    if (studioWindow && !studioWindow.isDestroyed()) {
+      if (studioWindow.isMinimized()) studioWindow.restore();
+      studioWindow.show(); studioWindow.focus();
+      return;
+    }
+    studioWindow = new BrowserWindow({
+      width: 1500, height: 920, minWidth: 1100, minHeight: 680,
+      title: 'RL Overlay — Studio de thèmes',
+      autoHideMenuBar: true,
+      backgroundColor: '#0b0c10',
+      show: false,
+      icon: path.join(__dirname, '../public/logos/logo.png'),
+      webPreferences: {
+        nodeIntegration : false,
+        contextIsolation: true,
+        preload         : path.join(__dirname, 'preload.js'),
+      },
+    });
+    studioWindow.once('ready-to-show', () => { studioWindow.maximize(); studioWindow.show(); });
+    studioWindow.loadURL('http://localhost:3000/studio.html');
+    studioWindow.on('closed', () => { studioWindow = null; });
+  });
+
+  /* ── IPC : fichiers de projet du Studio (.rlstudio) ──────────────
+     Ctrl+S réécrit le fichier déjà ouvert (sans redemander où l'enregistrer) ;
+     sans chemin connu (nouveau projet, « Enregistrer sous… ») on ouvre la boîte de dialogue. */
+  const STUDIO_FILTERS = [{ name: 'Projet Studio RL Overlay', extensions: ['rlstudio'] }];
+  ipcMain.handle('studio:save', async (e, { file, data, suggested } = {}) => {
+    let target = file;
+    if (!target) {
+      const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
+        title: 'Enregistrer le projet',
+        defaultPath: path.join(app.getPath('documents'), `${suggested || 'projet'}.rlstudio`),
+        filters: STUDIO_FILTERS,
+      });
+      if (r.canceled || !r.filePath) return { canceled: true };
+      target = r.filePath;
+    }
+    await fs.promises.writeFile(target, String(data || ''), 'utf8');
+    return { file: target };
+  });
+  ipcMain.handle('studio:open', async (e, { file } = {}) => {
+    let target = file;
+    if (!target) {
+      const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+        title: 'Ouvrir un projet', properties: ['openFile'], filters: STUDIO_FILTERS,
+      });
+      if (r.canceled || !r.filePaths || !r.filePaths[0]) return { canceled: true };
+      target = r.filePaths[0];
+    }
+    return { file: target, data: await fs.promises.readFile(target, 'utf8') };
+  });
+
   /* ── IPC : déconnexion depuis controls.html ─────────────────── */
   ipcMain.on('auth-logout', () => {
     clearSession();

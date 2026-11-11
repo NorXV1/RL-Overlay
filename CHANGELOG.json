@@ -138,5 +138,18 @@
       "Nouveau : bouton « Installer un thème » dans la carte Thème — une bibliothèque affiche tous les thèmes custom publiés sur le site (aperçu, description, code) et les installe en un clic, avec « Utiliser » pour l'appliquer directement",
       "Correction : en mode saison, les fenêtres du panneau (avis, nouveautés…) passaient sous l'en-tête"
     ]
+  },
+  "1.8.6": {
+    "date": "2026-11-11",
+    "notes": [
+      "Nouveau : Studio de thèmes (bouton Studio du panneau) — crée ton overlay sans coder : aimants et alignements comme Photoshop, calques image / vidéo / texte avec données en direct / formes / Lottie / logos d'équipe / bandeau médias / série / jauge de boost, dossiers, animations, moments d'affichage (en jeu, but, replay, prolongation, fin, victoire…), installation en un clic, export ZIP et image PNG",
+      "Nouveau : écran de fin et victoire de série entièrement personnalisables dans le Studio (textes, couleurs, tailles, stats affichées, animations), avec un MVP en texte ou en image et un aperçu rempli de stats fictives",
+      "Nouveau : animations REPLAY / LIVE de base masquables pour les remplacer par les tiennes, et vidéos de transition lues jusqu'au bout",
+      "Nouveau : boost meter en arc réglable (longueur, position de l'ouverture, sens) avec bouts plats ou arrondis",
+      "Nouveau : projets du Studio enregistrables (Ctrl+S), projets récents, versions de secours automatiques, import de thèmes .zip et partage d'un projet par code via ton compte",
+      "Nouveau : option « Masquer sans caméra » — les joueurs sans lien vidéo n'affichent plus l'image de remplacement",
+      "Amélioration : l'aperçu de l'écran de fin du panneau affiche maintenant un match fictif complet",
+      "Correction : en quittant le thème FIFA WC, la stat bar gardait le logo d'équipe par-dessus le nom du joueur (même souci réglé pour le bloc passeur du replay et la piste du boost meter)"
+    ]
   }
 }

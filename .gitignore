@@ -27,3 +27,6 @@ Thumbs.db
 *.vsidx
 *.wsuo
 *.slnx
+
+# Fichiers de travail du Studio de thèmes (images, vidéos, polices importées)
+studio-work/

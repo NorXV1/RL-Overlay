@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Studio de thèmes — RL Overlay</title>
+<link rel="icon" href="/logos/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link id="font-previews" rel="stylesheet" href="">
+<link rel="stylesheet" href="/studio/studio.css">
+</head>
+<body>
+
+<!-- ═══════════ BARRE DU HAUT ═══════════ -->
+<header id="topbar">
+  <div class="brand">
+    <img src="/logos/logo.png" alt="">
+    <div><b>Studio</b><span>RL Overlay</span></div>
+  </div>
+
+  <div class="tb-group">
+    <div class="menu-wrap">
+      <button class="tb-btn" data-menu="file">Fichier <i data-i="chev"></i></button>
+      <div class="menu" id="menu-file">
+        <button data-act="new"><i data-i="plus"></i>Nouveau projet<kbd>Ctrl+N</kbd></button>
+        <button data-act="open"><i data-i="folder"></i>Ouvrir un projet…<kbd>Ctrl+O</kbd></button>
+        <button data-act="recent"><i data-i="clock"></i>Récents et versions de secours…<kbd>Ctrl+Maj+O</kbd></button>
+        <button data-act="save"><i data-i="save"></i>Enregistrer<kbd>Ctrl+S</kbd></button>
+        <button data-act="save-as"><i data-i="save"></i>Enregistrer sous…<kbd>Ctrl+Maj+S</kbd></button>
+        <div class="sep"></div>
+        <button data-act="open-theme"><i data-i="layers"></i>Modifier un thème du Studio…</button>
+        <button data-act="import-zip"><i data-i="upload"></i>Importer un thème (.zip)…</button>
+        <button data-act="share-open"><i data-i="download"></i>Ouvrir un projet partagé (code)…</button>
+        <button data-act="share"><i data-i="upload"></i>Partager le projet par code…</button>
+        <div class="sep"></div>
+        <button data-act="export-zip"><i data-i="download"></i>Exporter le thème (.zip)</button>
+        <button data-act="export-png"><i data-i="camera"></i>Exporter en image (.png)<kbd>Ctrl+E</kbd></button>
+        <button data-act="submit-site"><i data-i="upload"></i>Proposer sur le site…</button>
+        <div class="sep"></div>
+        <button data-act="cleanup"><i data-i="trash"></i>Nettoyer les fichiers inutilisés…</button>
+      </div>
+    </div>
+    <button class="tb-icon" data-act="undo" title="Annuler (Ctrl+Z)"><i data-i="undo"></i></button>
+    <button class="tb-icon" data-act="redo" title="Rétablir (Ctrl+Y)"><i data-i="redo"></i></button>
+  </div>
+
+  <div class="proj">
+    <input id="proj-name" spellcheck="false" maxlength="40" title="Nom du thème">
+    <button id="file-lbl" data-act="save" title="Enregistrer (Ctrl+S)">Projet non enregistré</button>
+  </div>
+
+  <div class="scenes" id="scenes">
+    <button data-scene="game">En jeu</button>
+    <button data-scene="goal">But</button>
+    <button data-scene="wreplay" title="Transition vers le replay">Anim. REPLAY</button>
+    <button data-scene="replay">Replay</button>
+    <button data-scene="wlive" title="Transition de retour au direct">Anim. LIVE</button>
+    <button data-scene="ot">Prolongation</button>
+    <button data-scene="end">Fin de match</button>
+    <button data-scene="win">Victoire</button>
+  </div>
+
+  <div class="tb-group right">
+    <div class="menu-wrap">
+      <button class="tb-btn ghost" data-menu="play"><i data-i="play"></i>Tester <i data-i="chev"></i></button>
+      <div class="menu" id="menu-play">
+        <button data-act="play-goal"><i data-i="play"></i>But → replay → retour au direct</button>
+        <button data-act="play-end"><i data-i="play"></i>Écran de fin de match</button>
+        <button data-act="play-win"><i data-i="play"></i>Victoire de la série</button>
+        <button data-act="play-layers"><i data-i="zap"></i>Rejouer les animations des calques</button>
+      </div>
+    </div>
+    <button class="tb-btn ghost" data-act="export-png" title="Exporter l'overlay en image PNG 1920×1080"><i data-i="camera"></i>Image</button>
+    <button class="tb-btn primary" data-act="install"><i data-i="check"></i>Installer le thème</button>
+  </div>
+</header>
+
+<main id="app">
+  <!-- ═══════════ CALQUES ═══════════ -->
+  <aside id="left">
+    <div class="panel-head"><i data-i="layers"></i>Calques</div>
+    <div class="add-grid">
+      <button data-add="image" title="Image (PNG, JPG, WebP, SVG)"><i data-i="image"></i><span>Image</span></button>
+      <button data-add="video" title="Vidéo ou GIF animé (WebM, MP4, GIF)"><i data-i="video"></i><span>Vidéo</span></button>
+      <button data-add="text" title="Texte (avec données en direct)"><i data-i="text"></i><span>Texte</span></button>
+      <button data-add="shape" title="Forme"><i data-i="shape"></i><span>Forme</span></button>
+      <button data-add="lottie" title="Animation Lottie (After Effects → Bodymovin .json)"><i data-i="sparkle"></i><span>Lottie</span></button>
+      <button data-add="logo" title="Emplacement du logo d'une équipe (se met à jour tout seul)"><i data-i="shield"></i><span>Logo</span></button>
+      <button data-add="media" title="Bandeau médias : les images et vidéos du bandeau du panneau, à la taille de ton choix"><i data-i="media"></i><span>Médias</span></button>
+      <button data-add="series" title="Série : victoires d'une équipe en bâtons, rectangles, ronds ou texte"><i data-i="pips"></i><span>Série</span></button>
+      <button data-add="boost" title="Jauge de boost du joueur suivi : barre, segments, anneau, arc ou chiffre"><i data-i="gauge"></i><span>Boost</span></button>
+      <button data-act="new-group" title="Nouveau dossier (Ctrl+G range le calque sélectionné dedans)"><i data-i="folderPlus"></i><span>Dossier</span></button>
+    </div>
+    <div id="layer-list"></div>
+    <div class="left-foot">Glisse un fichier sur le canevas pour l'ajouter</div>
+  </aside>
+
+  <!-- ═══════════ CANEVAS ═══════════ -->
+  <section id="center">
+    <div id="canvas-bar">
+      <div class="cb-group">
+        <button class="cb-btn" data-act="zoom-out" title="Zoom arrière (Ctrl -)"><i data-i="minus"></i></button>
+        <button class="cb-zoom" id="zoom-lbl" data-act="zoom-100" title="Zoom 100 %">50 %</button>
+        <button class="cb-btn" data-act="zoom-in" title="Zoom avant (Ctrl +)"><i data-i="plus"></i></button>
+        <button class="cb-btn" data-act="zoom-fit" title="Ajuster à l'écran (Ctrl 0)"><i data-i="fit"></i></button>
+      </div>
+      <div class="cb-group">
+        <button class="cb-toggle" data-toggle="snap" title="Aimants : centre, bords, autres éléments et repères (maintiens Ctrl pour les ignorer)"><i data-i="magnet"></i>Aimants</button>
+        <button class="cb-toggle" data-toggle="grid" title="Grille"><i data-i="grid"></i>Grille</button>
+        <button class="cb-toggle" data-toggle="rulers" title="Règles et repères (tire depuis une règle pour créer un repère)"><i data-i="ruler"></i>Règles</button>
+      </div>
+      <div class="cb-group">
+        <span class="cb-lbl">Fond</span>
+        <div class="seg" id="bg-seg">
+          <button data-bg="stadium">Stade</button>
+          <button data-bg="checker">Damier</button>
+          <button data-bg="green">Vert</button>
+          <button data-bg="black">Noir</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="viewport">
+      <canvas id="ruler-top"></canvas>
+      <canvas id="ruler-left"></canvas>
+      <div id="ruler-corner" title="Supprimer tous les repères"></div>
+      <div id="stage">
+        <div id="world">
+          <iframe id="frame" src="/global.html?preview&studio" width="1920" height="1080" scrolling="no" tabindex="-1"></iframe>
+        </div>
+        <div id="ui">
+          <div id="grid-layer"></div>
+          <div id="guides-layer"></div>
+          <div id="smart-layer"></div>
+          <div id="hover-box"></div>
+          <div id="multi-layer"></div>
+          <div id="marquee"></div>
+          <div id="sel-box">
+            <div class="sel-label"></div>
+            <div class="h" data-h="nw"></div><div class="h" data-h="n"></div><div class="h" data-h="ne"></div>
+            <div class="h" data-h="e"></div><div class="h" data-h="se"></div><div class="h" data-h="s"></div>
+            <div class="h" data-h="sw"></div><div class="h" data-h="w"></div>
+            <div class="rot-line"></div><div class="h rot" data-h="rot"></div>
+          </div>
+          <div id="drag-tip"></div>
+          <div id="drop-hint"><div><i data-i="upload"></i>Dépose pour ajouter un calque</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="statusbar">
+      <span id="st-cursor">X 0 · Y 0</span>
+      <span id="st-sel"></span>
+      <span class="st-hint" id="st-hint">Clic : sélectionner · Glisser : déplacer · Maj : contraindre · Alt+glisser : dupliquer · Espace+glisser : naviguer · Ctrl+molette : zoom</span>
+      <span id="st-save"></span>
+    </div>
+  </section>
+
+  <!-- ═══════════ INSPECTEUR ═══════════ -->
+  <aside id="right">
+    <div class="tabs" id="tabs">
+      <button data-tab="props"><i data-i="sliders"></i>Calque</button>
+      <button data-tab="anim"><i data-i="zap"></i>Animation</button>
+      <button data-tab="theme"><i data-i="palette"></i>Thème</button>
+    </div>
+    <div id="inspector"></div>
+  </aside>
+</main>
+
+<div id="ctx-menu" class="menu"></div>
+<div id="modal-bg"><div id="modal"></div></div>
+<div id="toast"></div>
+<input type="file" id="file-pick" hidden>
+
+<script src="/studio/studio.js"></script>
+</body>
+</html>

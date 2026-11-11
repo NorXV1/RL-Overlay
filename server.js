@@ -37,6 +37,7 @@ settings.mediaBanner.interval = settings.mediaBanner.interval ?? 60; // secondes
 settings.keepPlayerLinks = settings.keepPlayerLinks ?? false;
 settings.playerLinks = settings.keepPlayerLinks ? (settings.playerLinks || {}) : {}; // remis à zéro à chaque démarrage sauf si "Conserver au redémarrage" est activé
 settings.playerVideoEnabled = settings.playerVideoEnabled ?? false;
+settings.playerVideoHideEmpty = settings.playerVideoHideEmpty ?? false; // joueur sans lien caméra : rien au lieu de l'image de remplacement
 settings.animations = { goal: true, replay: true, live: true, endScreen: true, ...(settings.animations || {}) };
 settings.reviewSubmitted = settings.reviewSubmitted ?? false;
 settings.themeNames = settings.themeNames || {}; // noms affichés choisis dans le panneau ({ dossier: "Nom" })
@@ -101,7 +102,7 @@ app.use(['/logos', '/utils'], (_req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));   // projets du Studio (CSS + calques) : bien au-delà des 100 ko par défaut
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -436,7 +437,7 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'utils_updated', data: { files: listUtils() } }));
   ws.send(JSON.stringify({ type: 'overlay_visible', data: { visible: overlayVisible } }));
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
-  ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled } }));
+  ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled, hideEmpty: settings.playerVideoHideEmpty } }));
   ws.send(JSON.stringify({ type: 'animations_settings', data: settings.animations }));
   ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
   ws.send(JSON.stringify({ type: 'season', data: { season: currentSeason } }));
@@ -642,8 +643,16 @@ app.post('/api/keep-player-links', (req, res) => {
 app.post('/api/player-video-toggle', (req, res) => {
   settings.playerVideoEnabled = !!req.body.enabled;
   saveSettings();
-  broadcast('player_video_toggle', { enabled: settings.playerVideoEnabled });
+  broadcast('player_video_toggle', { enabled: settings.playerVideoEnabled, hideEmpty: settings.playerVideoHideEmpty });
   res.json({ ok: true, enabled: settings.playerVideoEnabled });
+});
+
+/* Joueur sans caméra configurée : ne rien afficher (cadre et caméras de replay) au lieu de l'image de remplacement */
+app.post('/api/player-video-hide-empty', (req, res) => {
+  settings.playerVideoHideEmpty = !!req.body.hide;
+  saveSettings();
+  broadcast('player_video_toggle', { enabled: settings.playerVideoEnabled, hideEmpty: settings.playerVideoHideEmpty });
+  res.json({ ok: true, hide: settings.playerVideoHideEmpty });
 });
 
 app.post('/api/animations', (req, res) => {
@@ -883,6 +892,469 @@ app.get('/api/site-themes', async (req, res) => {
     res.json({ ok: true, themes, current: currentTheme });
   } catch {
     res.status(502).json({ error: 'Impossible de joindre le site — vérifie ta connexion' });
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   STUDIO DE THÈMES (public/studio.html)
+   Les fichiers ajoutés dans le Studio (images, vidéos, polices, Lottie) sont rangés dans
+   studio-work/ sous leur empreinte SHA-1 : l'aperçu les charge par URL, et l'installation
+   les copie dans le dossier du thème. Le CSS et le meta.json sont générés par le Studio
+   avec le jeton __THEME__ à la place du nom du dossier, remplacé ici.
+══════════════════════════════════════════════════════════════════ */
+/* STUDIO_WORK_DIR : autre dossier de travail (tests automatiques, sans toucher aux fichiers de l'utilisateur) */
+const STUDIO_WORK = process.env.STUDIO_WORK_DIR || path.join(__dirname, 'studio-work');
+fs.mkdirSync(STUDIO_WORK, { recursive: true });
+app.use('/studio-work', express.static(STUDIO_WORK, { maxAge: '7d' }));
+
+const STUDIO_ASSET_EXT = /^(png|jpe?g|webp|gif|svg|webm|mp4|mov|json|ttf|otf|woff2?|mp3|wav|ogg)$/i;
+const STUDIO_ASSET_NAME = /^[a-f0-9]{20}\.[a-z0-9]{2,5}$/;
+const THEME_FILE_EXT = /\.(css|json|png|jpe?g|webp|gif|svg|ico|webm|mp4|mov|mp3|wav|ogg|ttf|otf|woff2?)$/i;
+
+app.post('/api/studio/asset', express.raw({ type: () => true, limit: '400mb' }), (req, res) => {
+  const name = decodeURIComponent(String(req.get('x-file-name') || 'fichier'));
+  let ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'jpeg') ext = 'jpg';
+  if (!STUDIO_ASSET_EXT.test(ext)) return res.status(400).json({ error: 'Type de fichier non pris en charge' });
+  if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'Fichier vide' });
+  const id = require('crypto').createHash('sha1').update(req.body).digest('hex').slice(0, 20);
+  const file = `${id}.${ext}`;
+  const dest = path.join(STUDIO_WORK, file);
+  if (!fs.existsSync(dest)) fs.writeFileSync(dest, req.body);
+  res.json({ ok: true, id, file, url: `/studio-work/${file}`, size: req.body.length });
+});
+
+/* Sauvegarde automatique du Studio sur le disque (projet en cours + fichier .rlstudio ouvert) :
+   le Studio la reprend à chaque ouverture, même si le stockage du navigateur a été vidé. */
+const STUDIO_AUTOSAVE = path.join(STUDIO_WORK, 'autosave.json');
+app.get('/api/studio/autosave', (req, res) => {
+  try { res.type('json').send(fs.readFileSync(STUDIO_AUTOSAVE, 'utf8')); }
+  catch { res.json(null); }
+});
+app.post('/api/studio/autosave', (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.project || b.project.format !== 'rlo-studio') return res.status(400).json({ error: 'Projet invalide' });
+    /* un autre projet remplace la sauvegarde auto : l'ancien part dans les versions de secours */
+    let prev = null;
+    try { prev = JSON.parse(fs.readFileSync(STUDIO_AUTOSAVE, 'utf8')); } catch {}
+    if (prev && prev.project && prev.project.id !== b.project.id) saveStudioVersion(prev, 'replaced');
+    const entry = { project: b.project, file: b.file || null, dirty: !!b.dirty, at: Date.now() };
+    const tmp = STUDIO_AUTOSAVE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(entry));
+    fs.renameSync(tmp, STUDIO_AUTOSAVE);
+    /* une version toutes les 5 min de travail sur un même projet */
+    const last = listStudioVersions().find(v => v.projectId === String(b.project.id || ''));
+    if (!last || Date.now() - last.at >= STUDIO_VERSION_EVERY) saveStudioVersion(entry, 'auto');
+    if (entry.file) addStudioRecent(entry.file, b.project.name);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ── Versions de secours : instantanés du projet (10 par projet, 60 en tout) ── */
+const STUDIO_VERSIONS = path.join(STUDIO_WORK, 'versions');
+const STUDIO_VERSION_EVERY = 5 * 60 * 1000;
+const VERSION_FILE = /^(\d{13})-([a-zA-Z0-9]{0,40})\.json$/;
+function listStudioVersions() {
+  let names = [];
+  try { names = fs.readdirSync(STUDIO_VERSIONS); } catch {}
+  return names.map(f => { const m = f.match(VERSION_FILE); return m ? { vid: f, at: +m[1], projectId: m[2] } : null; })
+    .filter(Boolean).sort((a, b) => b.at - a.at);
+}
+function saveStudioVersion(entry, reason) {
+  try {
+    const p = entry && entry.project;
+    if (!p || p.format !== 'rlo-studio') return;
+    fs.mkdirSync(STUDIO_VERSIONS, { recursive: true });
+    const pid = String(p.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 40);
+    let at = Date.now();
+    while (fs.existsSync(path.join(STUDIO_VERSIONS, `${at}-${pid}.json`))) at++;
+    fs.writeFileSync(path.join(STUDIO_VERSIONS, `${at}-${pid}.json`), JSON.stringify({ project: p, file: entry.file || null, at, reason }));
+    /* ménage : 10 versions par projet, 60 au total */
+    const perProject = {};
+    listStudioVersions().forEach((v, i) => {
+      perProject[v.projectId] = (perProject[v.projectId] || 0) + 1;
+      if (perProject[v.projectId] > 10 || i >= 60) fs.rmSync(path.join(STUDIO_VERSIONS, v.vid), { force: true });
+    });
+  } catch (e) { console.warn('[Studio] version de secours impossible :', e.message); }
+}
+app.get('/api/studio/versions', (req, res) => {
+  const out = [];
+  for (const v of listStudioVersions()) {
+    try {
+      const j = JSON.parse(fs.readFileSync(path.join(STUDIO_VERSIONS, v.vid), 'utf8'));
+      const p = j.project || {};
+      out.push({ vid: v.vid, at: v.at, projectId: v.projectId, name: p.name || 'Sans nom', layers: (p.layers || []).filter(L => L.type !== 'group').length, file: j.file || null, reason: j.reason || 'auto' });
+    } catch {}
+  }
+  res.json({ ok: true, versions: out });
+});
+app.get('/api/studio/versions/:vid', (req, res) => {
+  const vid = String(req.params.vid);
+  if (!VERSION_FILE.test(vid)) return res.status(400).json({ error: 'Version invalide' });
+  try { res.json({ ok: true, ...JSON.parse(fs.readFileSync(path.join(STUDIO_VERSIONS, vid), 'utf8')) }); }
+  catch { res.status(404).json({ error: 'Version introuvable' }); }
+});
+/* instantané immédiat (ex. avant de restaurer une autre version) */
+app.post('/api/studio/versions', (req, res) => {
+  const b = req.body || {};
+  if (!b.project || b.project.format !== 'rlo-studio') return res.status(400).json({ error: 'Projet invalide' });
+  saveStudioVersion({ project: b.project, file: b.file || null }, b.reason === 'restore' ? 'restore' : 'manual');
+  res.json({ ok: true });
+});
+
+/* ── Projets récents : fichiers .rlstudio ouverts ou enregistrés (10 derniers) ── */
+const STUDIO_RECENT = path.join(STUDIO_WORK, 'recent.json');
+function readStudioRecent() { try { const r = JSON.parse(fs.readFileSync(STUDIO_RECENT, 'utf8')); return Array.isArray(r) ? r : []; } catch { return []; } }
+function addStudioRecent(file, name) {
+  const list = readStudioRecent().filter(r => r.file !== file);
+  list.unshift({ file, name: String(name || '').slice(0, 60), at: Date.now() });
+  try { fs.writeFileSync(STUDIO_RECENT, JSON.stringify(list.slice(0, 10))); } catch {}
+}
+app.get('/api/studio/recent', (req, res) => {
+  res.json({ ok: true, recent: readStudioRecent().map(r => ({ ...r, exists: fs.existsSync(r.file) })) });
+});
+app.post('/api/studio/recent/remove', (req, res) => {
+  const file = String(req.body?.file || '');
+  try { fs.writeFileSync(STUDIO_RECENT, JSON.stringify(readStudioRecent().filter(r => r.file !== file))); } catch {}
+  res.json({ ok: true });
+});
+
+/* ── Nettoyage de studio-work : fichiers importés que plus aucun projet n'utilise. Gardés : ceux de la
+   sauvegarde auto, des versions de secours et ceux envoyés par le Studio (projet ouvert + historique
+   annuler/rétablir). Les thèmes installés et les .rlstudio ont leur propre copie des fichiers. ── */
+const ASSET_REF = /[a-f0-9]{20}\.[a-z0-9]{2,5}/g;
+app.post('/api/studio/cleanup', (req, res) => {
+  const keep = new Set((Array.isArray(req.body?.keep) ? req.body.keep : []).map(String));
+  const scan = f => { try { for (const m of fs.readFileSync(f, 'utf8').match(ASSET_REF) || []) keep.add(m); } catch {} };
+  scan(STUDIO_AUTOSAVE);
+  for (const v of listStudioVersions()) scan(path.join(STUDIO_VERSIONS, v.vid));
+  let count = 0, bytes = 0;
+  for (const f of fs.readdirSync(STUDIO_WORK)) {
+    if (!STUDIO_ASSET_NAME.test(f) || keep.has(f)) continue;
+    const p = path.join(STUDIO_WORK, f);
+    let size = 0;
+    try { size = fs.statSync(p).size; } catch { continue; }
+    if (!req.body?.dry) { try { fs.rmSync(p, { force: true }); } catch { continue; } }
+    count++; bytes += size;
+  }
+  res.json({ ok: true, count, bytes, kept: [...keep].filter(f => STUDIO_ASSET_NAME.test(f) && fs.existsSync(path.join(STUDIO_WORK, f))).length, dry: !!req.body?.dry });
+});
+
+/* Thèmes installés (pour « Basé sur » et « Ouvrir un thème du Studio ») */
+app.get('/api/studio/themes', (req, res) => {
+  const themes = listThemes().map(id => {
+    let studio = null, meta = {};
+    try { meta = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'meta.json'), 'utf8')); } catch {}
+    try { studio = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'studio.json'), 'utf8')); } catch {}
+    return { id, label: settings.themeNames[id] || null, studio: !!studio, name: studio?.name || null, basedOn: meta.basedOn || null };
+  });
+  res.json({ ok: true, themes, current: currentTheme });
+});
+
+/* Rouvre un thème créé avec le Studio : son projet (studio.json) + ses fichiers remis dans studio-work */
+app.get('/api/studio/project/:id', (req, res) => {
+  const id = String(req.params.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  const dir = path.join(THEMES_DIR, id);
+  let project;
+  try { project = JSON.parse(fs.readFileSync(path.join(dir, 'studio.json'), 'utf8')); }
+  catch { return res.status(404).json({ error: "Ce thème n'a pas été créé avec le Studio" }); }
+  for (const a of Object.values(project.assets || {})) {
+    const f = String(a.file || '');
+    if (!STUDIO_ASSET_NAME.test(f)) continue;
+    const src = path.join(dir, f), dst = path.join(STUDIO_WORK, f);
+    if (!fs.existsSync(dst) && fs.existsSync(src)) fs.copyFileSync(src, dst);
+  }
+  project.themeId = id;
+  res.json({ ok: true, project });
+});
+
+/* ZIP minimal (deflate) pour l'export du thème */
+const _crcTable = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = _crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const zlib = require('zlib');
+  const locals = [], centrals = [];
+  let offset = 0;
+  const d = new Date();
+  const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8');
+    const raw = f.data;
+    const comp = zlib.deflateRawSync(raw);
+    const useDeflate = comp.length < raw.length;
+    const data = useDeflate ? comp : raw;
+    const crc = crc32(raw);
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0x0800, 6);
+    lh.writeUInt16LE(useDeflate ? 8 : 0, 8); lh.writeUInt16LE(dosTime, 10); lh.writeUInt16LE(dosDate, 12);
+    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(raw.length, 22);
+    lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(0, 28);
+    const ch = Buffer.alloc(46);
+    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(0x0800, 8);
+    ch.writeUInt16LE(useDeflate ? 8 : 0, 10); ch.writeUInt16LE(dosTime, 12); ch.writeUInt16LE(dosDate, 14);
+    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(data.length, 20); ch.writeUInt32LE(raw.length, 24);
+    ch.writeUInt16LE(name.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32); ch.writeUInt16LE(0, 34);
+    ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);
+    locals.push(lh, name, data);
+    centrals.push(ch, name);
+    offset += lh.length + name.length + data.length;
+  }
+  const cd = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, cd, end]);
+}
+
+/* Construit les fichiers du thème : base (fichiers du thème d'origine), CSS/meta/projet générés, fichiers du Studio */
+function studioThemeFiles(b, id) {
+  const files = new Map();
+  const base = String(b.base || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const baseDir = base && base !== 'rlcs' ? path.join(THEMES_DIR, base) : null;
+  if (baseDir && fs.existsSync(baseDir)) {
+    for (const f of fs.readdirSync(baseDir)) {
+      if (['theme.css', 'meta.json', 'studio.json'].includes(f) || !THEME_FILE_EXT.test(f)) continue;
+      const p = path.join(baseDir, f);
+      if (fs.statSync(p).isFile()) files.set(f, fs.readFileSync(p));
+    }
+  }
+  for (const f of Array.isArray(b.assets) ? b.assets : []) {
+    if (!STUDIO_ASSET_NAME.test(f)) continue;
+    const p = path.join(STUDIO_WORK, f);
+    if (fs.existsSync(p)) files.set(f, fs.readFileSync(p));
+  }
+  const fill = s => String(s || '').split('__THEME__').join(id);
+  const meta = b.meta && typeof b.meta === 'object' ? b.meta : {};
+  const project = b.project && typeof b.project === 'object' ? { ...b.project, themeId: id } : null;
+  files.set('theme.css', Buffer.from(fill(b.css), 'utf8'));
+  files.set('meta.json', Buffer.from(JSON.stringify(meta, null, 2), 'utf8'));
+  if (project) files.set('studio.json', Buffer.from(JSON.stringify(project), 'utf8'));
+  return files;
+}
+
+const studioSlug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+
+app.post('/api/studio/build', (req, res) => {
+  const b = req.body || {};
+  if (!b.css) return res.status(400).json({ error: 'Projet vide' });
+  let wanted = studioSlug(b.themeId || b.name) || 'mon-theme';
+  if (wanted === 'rlcs' || wanted === 'rlo-studio') wanted += '-studio';
+
+  if (b.mode === 'zip') {
+    const files = studioThemeFiles(b, wanted);
+    const zip = makeZip([...files].map(([name, data]) => ({ name, data })));
+    res.set('Content-Type', 'application/zip');
+    res.set('Content-Disposition', `attachment; filename="${wanted}.zip"`);
+    return res.send(zip);
+  }
+
+  /* Dossier : celui du même projet s'il est déjà installé, sinon le premier nom libre
+     (jamais celui d'un autre thème) */
+  const projectId = String(b.project?.id || '');
+  let id = wanted, updated = false;
+  for (let n = 1; ; n++) {
+    const cand = n === 1 ? wanted : `${wanted}-${n}`;
+    const dir = path.join(THEMES_DIR, cand);
+    if (!fs.existsSync(dir)) { id = cand; break; }
+    let sid = null;
+    try { sid = JSON.parse(fs.readFileSync(path.join(dir, 'studio.json'), 'utf8')).id; } catch {}
+    if (projectId && sid === projectId) { id = cand; updated = true; break; }
+  }
+  const files = studioThemeFiles(b, id);
+  const dir = path.join(THEMES_DIR, id);
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'rl-studio-'));
+  try {
+    for (const [name, data] of files) fs.writeFileSync(path.join(tmp, name), data);
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.cpSync(tmp, dir, { recursive: true });
+  } catch (e) {
+    return res.status(500).json({ error: 'Écriture du thème impossible : ' + e.message });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+  const label = String(b.name || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (label) settings.themeNames[id] = label;
+  if (b.apply) { currentTheme = id; settings.theme = id; }
+  saveSettings();
+  broadcast('themes_changed', { id });
+  if (b.apply) broadcast('theme_change', { theme: id });
+  res.json({ ok: true, id, updated, applied: !!b.apply });
+});
+
+/* Fichiers d'un ZIP (à plat, par nom de fichier ; dossiers et fichiers système macOS ignorés) */
+function readZipFiles(buffer) {
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(new Error("Ce fichier n'est pas un ZIP valide"));
+      const files = {};
+      zipfile.readEntry();
+      zipfile.on('entry', entry => {
+        const base = path.basename(entry.fileName);
+        if (/\/$/.test(entry.fileName) || /(^|\/)__MACOSX\//.test(entry.fileName) || base.startsWith('._') || !THEME_FILE_EXT.test(base)) { zipfile.readEntry(); return; }
+        zipfile.openReadStream(entry, (e, rs) => {
+          if (e) { zipfile.readEntry(); return; }
+          const chunks = [];
+          rs.on('data', c => chunks.push(c));
+          rs.on('end', () => { files[base] = Buffer.concat(chunks); zipfile.readEntry(); });
+          rs.on('error', () => zipfile.readEntry());
+        });
+      });
+      zipfile.on('end', () => resolve(files));
+      zipfile.on('error', () => reject(new Error('ZIP illisible')));
+    });
+  });
+}
+
+/* Import d'un thème .zip dans le Studio :
+   - ZIP exporté par le Studio (studio.json) → son projet complet, fichiers remis dans studio-work ;
+   - autre thème (theme.css + images…) → installé comme un thème normal, pour servir de « Basé sur »
+     à un nouveau projet. Réimporter le même ZIP réutilise le thème déjà installé (pas de doublon). */
+app.post('/api/studio/import-zip', upload.single('zip'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier' });
+  const r = await importStudioZip(req.file.buffer, req.body.filename);
+  res.status(r.status || 200).json(r.body);
+});
+async function importStudioZip(buffer, filename) {
+  const fail = (status, error) => ({ status, body: { error } });
+  const ok = body => ({ status: 200, body: { ok: true, ...body } });
+  let files;
+  try { files = await readZipFiles(buffer); }
+  catch (e) { return fail(400, e.message); }
+
+  let project = null;
+  try { const p = JSON.parse(files['studio.json'].toString('utf8')); if (p && p.format === 'rlo-studio') project = p; } catch {}
+  if (project) {
+    let missing = 0;
+    for (const a of Object.values(project.assets || {})) {
+      const f = String(a.file || '');
+      if (!STUDIO_ASSET_NAME.test(f)) continue;
+      const dst = path.join(STUDIO_WORK, f);
+      if (fs.existsSync(dst)) continue;
+      if (files[f]) fs.writeFileSync(dst, files[f]); else missing++;
+    }
+    const base = String(project.base || 'rlcs');
+    const missingBase = base !== 'rlcs' && !listThemes().includes(base) ? base : null;
+    return ok({ kind: 'project', project, missing, missingBase });
+  }
+
+  if (!files['theme.css']) return fail(400, "Ce ZIP ne contient pas de thème (theme.css manquant)");
+  let stem = studioSlug(String(filename || '').replace(/\.zip$/i, '')) || 'theme-importe';
+  if (['rlcs', 'rlo-studio', '__theme__'].includes(stem)) stem += '-importe';
+  const exists = id => fs.existsSync(path.join(THEMES_DIR, id));
+  let id = stem;
+  for (let n = 2; exists(id); n++) id = `${stem}-${n}`;
+  const dir = path.join(THEMES_DIR, id);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    await extractThemeZip(buffer, dir, id, null);
+  } catch (e) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    return fail(400, e.message || 'Extraction du ZIP impossible');
+  }
+  /* même ZIP déjà importé (même CSS au nom du dossier près, mêmes fichiers) : on garde l'existant */
+  const sig = (d, name) => {
+    try {
+      const css = fs.readFileSync(path.join(THEMES_DIR, d, 'theme.css'), 'utf8').split(name).join('\u0000');
+      const list = fs.readdirSync(path.join(THEMES_DIR, d)).filter(f => f !== 'theme.css' && f !== 'meta.json')
+        .map(f => f + ':' + fs.statSync(path.join(THEMES_DIR, d, f)).size).sort().join('|');
+      return css + '\n' + list;
+    } catch { return null; }
+  };
+  const mine = sig(id, id);
+  for (let n = 1; ; n++) {
+    const cand = n === 1 ? stem : `${stem}-${n}`;
+    if (cand === id) break;
+    if (!exists(cand)) continue;
+    if (sig(cand, cand) === mine) {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return ok({ kind: 'theme', id: cand, reused: true });
+    }
+  }
+  broadcast('themes_changed', { id });
+  return ok({ kind: 'theme', id, reused: false });
+}
+
+/* ── Partage d'un projet par code, via le compte du site (licence de la session de l'app) ──
+   Le projet part en ZIP du Studio (thème + studio.json + fichiers) ; le site rend un code court
+   valable 30 jours. Récupérer un code ne demande pas de compte. */
+const STUDIO_SITE = process.env.STUDIO_SITE_URL || 'https://overlay.rscast.fr';
+const siteJson = async r => { const j = await r.json().catch(() => ({})); return { status: r.status, body: r.ok ? j : { error: j.error || `Le site a répondu ${r.status}` } }; };
+const siteDown = e => ({ status: 502, body: { error: 'Site injoignable : ' + (e.name === 'TimeoutError' ? 'délai dépassé' : e.message) } });
+const noLicense = res => res.status(401).json({ error: "Connecte-toi à ton compte RL Overlay dans l'app pour partager" });
+app.post('/api/studio/share', async (req, res) => {
+  if (!_session?.license) return noLicense(res);
+  const b = req.body || {};
+  if (!b.css || !b.project) return res.status(400).json({ error: 'Projet vide' });
+  let wanted = studioSlug(b.themeId || b.name) || 'mon-theme';
+  if (wanted === 'rlcs' || wanted === 'rlo-studio') wanted += '-studio';
+  const zip = makeZip([...studioThemeFiles(b, wanted)].map(([name, data]) => ({ name, data })));
+  try {
+    const fd = new FormData();
+    fd.append('license', _session.license);
+    fd.append('name', String(b.name || 'Projet'));
+    fd.append('zip', new Blob([zip], { type: 'application/zip' }), `${wanted}.zip`);
+    const r = await siteJson(await fetch(`${STUDIO_SITE}/api/studio-shares`, { method: 'POST', body: fd, signal: AbortSignal.timeout(180000) }));
+    res.status(r.status).json(r.body);
+  } catch (e) { const r = siteDown(e); res.status(r.status).json(r.body); }
+});
+app.get('/api/studio/shares', async (req, res) => {
+  if (!_session?.license) return noLicense(res);
+  try { const r = await siteJson(await fetch(`${STUDIO_SITE}/api/studio-shares/mine?license=${encodeURIComponent(_session.license)}`, { signal: AbortSignal.timeout(15000) })); res.status(r.status).json(r.body); }
+  catch (e) { const r = siteDown(e); res.status(r.status).json(r.body); }
+});
+app.delete('/api/studio/shares/:code', async (req, res) => {
+  if (!_session?.license) return noLicense(res);
+  const code = String(req.params.code).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  try { const r = await siteJson(await fetch(`${STUDIO_SITE}/api/studio-shares/${code}?license=${encodeURIComponent(_session.license)}`, { method: 'DELETE', signal: AbortSignal.timeout(15000) })); res.status(r.status).json(r.body); }
+  catch (e) { const r = siteDown(e); res.status(r.status).json(r.body); }
+});
+/* Ouvrir un projet partagé : code → ZIP téléchargé depuis le site → même import qu'un .zip */
+app.post('/api/studio/share-import', async (req, res) => {
+  const code = String(req.body?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  if (code.length < 4) return res.status(400).json({ error: 'Code invalide' });
+  try {
+    const info = await siteJson(await fetch(`${STUDIO_SITE}/api/studio-shares/${code}`, { signal: AbortSignal.timeout(15000) }));
+    if (info.status !== 200) return res.status(info.status === 404 ? 404 : info.status).json(info.body);
+    const r = await fetch(`${STUDIO_SITE}/download/studio-share/${code}`, { signal: AbortSignal.timeout(300000) });
+    if (!r.ok) return res.status(r.status).json({ error: 'Téléchargement impossible' });
+    const out = await importStudioZip(Buffer.from(await r.arrayBuffer()), `${info.body.share.name}.zip`);
+    if (out.body.ok) out.body.share = info.body.share;
+    res.status(out.status).json(out.body);
+  } catch (e) { const r = siteDown(e); res.status(r.status).json(r.body); }
+});
+
+/* Image PNG 1920×1080 de l'overlay (rendu hors écran par Electron) */
+app.post('/api/studio/snapshot', async (req, res) => {
+  let electron = null;
+  try { electron = require('electron'); } catch {}
+  if (!electron || typeof electron !== 'object' || !electron.BrowserWindow) {
+    return res.status(501).json({ error: "L'export en image n'est disponible que dans l'application" });
+  }
+  const transparent = req.body?.bg === 'transparent';
+  /* enableLargerThanScreen : sinon Windows rogne la fenêtre à la zone de travail de l'écran
+     (1920×1032 avec la barre des tâches) ; zoom forcé à 1 malgré la mise à l'échelle de Windows */
+  const win = new electron.BrowserWindow({
+    width: 1920, height: 1080, useContentSize: true, show: false, frame: false, enableLargerThanScreen: true,
+    transparent, backgroundColor: transparent ? '#00000000' : '#09090f',
+    webPreferences: { offscreen: true, backgroundThrottling: false, zoomFactor: 1 },
+  });
+  try {
+    win.setContentSize(1920, 1080);
+    win.webContents.setFrameRate(30);
+    await win.loadURL(`http://127.0.0.1:${PORT}/global.html?preview&studio=render`);
+    win.webContents.setZoomFactor(1);
+    await win.webContents.executeJavaScript(`window.__studio.render(${JSON.stringify(req.body || {})})`, true);
+    let img = await win.webContents.capturePage();
+    const sz = img.getSize();
+    if (sz.width !== 1920 || sz.height !== 1080) img = img.resize({ width: 1920, height: 1080, quality: 'best' });
+    res.type('png').send(img.toPNG());
+  } catch (e) {
+    res.status(500).json({ error: 'Rendu impossible : ' + e.message });
+  } finally {
+    if (!win.isDestroyed()) win.destroy();
   }
 });
 

@@ -1614,6 +1614,10 @@ function setBoostArc(pct, team) {
         else
           bt.style.stroke = team === 1 ? 'rgba(203,82,45,.5)'   : 'rgba(26,88,200,.5)';
       }
+    } else {
+      /* thème en cercle complet : la couleur de piste d'un thème 3/4 précédent ne doit pas rester */
+      const bt = document.getElementById('boost-track');
+      if (bt) bt.style.stroke = '';
     }
     /* ENISorail : attribut équipe pour le logo centré (teinture CSS) */
     if (themeIs('enisorail')) {
@@ -1636,6 +1640,8 @@ let lastPrimaryId = null;
 let overlayForcedOff = false;
 let boostForcedOff   = false;
 let playerVideoEnabled = false;
+/* Réglage du panneau : un joueur sans lien caméra n'affiche rien (au lieu de l'image fallback.jpg) */
+let playerVideoHideEmpty = false;
 let animSettings = { goal: true, replay: true, live: true, endScreen: true };
 let afterPreCountdown = false;
 let collapseScoreT;
@@ -1983,9 +1989,8 @@ function connect() {
             document.getElementById('replay-assist-name').textContent = assister || '—';
             const replayBarEl = document.getElementById('replay-bar');
             replayBarEl.dataset.team = scorer.team_num ?? 0;
-            if (themeIs('fifa-world-cup')) {
-              document.getElementById('replay-assist-block').style.display = assister ? '' : 'none';
-            }
+            /* FIFA WC masque le bloc passeur sans passe ; les autres thèmes le réaffichent toujours */
+            document.getElementById('replay-assist-block').style.display = themeIs('fifa-world-cup') && !assister ? 'none' : '';
             replayBarEl.classList.add('show');
             document.getElementById('stat-bar').classList.remove('show');
             showReplayCams();
@@ -2055,6 +2060,8 @@ function connect() {
         break;
       case 'player_video_toggle':
         playerVideoEnabled = !!data.enabled;
+        playerVideoHideEmpty = !!data.hideEmpty;
+        if (replayCamsActive) showReplayCams();   // caméras de replay déjà affichées : mises à jour tout de suite
         if (!playerVideoEnabled) {
           /* Coupe les connexions préchargées en arrière-plan quand la fonction est désactivée */
           _videoPool.forEach(f => f.remove());
@@ -2534,7 +2541,13 @@ function renderStatBar(p) {
     if (img && img.dataset.logo !== url) { img.dataset.logo = url; img.src = url; }
     wrap.style.display = 'flex';
   } else {
-    document.getElementById('stat-team-tag').style.background = color;
+    /* en quittant FIFA WC : on retire son logo d'équipe et son fond transparent (sinon le logo reste
+       dans le bloc du nom et le recouvre) */
+    bar.style.background = '';
+    const tag = document.getElementById('stat-team-tag');
+    tag.style.background = color;
+    const wrap = tag.querySelector('.sb-logo-wrap');
+    if (wrap) wrap.remove();
   }
 
   const sv = document.getElementById('stat-values');
@@ -2630,7 +2643,7 @@ function _hideFrame(iframe) { iframe.style.opacity = '0'; }
 function renderPlayerVideo(p) {
   const box = document.getElementById('player-video-box');
   if (!box || replayCamsActive) return; // les caméras replay gèrent l'affichage pendant ce mode
-  if (!playerVideoEnabled || !p || replayActive || !state?.hasGame) {
+  if (!playerVideoEnabled || !p || replayActive || !state?.hasGame || (playerVideoHideEmpty && !p.link)) {
     box.classList.remove('show');
     _videoPool.forEach(f => _hideFrame(f));
     return;
@@ -2672,17 +2685,21 @@ function showReplayCams() {
   const orangeEl  = document.getElementById('replay-cams-orange');
   const blueSlots   = [...blueEl.querySelectorAll('.rc-slot')];
   const orangeSlots = [...orangeEl.querySelectorAll('.rc-slot')];
-  [...blueSlots, ...orangeSlots].forEach(slot => { slot.querySelector('.rc-fallback').style.display = ''; });
+  [...blueSlots, ...orangeSlots].forEach(slot => { slot.querySelector('.rc-fallback').style.display = ''; slot.style.display = ''; });
 
   _activeCams = [];
   const fillSlots = (slots, team) => {
+    const used = new Set();
     orderedTeamPlayers(team).forEach((p, i) => {
       const slot = slots[i];
       if (!slot || !p?.link) return;
       const iframe = ensureVideoFrame(p.name, p.link);
       slot.querySelector('.rc-fallback').style.display = 'none';
       _activeCams.push({ iframe, slot });
+      used.add(slot);
     });
+    /* « Masquer sans caméra » : les emplacements sans flux disparaissent, les autres se resserrent */
+    if (playerVideoHideEmpty) slots.forEach(slot => { if (!used.has(slot)) slot.style.display = 'none'; });
   };
   fillSlots(blueSlots, 0);
   fillSlots(orangeSlots, 1);
@@ -3069,6 +3086,19 @@ function hideEndScreen() {
   document.getElementById('end-screen').classList.remove('visible');
   setScoreboardExpanded(false);
 }
+/* Joueurs fictifs avec toutes leurs stats : aperçu de l'écran de fin (panneau de contrôle, Studio).
+   L'équipe gagnante (winner) reçoit les stats qui donnent 3 buts, l'autre 2. */
+function demoEndPlayers(winner) {
+  const WIN  = [[612, 2, 1, 5, 1, 0], [438, 1, 1, 3, 2, 1], [356, 0, 1, 2, 3, 2]];
+  const LOSE = [[524, 1, 1, 4, 2, 0], [402, 1, 0, 3, 1, 1], [288, 0, 1, 1, 3, 0]];
+  const names = [['Ayyjayy', 'jstn.', 'Garrett'], ['Vatira.', 'Joyo', 'Kassio']];
+  const out = {};
+  [0, 1].forEach(team => (team === (winner === 1 ? 1 : 0) ? WIN : LOSE).forEach((s, i) => {
+    const id = 'p' + (team * 3 + i + 1);
+    out[id] = { id, name: names[team][i], team, score: s[0], goals: s[1], assists: s[2], shots: s[3], saves: s[4], demos: s[5] };
+  }));
+  return out;
+}
 function buildEndScreen({ winner, teams, series, players }) {
   const bp = Object.values(players).filter(p => p.team === 0).sort((a,b) => (b.score??0)-(a.score??0));
   const op = Object.values(players).filter(p => p.team === 1).sort((a,b) => (b.score??0)-(a.score??0));
@@ -3331,12 +3361,15 @@ window.addEventListener('message', ({ data }) => {
     hideOverlay(0);
     const teams = state?.game?.teams || [];
     const ser   = state?.series || { blue: 3, orange: 2, bestOf: 5 };
-    const plrs  = state?.players || {};
+    /* stats réelles si une partie en fournit, sinon joueurs fictifs pour voir le tableau rempli */
+    const live  = state?.game?.players || {};
+    const w     = data.team === 1 ? 1 : 0;
+    const plrs  = Object.values(live).some(p => p.score != null) ? live : demoEndPlayers(w);
     buildEndScreen({
-      winner: 0,
+      winner: w,
       teams: [
-        { name: teams[0]?.name || 'BLUE',   score: 3, logo_url: teams[0]?.logo_url },
-        { name: teams[1]?.name || 'ORANGE', score: 2, logo_url: teams[1]?.logo_url },
+        { name: teams[0]?.name || 'BLUE',   score: w === 0 ? 3 : 2, logo_url: teams[0]?.logo_url },
+        { name: teams[1]?.name || 'ORANGE', score: w === 0 ? 2 : 3, logo_url: teams[1]?.logo_url },
       ],
       series: ser,
       players: plrs,
@@ -3373,5 +3406,7 @@ window.addEventListener('message', ({ data }) => {
   }
 });
 </script>
+<!-- Thèmes du Studio : calques (images, vidéos, textes, formes, Lottie) et leurs déclencheurs -->
+<script src="/studio/runtime.js"></script>
 </body>
 </html>

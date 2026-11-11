@@ -566,6 +566,11 @@ input:checked + .slider:before { transform:translateX(18px); }
   transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 .store-open:hover { transform:translateY(-1px); border-color:var(--blue); box-shadow:0 8px 24px -10px var(--blue); }
+.store-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.store-row .store-open { margin-top:0; }
+.store-open.studio { background:linear-gradient(135deg, rgba(168,85,247,.22), rgba(236,72,153,.08)); border-color:rgba(168,85,247,.45); }
+.store-open.studio:hover { border-color:#a855f7; box-shadow:0 8px 24px -10px #a855f7; }
+.store-open.studio .so-ico { background:linear-gradient(135deg,#a855f7,#ec4899); }
 .store-open .so-ico { width:34px; height:34px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:9px; background:var(--blue); font-size:16px; }
 .store-open .so-t { font-size:12px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; }
 .store-open .so-s { font-size:11px; color:var(--muted); margin-top:2px; }
@@ -801,6 +806,10 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="toggle-row">
         <div><div class="toggle-label">Flux vidéo joueur</div><div class="toggle-sub">Cadre 16:9 au-dessus de la stat bar (lien par joueur ci-dessous)</div></div>
         <label class="switch"><input type="checkbox" id="player-video-toggle" onchange="setPlayerVideoEnabled(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Masquer sans caméra</div><div class="toggle-sub">Joueur sans lien : rien au lieu de l'image de remplacement (cadre et caméras du replay)</div></div>
+        <label class="switch"><input type="checkbox" id="player-video-hide-empty" onchange="setPlayerVideoHideEmpty(this.checked)"><span class="slider"></span></label>
       </div>
       <button class="btn btn-gray btn-sm" style="margin-top:6px;width:auto;padding:6px 14px;" onclick="openPlayerLinksManager()">⚙ Configurer les liens joueurs</button>
       <div class="fb" id="fb-visible"></div>
@@ -1185,12 +1194,19 @@ input:checked + .slider:before { transform:translateX(18px); }
         <div id="imported-themes-grid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
 
-      <!-- Bibliothèque : thèmes custom du site -->
-      <button class="store-open" onclick="openThemeStore()">
-        <span class="so-ico">🛍️</span>
-        <span><div class="so-t">Installer un thème</div><div class="so-s">Parcourir les thèmes custom du site et les installer en un clic</div></span>
-        <span class="so-go">›</span>
-      </button>
+      <!-- Bibliothèque : thèmes custom du site · Studio : créer son propre thème -->
+      <div class="store-row">
+        <button class="store-open" onclick="openThemeStore()">
+          <span class="so-ico">🛍️</span>
+          <span><div class="so-t">Installer un thème</div><div class="so-s">Parcourir les thèmes custom du site et les installer en un clic</div></span>
+          <span class="so-go">›</span>
+        </button>
+        <button class="store-open studio" onclick="openStudio()">
+          <span class="so-ico">🎨</span>
+          <span><div class="so-t">Studio de thèmes</div><div class="so-s">Crée ton propre thème : placement, couleurs, calques, animations</div></span>
+          <span class="so-go">›</span>
+        </button>
+      </div>
 
       <!-- Import -->
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);">
@@ -1567,6 +1583,11 @@ function openThemeStore() {
   loadThemeStore();
 }
 function closeThemeStore() { document.getElementById('store-modal-overlay').style.display = 'none'; }
+/* Studio de thèmes : fenêtre dédiée dans l'app (onglet du navigateur hors app) */
+function openStudio() {
+  if (window.electronAPI && window.electronAPI.openStudio) window.electronAPI.openStudio();
+  else window.open('/studio.html', '_blank');
+}
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.getElementById('store-modal-overlay').style.display === 'flex') closeThemeStore();
 });
@@ -1745,6 +1766,7 @@ ws.onmessage = e => {
   if (type === 'review_status') document.getElementById('review-btn').style.display = data.submitted ? 'none' : '';
   if (type === 'logo_updated') { const img=document.querySelector(`#prev-${data.side} img`); if(img) img.dataset.url=''; setLogoPreview(data.side, data.url); }
   if (type === 'theme_download_progress') onThemeDownloadProgress(data);
+  if (type === 'themes_changed') loadImportedThemes();   // thème installé depuis le Studio
   if (type === 'season') setSeason(data.season);
 };
 
@@ -1774,6 +1796,7 @@ async function loadSettings() {
     document.getElementById('media-toggle').checked = s.mediaBanner?.enabled ?? false;
     document.getElementById('media-interval').value = s.mediaBanner?.interval ?? 60;
     document.getElementById('player-video-toggle').checked = s.playerVideoEnabled ?? false;
+    document.getElementById('player-video-hide-empty').checked = s.playerVideoHideEmpty ?? false;
     const anim = s.animations || {};
     document.getElementById('anim-goal-toggle').checked   = anim.goal   ?? true;
     document.getElementById('anim-replay-toggle').checked = anim.replay ?? true;
@@ -2020,6 +2043,7 @@ async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await 
 async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
 async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); }
+async function setPlayerVideoHideEmpty(v) { await post('/api/player-video-hide-empty', {hide:v}); fb('fb-visible', v?'✓ Joueurs sans caméra masqués':'✓ Image de remplacement affichée'); }
 async function setKeepPlayerLinks(v) { await post('/api/keep-player-links', {enabled:v}); fb('fb-pl-modal', v?'✓ Les liens seront conservés au redémarrage':'✓ Les liens seront réinitialisés au redémarrage'); }
 const ANIM_LABELS = { goal: 'Animation GOAL', replay: 'Animation REPLAY', live: 'Animation LIVE', endScreen: 'Écran de fin' };
 async function setAnimation(key, v) { const e = key === 'endScreen' ? '' : 'e'; await post('/api/animations', {[key]:v}); fb('fb-anim', `✓ ${ANIM_LABELS[key]} ${v?'activé':'désactivé'}${e}`); }
