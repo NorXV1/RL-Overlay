@@ -839,7 +839,7 @@ function layerSpecs(ctx) {
     const gs = groupShow(groupOf(L));
     if (gs) spec.gshow = gs;
     if (effHidden(L)) spec.hidden = true;
-    if (L.type === 'text') { spec.text = (L.text && L.text.content) || ''; if (L.text && L.text.hideEmpty) spec.hideEmpty = true; }
+    if (L.type === 'text') { spec.text = (L.text && L.text.content) || ''; if (L.text && L.text.hideEmpty) spec.hideEmpty = true; if (L.text && L.text.fit === false) spec.fit = false; }
     if (L.type === 'logo') spec.team = L.team || 'blue';
     if (L.type === 'video' && L.toEnd) { spec.toEnd = true; spec.loop = false; }
     if (L.type === 'series') { const r = L.series || {}; Object.assign(spec, { team: r.team || 'blue', style: r.style || 'rects', dir: r.dir || 'ltr', vertical: !!r.vertical, fmt: r.fmt || 'wins' }); }
@@ -3149,6 +3149,8 @@ function renderLayerProps() {
       row('Espacement', slider(() => t.spacing || 0, v => { t.spacing = v; }, { min: -5, max: 30, unit: ' px' })),
       row('Majuscules', toggle(() => t.upper, v => { t.upper = v; })),
       row('Italique', toggle(() => t.italic, v => { t.italic = v; })),
+      row('Réduire pour tenir', toggle(() => t.fit !== false, v => { if (v) delete t.fit; else t.fit = false; }, { level: 'layers' })),
+      note('Si le texte est plus large que sa case (ex. un nom d\'équipe long), il rétrécit juste ce qu\'il faut pour rester dedans, puis reprend sa taille.'),
       row('Masquer si vide', toggle(() => !!t.hideEmpty, v => { if (v) t.hideEmpty = true; else delete t.hideEmpty; }, { level: 'layers' })),
       note('Cache le calque quand une donnée en direct est vide — ex. <b>PASSE D : {assist}</b> disparaît s\'il n\'y a pas de passeur.'),
       row('Contour', slider(() => t.stroke.w, v => { t.stroke.w = v; }, { max: 12, step: .5, dec: 1, unit: ' px' })),

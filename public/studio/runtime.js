@@ -487,12 +487,34 @@
     mvp_team: () => (lastEnd && lastEnd.mvp ? lastEnd.names[lastEnd.mvp.team] || teamNameOf(lastEnd.mvp.team) : ''),
   });
 
+  /* Texte plus large que sa case (nom d'équipe long…) : la police rétrécit juste ce qu'il faut pour tenir
+     en largeur, puis reprend sa taille quand le texte raccourcit. Option « Réduire pour tenir dans la case »
+     du calque (activée par défaut, spec.fit === false pour la couper). */
+  function fitText(L) {
+    const span = L.textEl, box = span && span.parentNode;
+    if (!span || !box) return;
+    if (span.style.fontSize) span.style.fontSize = '';
+    if (L.spec.fit === false) return;
+    const bw = box.clientWidth;
+    if (!bw) return;   // calque non affiché (display:none) : réajusté à la prochaine occasion
+    for (let i = 0; i < 4; i++) {
+      const sw = span.offsetWidth;
+      if (!sw || sw <= bw + 0.5) break;
+      const fs = parseFloat(getComputedStyle(span).fontSize) || 0;
+      if (!fs) break;
+      span.style.fontSize = `${Math.max(6, fs * bw / sw * 0.995).toFixed(2)}px`;
+    }
+  }
+  const fitAllText = () => { for (const L of layers) if (L.textEl) fitText(L); };
+  /* polices web chargées après coup : les largeurs changent */
+  try { document.fonts.addEventListener('loadingdone', () => fitAllText()); } catch (e) {}
+
   let tokenTimer = null;
   function updateTokens() {
     for (const L of layers) {
       if (L.textEl) {
         const v = fillTokens(L.spec.text);
-        if (L.textEl.textContent !== v) L.textEl.textContent = v;
+        if (L.textEl.textContent !== v) { L.textEl.textContent = v; fitText(L); }
         /* « Masquer si une donnée est vide » : ex. « Passe D : {assist} » sans passeur */
         if (L.spec.hideEmpty) L.el.classList.toggle('st-empty', tokensEmpty(L.spec.text));
       }
@@ -664,6 +686,8 @@
     if (IS_STUDIO && layers.some(L => L.spec.type === 'media')) { try { if (!_mbEnabled) startMediaBanner(); } catch (e) {} }
     updateTokens();
     sync();
+    /* textes ajustés à leur case, puis de nouveau une fois le CSS du thème et les polices appliqués */
+    fitAllText(); setTimeout(fitAllText, 400); setTimeout(fitAllText, 1500);
     return Promise.all(pending.map(x => Promise.resolve(x).catch(() => {})));
   }
 
@@ -766,6 +790,7 @@
     if (baseCss != null && baseStyle.textContent !== baseCss) baseStyle.textContent = baseCss;
     if (studioCss != null && studioStyle.textContent !== studioCss) studioStyle.textContent = studioCss;
     document.body.dataset.theme = STUDIO_THEME;
+    requestAnimationFrame(fitAllText);   // taille, police ou case d'un texte modifiée dans l'éditeur
     try { _invalidateTc(); } catch (e) {}
   }
   let reColorT = null;

@@ -151,5 +151,11 @@
       "Amélioration : l'aperçu de l'écran de fin du panneau affiche maintenant un match fictif complet",
       "Correction : en quittant le thème FIFA WC, la stat bar gardait le logo d'équipe par-dessus le nom du joueur (même souci réglé pour le bloc passeur du replay et la piste du boost meter)"
     ]
+  },
+  "1.8.7": {
+    "date": "2026-11-11",
+    "notes": [
+      "Amélioration : dans le Studio, un texte trop long pour sa case (ex. un nom d'équipe long) rétrécit tout seul pour rester dedans, puis reprend sa taille — option « Réduire pour tenir » du calque texte, activée par défaut"
+    ]
   }
 }
