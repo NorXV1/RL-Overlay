@@ -188,6 +188,7 @@ if (!gotLock) { app.exit(0); } else {
     mainWindow.on('close', e => {
       if (!app.isQuitting) { e.preventDefault(); mainWindow.hide(); }
     });
+    hud.registerShortcut();
     mainWindow.on('closed', () => { mainWindow = null; });
   }
 
@@ -232,6 +233,9 @@ if (!gotLock) { app.exit(0); } else {
     studioWindow.loadURL('http://localhost:3000/studio.html');
     studioWindow.on('closed', () => { studioWindow = null; });
   });
+
+  /* ── HUD à l'écran pour le caster (overlay par-dessus le jeu, voir hud.js) ── */
+  const hud = require('./hud')({ getMainWindow: () => mainWindow, port: 3000 });
 
   /* ── IPC : fichiers de projet du Studio (.rlstudio) ──────────────
      Ctrl+S réécrit le fichier déjà ouvert (sans redemander où l'enregistrer) ;

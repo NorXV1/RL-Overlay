@@ -8,4 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openStudio  : ()     => ipcRenderer.send('open-studio'),
   studioSave  : (opts) => ipcRenderer.invoke('studio:save', opts),
   studioOpen  : (opts) => ipcRenderer.invoke('studio:open', opts),
+  /* HUD à l'écran (caster) : afficher / masquer, écran, opacité, masqué des captures */
+  hudGet      : ()     => ipcRenderer.invoke('hud:get'),
+  hudSet      : (opts) => ipcRenderer.invoke('hud:set', opts),
+  onHudState  : (cb)   => ipcRenderer.on('hud:state', (e, s) => cb(s)),
 });

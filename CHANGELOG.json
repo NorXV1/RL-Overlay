@@ -166,5 +166,11 @@
       "Nouveau : notifications des sidebars personnalisables — forme (dont « inclinée comme les lignes »), hauteur, largeur, taille de l'image en px, espace entre plusieurs événements, et plan devant / derrière la ligne (elles sortent de derrière avec « Sort de la ligne »)",
       "Amélioration : couleurs du boost, de la bande d'équipe et du fond des notifications réglables séparément pour le bleu et l'orange"
     ]
+  },
+  "1.8.9": {
+    "date": "2026-11-12",
+    "notes": [
+      "Nouveau : HUD à l'écran pour les casters — l'overlay s'affiche directement par-dessus le jeu (comme sur le stream), sans gêner la souris. Carte « HUD à l'écran » en haut du panneau ou raccourci Ctrl+Maj+H, avec choix de l'écran, opacité et option pour qu'il n'apparaisse pas dans les captures OBS (Rocket League en plein écran fenêtré)"
+    ]
   }
 }

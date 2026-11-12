@@ -696,6 +696,26 @@ input:checked + .slider:before { transform:translateX(18px); }
       <button onclick="doLogout()" class="btn btn-danger" style="width:100%;margin-top:4px;font-size:11px">SE DÉCONNECTER</button>
     </div>
 
+    <!-- HUD à l'écran : l'overlay par-dessus le jeu, devant le caster (application uniquement) -->
+    <div class="card" id="hud-card" style="display:none">
+      <div class="card-title white">HUD à l'écran (caster)</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Afficher le HUD sur l'écran</div><div class="toggle-sub">L'overlay par-dessus le jeu, comme sur le stream · <b>Ctrl+Maj+H</b></div></div>
+        <label class="switch"><input type="checkbox" id="hud-toggle" onchange="setHud({ shown: this.checked })"><span class="slider"></span></label>
+      </div>
+      <div class="row">
+        <div><label>Écran</label><select id="hud-display" onchange="setHud({ display: +this.value })"></select></div>
+        <div><label>Opacité <span id="hud-op-val">100 %</span></label>
+          <input type="range" id="hud-opacity" min="10" max="100" step="5" value="100" style="width:100%;accent-color:#3d7bff"
+            oninput="document.getElementById('hud-op-val').textContent = this.value + ' %'; setHud({ opacity: +this.value })"></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Invisible dans les captures</div><div class="toggle-sub">Le HUD n'apparaît pas dans une capture d'écran OBS (pas d'overlay en double sur le stream)</div></div>
+        <label class="switch"><input type="checkbox" id="hud-protect" checked onchange="setHud({ protect: this.checked })"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-sub" style="margin-top:6px">Mets Rocket League en <b>plein écran fenêtré</b> : en plein écran exclusif, le jeu passe par-dessus. La souris traverse le HUD, il ne gêne pas le jeu. Il s'affiche dès qu'une partie est en cours, comme dans OBS.</div>
+    </div>
+
     <div class="card">
       <div class="card-title white">Joueur spectateur</div>
       <p style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Touches <strong style="color:var(--text);">1–9</strong> ou clic pour sélectionner le joueur affiché dans la stat bar &amp; boost.</p>
@@ -1583,6 +1603,28 @@ function openThemeStore() {
   loadThemeStore();
 }
 function closeThemeStore() { document.getElementById('store-modal-overlay').style.display = 'none'; }
+/* HUD à l'écran (caster) : fenêtre transparente de l'application par-dessus le jeu */
+function renderHud(s) {
+  if (!s) return;
+  document.getElementById('hud-card').style.display = '';
+  document.getElementById('hud-toggle').checked = !!s.shown;
+  document.getElementById('hud-protect').checked = s.opts.protect !== false;
+  const op = document.getElementById('hud-opacity');
+  if (document.activeElement !== op) { op.value = s.opts.opacity ?? 100; document.getElementById('hud-op-val').textContent = op.value + ' %'; }
+  const sel = document.getElementById('hud-display');
+  const cur = s.displays.find(d => d.id === s.opts.display) ? s.opts.display : s.displays[0] && s.displays[0].id;
+  sel.innerHTML = s.displays.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+  sel.value = String(cur);
+}
+async function setHud(o) {
+  if (!window.electronAPI || !window.electronAPI.hudSet) return;
+  renderHud(await window.electronAPI.hudSet(o));
+}
+if (window.electronAPI && window.electronAPI.hudGet) {
+  window.electronAPI.hudGet().then(renderHud).catch(() => {});
+  window.electronAPI.onHudState(renderHud);   // Ctrl+Maj+H ou fermeture : l'interrupteur suit
+}
+
 /* Studio de thèmes : fenêtre dédiée dans l'app (onglet du navigateur hors app) */
 function openStudio() {
   if (window.electronAPI && window.electronAPI.openStudio) window.electronAPI.openStudio();
