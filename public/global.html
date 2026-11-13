@@ -5,8 +5,17 @@
 <title>RL Overlay — Global</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <link id="theme-stylesheet" rel="stylesheet" href="">
+<script>
+  /* HUD à l'écran du caster (?hud) : sans les écrans de fin et de victoire, qui masqueraient tout le jeu
+     (sauf ?hud&ends, réglage « Écrans de fin et de victoire » de la carte HUD du panneau) */
+  (function () { const q = new URLSearchParams(location.search); if (q.has('hud') && !q.has('ends')) document.documentElement.classList.add('hud-noend'); })();
+</script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+html.hud-noend #end-screen, html.hud-noend #win-screen { display: none !important; }
+/* calques du Studio affichés à la fin / à la victoire : masqués aussi dans le HUD */
+html.hud-noend.st-m-end #st-front, html.hud-noend.st-m-end #st-back,
+html.hud-noend.st-m-win #st-front, html.hud-noend.st-m-win #st-back { display: none !important; }
 
 /* ══ THÈMES OVERLAY ══════════════════════════════════════════ */
 :root {
@@ -1938,7 +1947,7 @@ function connect() {
     if (IS_PREVIEW) {
       if (type === 'theme_change') applyTheme(data.theme);
       if (type === 'media_banner') onMediaBannerMsg(data);
-      if (type === 'utils_updated') onUtilsUpdated(data.files);
+      if (type === 'utils_updated') onUtilsUpdated(data.active || data.files);
       if (type === 'logo_updated') {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
         _showLogo(document.getElementById(`${side}-logo-img`), document.getElementById(`${side}-logo`), data.url, !!data.url);
@@ -2082,7 +2091,8 @@ function connect() {
         onMediaBannerMsg(data);
         break;
       case 'utils_updated':
-        onUtilsUpdated(data.files);
+        /* médias du groupe choisi dans le panneau (tous si aucun groupe) */
+        onUtilsUpdated(data.active || data.files);
         break;
       case 'logo_updated': {
         const sideName = data.side === 'bleu' ? 'blue' : 'orange';
@@ -2884,7 +2894,7 @@ async function startMediaBanner() {
   document.getElementById('media-banner').classList.add('mb-on');
   document.getElementById('end-media-banner').classList.add('mb-on');
   try {
-    const files = await fetch('/api/utils').then(r => r.json());
+    const files = await fetch('/api/utils?active=1').then(r => r.json());
     _mbFiles = files || [];
   } catch { _mbFiles = []; }
   if (_mbFiles.length) { _mbShowIdx(0); _mbStartCycle(); }

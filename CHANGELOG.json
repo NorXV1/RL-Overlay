@@ -172,5 +172,14 @@
     "notes": [
       "Nouveau : HUD à l'écran pour les casters — l'overlay s'affiche directement par-dessus le jeu (comme sur le stream), sans gêner la souris. Carte « HUD à l'écran » en haut du panneau ou raccourci Ctrl+Maj+H, avec choix de l'écran, opacité et option pour qu'il n'apparaisse pas dans les captures OBS (Rocket League en plein écran fenêtré)"
     ]
+  },
+  "1.9.0": {
+    "date": "2026-11-13",
+    "notes": [
+      "Nouveau : panneau de contrôle réorganisé en menus déroulants — « Thèmes », « Équipes » (noms & ligue, série BO, logos) et « Bandeau médias » (réglages, groupes, images & vidéos) s'ouvrent et se ferment d'un clic, avec un résumé visible dans l'en-tête (thème actif, score de la série, médias affichés)",
+      "Nouveau : les cartes de la colonne de gauche se replient en cliquant sur leur titre ; les menus ouverts ou fermés sont gardés d'une ouverture de l'app à l'autre",
+      "Nouveau : groupes de médias pour le bandeau — créez des dossiers nommés (ex. « Sponsors Tournoi A »), rangez-y vos images et vidéos, choisissez leur ordre, puis sélectionnez le groupe à afficher en un clic",
+      "Amélioration : le HUD à l'écran n'affiche plus les écrans de fin de match et de victoire, qui couvraient tout le jeu (réactivables avec l'option « Écrans de fin et de victoire »)"
+    ]
   }
 }

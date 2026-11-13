@@ -41,6 +41,10 @@ settings.playerVideoHideEmpty = settings.playerVideoHideEmpty ?? false; // joueu
 settings.animations = { goal: true, replay: true, live: true, endScreen: true, ...(settings.animations || {}) };
 settings.reviewSubmitted = settings.reviewSubmitted ?? false;
 settings.themeNames = settings.themeNames || {}; // noms affichés choisis dans le panneau ({ dossier: "Nom" })
+/* Groupes de médias du bandeau (ex. sponsors d'un tournoi) : [{ id, name, files: [noms de fichiers] }].
+   settings.mediaBanner.group = groupe affiché (null = tous les médias) */
+settings.mediaGroups = Array.isArray(settings.mediaGroups) ? settings.mediaGroups : [];
+settings.mediaBanner.group = settings.mediaBanner.group ?? null;
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
 
@@ -51,6 +55,16 @@ function listUtils() {
       .map(f => ({ name: f, url: `/utils/${encodeURIComponent(f)}`, type: VIDEO_EXTS.has(path.extname(f).toLowerCase()) ? 'video' : 'image' }));
   } catch { return []; }
 }
+
+/* Médias passés dans le bandeau : ceux du groupe choisi (dans l'ordre du groupe), sinon tous */
+function activeUtils() {
+  const all = listUtils();
+  const g = settings.mediaGroups.find(x => x.id === settings.mediaBanner.group);
+  if (!g) return all;
+  return g.files.map(n => all.find(f => f.name === n)).filter(Boolean);
+}
+/* message 'utils_updated' : tous les fichiers (panneau), ceux du bandeau (overlay), les groupes */
+const utilsPayload = () => ({ files: listUtils(), active: activeUtils(), groups: settings.mediaGroups, group: settings.mediaBanner.group || null });
 
 function findLogo(side) {
   try {
@@ -434,7 +448,7 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'init', data: gameState }));
   ws.send(JSON.stringify({ type: 'theme_change', data: { theme: currentTheme } }));
   ws.send(JSON.stringify({ type: 'media_banner', data: { enabled: settings.mediaBanner?.enabled ?? false, interval: settings.mediaBanner.interval } }));
-  ws.send(JSON.stringify({ type: 'utils_updated', data: { files: listUtils() } }));
+  ws.send(JSON.stringify({ type: 'utils_updated', data: utilsPayload() }));
   ws.send(JSON.stringify({ type: 'overlay_visible', data: { visible: overlayVisible } }));
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
   ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled, hideEmpty: settings.playerVideoHideEmpty } }));
@@ -523,16 +537,60 @@ app.post('/api/delete-logo/:side', (req, res) => {
 /* Active/désactive le bandeau et/ou règle la durée d'affichage de chaque média (3 s → 1 h) */
 app.post('/api/media-banner', (req, res) => {
   if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
-  const { enabled, interval } = req.body || {};
+  const { enabled, interval, group } = req.body || {};
   if (interval !== undefined) {
     const sec = Math.round(Number(interval));
     if (!Number.isFinite(sec) || sec < 3 || sec > 3600) return res.status(400).json({ error: 'Durée entre 3 et 3600 secondes' });
     settings.mediaBanner.interval = sec;
   }
   if (enabled !== undefined) settings.mediaBanner.enabled = !!enabled;
+  /* groupe de médias affiché (null = tous) */
+  if (group !== undefined) {
+    if (group !== null && !settings.mediaGroups.some(g => g.id === group)) return res.status(404).json({ error: 'Groupe introuvable' });
+    settings.mediaBanner.group = group;
+  }
   saveSettings();
   broadcast('media_banner', { enabled: settings.mediaBanner.enabled, interval: settings.mediaBanner.interval });
-  res.json({ ok: true, mediaBanner: settings.mediaBanner });
+  if (group !== undefined) broadcast('utils_updated', utilsPayload());
+  res.json({ ok: true, mediaBanner: settings.mediaBanner, ...utilsPayload() });
+});
+
+/* Groupes de médias : créer, renommer, supprimer, ranger / retirer un fichier, réordonner */
+app.get('/api/media-groups', (req, res) => res.json({ ok: true, ...utilsPayload() }));
+app.post('/api/media-groups', (req, res) => {
+  if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
+  const { action, id, name, file, on, files } = req.body || {};
+  const groups = settings.mediaGroups;
+  const g = groups.find(x => x.id === id);
+  const cleanName = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (action === 'create') {
+    const nm = cleanName(name);
+    if (!nm) return res.status(400).json({ error: 'Nom du groupe requis' });
+    const ng = { id: 'g' + Date.now().toString(36), name: nm, files: [] };
+    groups.push(ng);
+    saveSettings(); broadcast('utils_updated', utilsPayload());
+    return res.json({ ok: true, created: ng.id, ...utilsPayload() });
+  }
+  if (!g) return res.status(404).json({ error: 'Groupe introuvable' });
+  if (action === 'rename') {
+    const nm = cleanName(name);
+    if (!nm) return res.status(400).json({ error: 'Nom du groupe requis' });
+    g.name = nm;
+  } else if (action === 'delete') {
+    settings.mediaGroups = groups.filter(x => x !== g);
+    if (settings.mediaBanner.group === g.id) settings.mediaBanner.group = null;
+  } else if (action === 'toggle') {
+    const f = path.basename(String(file || ''));
+    if (!listUtils().some(u => u.name === f)) return res.status(404).json({ error: 'Fichier introuvable' });
+    g.files = g.files.filter(n => n !== f);
+    if (on) g.files.push(f);
+  } else if (action === 'order') {
+    /* nouvel ordre de passage dans le bandeau (fichiers du groupe uniquement) */
+    if (!Array.isArray(files)) return res.status(400).json({ error: 'Liste requise' });
+    g.files = files.map(String).filter(n => g.files.includes(n)).concat(g.files.filter(n => !files.includes(n)));
+  } else return res.status(400).json({ error: 'Action inconnue' });
+  saveSettings(); broadcast('utils_updated', utilsPayload());
+  res.json({ ok: true, ...utilsPayload() });
 });
 
 app.post('/api/swap-teams', (req, res) => {
@@ -562,17 +620,22 @@ app.post('/api/swap-teams', (req, res) => {
   res.json({ ok: true, teams: gameState.game.teams });
 });
 
-app.get('/api/utils', (req, res) => res.json(listUtils()));
+/* ?active=1 : seulement les médias du groupe affiché dans le bandeau (overlay) */
+app.get('/api/utils', (req, res) => res.json(req.query.active ? activeUtils() : listUtils()));
 
 app.post('/api/upload-utils', upload.single('file'), (req, res) => {
   if ((_session?.tier || 'basic') !== 'premium') return res.status(403).json({ error: 'premium_required' });
   if (!req.file) return res.status(400).json({ error: 'no file' });
   const ext = path.extname(req.file.originalname).toLowerCase();
   if (!IMG_EXTS.has(ext) && !VIDEO_EXTS.has(ext)) return res.status(400).json({ error: 'invalid type' });
-  fs.writeFileSync(path.join(UTILS_DIR, req.file.originalname), req.file.buffer);
-  const files = listUtils();
-  broadcast('utils_updated', { files });
-  res.json({ ok: true, files });
+  const name = path.basename(req.file.originalname);
+  fs.writeFileSync(path.join(UTILS_DIR, name), req.file.buffer);
+  /* envoyé depuis un groupe ouvert : le fichier y est rangé directement */
+  const g = settings.mediaGroups.find(x => x.id === req.body.group);
+  if (g && !g.files.includes(name)) { g.files.push(name); saveSettings(); }
+  const payload = utilsPayload();
+  broadcast('utils_updated', payload);
+  res.json({ ok: true, ...payload });
 });
 
 app.post('/api/delete-utils', (req, res) => {
@@ -581,9 +644,13 @@ app.post('/api/delete-utils', (req, res) => {
   if (!name || name.includes('/') || name.includes('\\') || name.startsWith('.'))
     return res.status(400).json({ error: 'invalid name' });
   try { fs.unlinkSync(path.join(UTILS_DIR, name)); } catch {}
-  const files = listUtils();
-  broadcast('utils_updated', { files });
-  res.json({ ok: true, files });
+  /* retiré aussi de tous les groupes */
+  let changed = false;
+  settings.mediaGroups.forEach(g => { if (g.files.includes(name)) { g.files = g.files.filter(n => n !== name); changed = true; } });
+  if (changed) saveSettings();
+  const payload = utilsPayload();
+  broadcast('utils_updated', payload);
+  res.json({ ok: true, ...payload });
 });
 
 app.get('/api/debug', (req, res) => {

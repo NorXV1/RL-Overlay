@@ -15,10 +15,13 @@ const SHORTCUT = 'CommandOrControl+Shift+H';
 
 module.exports = function setupHud({ getMainWindow, port = 3000, file = path.join(app.getPath('userData'), 'hud.json') } = {}) {
   let win = null;
-  let opts = { display: null, opacity: 100, protect: true };
+  /* ends : écrans de fin de match et de victoire de série dans le HUD (masqués par défaut : ils couvrent tout le jeu) */
+  let opts = { display: null, opacity: 100, protect: true, ends: false };
   try { opts = { ...opts, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch {}
   const save = () => { try { fs.writeFileSync(file, JSON.stringify(opts)); } catch {} };
   const shown = () => !!(win && !win.isDestroyed());
+  /* ?hud : overlay en mode HUD (global.html masque les écrans de fin / victoire, sauf avec &ends) */
+  const url = () => `http://127.0.0.1:${port}/global.html?hud${opts.ends ? '&ends' : ''}`;
   const screen = () => require('electron').screen;   // utilisable seulement une fois l'app prête
 
   function display() {
@@ -62,7 +65,7 @@ module.exports = function setupHud({ getMainWindow, port = 3000, file = path.joi
     win.webContents.on('did-finish-load', layout);
     win.once('ready-to-show', () => { layout(); if (shown()) win.showInactive(); notify(); });
     win.on('closed', () => { win = null; notify(); });
-    win.loadURL(`http://127.0.0.1:${port}/global.html`);
+    win.loadURL(url());
     notify();
   }
   function hide() { if (shown()) win.destroy(); win = null; notify(); }
@@ -73,7 +76,10 @@ module.exports = function setupHud({ getMainWindow, port = 3000, file = path.joi
     if (o.display !== undefined) opts.display = o.display;
     if (o.opacity != null) opts.opacity = Math.max(10, Math.min(100, Math.round(+o.opacity) || 100));
     if (o.protect != null) opts.protect = !!o.protect;
+    const endsChanged = o.ends != null && !!o.ends !== !!opts.ends;
+    if (o.ends != null) opts.ends = !!o.ends;
     save();
+    if (endsChanged && shown()) win.loadURL(url());
     if (o.shown === true) show();
     else if (o.shown === false) hide();
     else layout();
