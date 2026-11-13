@@ -2207,6 +2207,18 @@ function autoFitTeamName(el) {
   }
 }
 
+/* Tag d'équipe (#sub-abbr-*, affiché par certains thèmes) : celui choisi dans le panneau
+   (4 caractères max), sinon les 4 premières lettres du nom.
+   Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup / RS Cup : #sub-abbr-* contient des
+   vlt-win-pip spans — ne pas l'écraser avec textContent (qui détruirait les pips à 30 Hz). */
+const teamTag = (t, def) => String((t && t.tag) || '').trim() || [...String((t && t.name) || def)].slice(0, 4).join('');
+function renderTeamTags(teams) {
+  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) return;
+  const t = teams || [];
+  _setText(document.getElementById('sub-abbr-blue'),   teamTag(t[0], 'BLU'));
+  _setText(document.getElementById('sub-abbr-orange'), teamTag(t[1], 'ORA'));
+}
+
 function render(data) {
   const g = data.game;
 
@@ -2214,14 +2226,7 @@ function render(data) {
   _setText(document.getElementById('orange-name'), g.teams[1].name);
   autoFitTeamName(document.getElementById('blue-name'));
   autoFitTeamName(document.getElementById('orange-name'));
-  const _abbrB = document.getElementById('sub-abbr-blue');
-  const _abbrO = document.getElementById('sub-abbr-orange');
-  /* Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup : #sub-abbr-* contient des vlt-win-pip spans.
-     Ne pas écraser avec textContent (qui détruirait les pips à 30 Hz). */
-  if (!themeIs('vitality') && !themeIs('enisorail') && !themeIs('rlcs2025') && !themeIs('fifa-world-cup') && !themeIs('lysorn-cup') && !themeIs('rs-cup')) {
-    _setText(_abbrB, (g.teams[0].name || 'BLU').slice(0, 4));
-    _setText(_abbrO, (g.teams[1].name || 'ORA').slice(0, 4));
-  }
+  renderTeamTags(g.teams);
   _setText(document.getElementById('tlo-name-blue'),   g.teams[0].name);
   _setText(document.getElementById('tlo-name-orange'), g.teams[1].name);
   // Re-mesurer uniquement quand les noms changent
@@ -2305,6 +2310,8 @@ function renderSeriesDots() {
   const oc = document.getElementById('orange-win-count');
   if (bc) bc.textContent = ser.blue   > 0 ? ser.blue   : '';
   if (oc) oc.textContent = ser.orange > 0 ? ser.orange : '';
+  /* après un changement de thème (aperçu compris) : remettre le tag là où il n'y a plus de pips */
+  renderTeamTags(state.game && state.game.teams);
 }
 
 function buildSubTrack(blue, orange, bo) {
@@ -3269,14 +3276,15 @@ if (IS_PREVIEW) {
       // Équipes avec logos pour les animations preview (Goal/Fin/Win)
       game: {
         teams: [
-          { name: s.teams?.[0]?.name || blueTeamName,   logo_url: s.teams?.[0]?.logo_url || '' },
-          { name: s.teams?.[1]?.name || orangeTeamName, logo_url: s.teams?.[1]?.logo_url || '' },
+          { name: s.teams?.[0]?.name || blueTeamName,   tag: s.blue?.tag   || '', logo_url: s.teams?.[0]?.logo_url || '' },
+          { name: s.teams?.[1]?.name || orangeTeamName, tag: s.orange?.tag || '', logo_url: s.teams?.[1]?.logo_url || '' },
         ]
       },
     };
     // Note : ne pas toucher abbrB/abbrO ici — buildSubTrack (dans renderSeriesDots)
     // les remplace par des pip-spans pour rlcs2025. Les écraser les ferait disparaître.
-    // applyTheme() a déjà planifié renderSeriesDots() après résolution du thème.
+    // applyTheme() a déjà planifié renderSeriesDots(), qui pose aussi les tags (renderTeamTags)
+    // une fois le thème résolu.
 
     // ── Joueurs fictifs pour l'aperçu (sidebars + boost) ──
     const fakePlayers = {

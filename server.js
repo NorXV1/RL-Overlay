@@ -88,11 +88,19 @@ function manualTeamName(idx) {
   const s = idx === 0 ? settings.blue : settings.orange;
   return String(s?.name ?? '').trim();
 }
+/* Tag d'équipe (abréviation affichée par certains thèmes) : 4 caractères max, optionnel.
+   Vide = automatique (les 4 premières lettres du nom, côté overlay). */
+const TEAM_TAG_MAX = 4;
+const cleanTeamTag = v => [...String(v ?? '').replace(/\s+/g, ' ').trim()].slice(0, TEAM_TAG_MAX).join('').trim();
+function manualTeamTag(idx) {
+  return cleanTeamTag((idx === 0 ? settings.blue : settings.orange)?.tag);
+}
 function refreshTeamName(idx) {
   const team   = gameState.game.teams[idx];
   const manual = manualTeamName(idx);
   team.name       = manual || gameTeamNames[idx] || DEFAULT_TEAM_NAMES[idx];
   team.nameSource = manual ? 'manual' : (gameTeamNames[idx] ? 'game' : 'default');
+  team.tag        = manualTeamTag(idx);
 }
 
 function applySettings() {
@@ -501,6 +509,8 @@ app.post('/api/settings', (req, res) => {
   /* nom vide = retour au nom automatique (détecté en jeu) — appliqué par applySettings() */
   if (blue?.name   !== undefined) settings.blue   = { ...(settings.blue   || {}), name: String(blue.name   ?? '').trim() };
   if (orange?.name !== undefined) settings.orange = { ...(settings.orange || {}), name: String(orange.name ?? '').trim() };
+  if (blue?.tag    !== undefined) settings.blue   = { ...(settings.blue   || {}), tag: cleanTeamTag(blue.tag) };
+  if (orange?.tag  !== undefined) settings.orange = { ...(settings.orange || {}), tag: cleanTeamTag(orange.tag) };
   if (bestOf !== undefined)     settings.bestOf = bestOf;
   if (series !== undefined)     settings.series = series;
   saveSettings();
@@ -597,8 +607,9 @@ app.post('/api/swap-teams', (req, res) => {
   /* On inverse les noms SAISIS (pas les noms affichés) : un nom automatique reste automatique,
      au lieu d'être figé dans les réglages (ex. "BLUE" enregistré comme nom de l'équipe orange). */
   const m0 = manualTeamName(0), m1 = manualTeamName(1);
-  settings.blue   = { ...(settings.blue   || {}), name: m1 };
-  settings.orange = { ...(settings.orange || {}), name: m0 };
+  const t0 = manualTeamTag(0),  t1 = manualTeamTag(1);
+  settings.blue   = { ...(settings.blue   || {}), name: m1, tag: t1 };
+  settings.orange = { ...(settings.orange || {}), name: m0, tag: t0 };
   refreshTeamName(0); refreshTeamName(1);
 
   const bleuDir   = path.join(LOGOS_DIR, 'bleu');
@@ -856,9 +867,10 @@ app.post('/api/teams', (req, res) => {
   /* { name: '' } = repasser en nom automatique (détecté en jeu) */
   [[blue, 0, 'blue'], [orange, 1, 'orange']].forEach(([t, idx, key]) => {
     if (!t) return;
-    const { name, ...rest } = t;
+    const { name, tag, nameSource, ...rest } = t;
     Object.assign(gameState.game.teams[idx], rest);
     if (name !== undefined) settings[key] = { ...(settings[key] || {}), name: String(name ?? '').trim() };
+    if (tag !== undefined)  settings[key] = { ...(settings[key] || {}), tag: cleanTeamTag(tag) };   // '' = tag automatique
     refreshTeamName(idx);
   });
   if (league !== undefined) { gameState.meta.league = league; settings.league = league; }

@@ -75,6 +75,7 @@ const ICONS = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
   pointer: '<path d="M5 3l14 8-6 2-3 6z"/>',
   shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  tag: '<path d="M3 12.5V4a1 1 0 0 1 1-1h8.5l8.5 8.5-9.5 9.5z"/><circle cx="8" cy="8" r="1.6"/>',
   folderOpen: '<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2"/><path d="M3 6v12a2 2 0 0 0 2 2h12.5a2 2 0 0 0 1.9-1.4L22 11H7.5a2 2 0 0 0-1.9 1.4L3 19"/>',
   folderPlus: '<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/>',
   media: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M10 9.5l4.5 2.5-4.5 2.5z"/>',
@@ -194,11 +195,15 @@ const showList = L => Array.isArray(L.show) ? L.show : !L.show || L.show === 'al
 /* moments d'un dossier : null = aucune restriction (Toujours) */
 const groupShow = g => (g && Array.isArray(g.show) && g.show.length && !g.show.includes('always')) ? g.show : null;
 const SHOW_SCENE = { always: null, game: 'game', goal: 'goal', wreplay: 'wreplay', replay: 'replay', wlive: 'wlive', ot: 'ot', end: 'end', win: 'win' };
-const TOKENS = [['blue_name', 'Équipe bleue'], ['orange_name', 'Équipe orange'], ['blue_score', 'Score bleu'], ['orange_score', 'Score orange'], ['timer', 'Chrono'],
+/* calque texte « Tag d'équipe » : {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag}, {loser_tag} */
+const TAG_RE = /^\{(blue|orange|scorer|winner|loser)_tag\}$/;
+const TAG_NAME = team => 'Tag ' + TEAM_OPTS.find(o => o[0] === team)[1].toLowerCase();
+const TOKENS = [['blue_name', 'Équipe bleue'], ['orange_name', 'Équipe orange'],
+  ['blue_tag', 'Tag équipe bleue (panneau, sinon 4 lettres du nom)'], ['orange_tag', 'Tag équipe orange (panneau, sinon 4 lettres du nom)'], ['blue_score', 'Score bleu'], ['orange_score', 'Score orange'], ['timer', 'Chrono'],
   ['league', 'Ligue'], ['bo', 'GAME X - BOX'], ['game', 'N° de la game'], ['bo_num', 'Best of (nombre)'], ['series_blue', 'Série bleue'], ['series_orange', 'Série orange'],
   ['player', 'Joueur suivi'], ['boost', 'Boost'], ['goals', 'Buts (stat bar)'], ['assists', 'Passes D (stat bar)'], ['shots', 'Tirs (stat bar)'], ['saves', 'Arrêts (stat bar)'], ['demos', 'Démos (stat bar)'],
-  ['scorer', 'Buteur (but / replay)'], ['assist', 'Passeur (replay, vide sans passe)'], ['scorer_team', 'Équipe du buteur'], ['speed', 'Vitesse du tir (replay)'],
-  ['winner', 'Équipe gagnante (fin / victoire)'], ['loser', 'Équipe perdante (fin / victoire)'], ['mvp', 'MVP du match (fin)'], ['mvp_score', 'Score du MVP (fin)'], ['mvp_team', 'Équipe du MVP (fin)']];
+  ['scorer', 'Buteur (but / replay)'], ['assist', 'Passeur (replay, vide sans passe)'], ['scorer_team', 'Équipe du buteur'], ['scorer_tag', 'Tag de l\'équipe du buteur'], ['speed', 'Vitesse du tir (replay)'],
+  ['winner', 'Équipe gagnante (fin / victoire)'], ['loser', 'Équipe perdante (fin / victoire)'], ['winner_tag', 'Tag de l\'équipe gagnante'], ['loser_tag', 'Tag de l\'équipe perdante'], ['mvp', 'MVP du match (fin)'], ['mvp_score', 'Score du MVP (fin)'], ['mvp_team', 'Équipe du MVP (fin)']];
 const SHAPES = [['rect', 'Rectangle'], ['ellipse', 'Ellipse'], ['parallelogram', 'Parallélogramme'], ['trapezoid', 'Trapèze'], ['trapezoid-inv', 'Trapèze inversé'], ['slant', 'Biseau'],
   ['chevron', 'Chevron'], ['hexagon', 'Hexagone'], ['diamond', 'Losange'], ['triangle', 'Triangle']];
 const CLIPS = {
@@ -1974,8 +1979,13 @@ function kindOfFile(file) {
 }
 async function addLayer(kind, file, at) {
   const L = { id: 'l' + uid(), name: '', type: kind, x: 0, y: 0, w: 400, h: 225, r: 0, o: 100, show: [...DEFAULT_SHOW], z: 'front', anim: DEFAULT_ANIM() };
+  const textSpec = content => ({ content, font: 'Barlow Condensed', size: 72, weight: 800, color: '#ffffff', align: 'center', spacing: 2, upper: true, italic: false, stroke: { w: 0, color: '#000000' }, glow: { size: 0, color: '#3d7bff' }, grad: { on: false, color2: '#7aa8ff', angle: 90 } });
   if (kind === 'text') {
-    Object.assign(L, { name: 'Texte', w: 520, h: 110, text: { content: 'MON TEXTE', font: 'Barlow Condensed', size: 72, weight: 800, color: '#ffffff', align: 'center', spacing: 2, upper: true, italic: false, stroke: { w: 0, color: '#000000' }, glow: { size: 0, color: '#3d7bff' }, grad: { on: false, color2: '#7aa8ff', angle: 90 } } });
+    Object.assign(L, { name: 'Texte', w: 520, h: 110, text: textSpec('MON TEXTE') });
+  } else if (kind === 'tag') {
+    /* tag d'équipe : un calque texte lié à {blue_tag} (tag du panneau, sinon 4 premières lettres du nom) */
+    kind = 'text';
+    Object.assign(L, { type: 'text', name: TAG_NAME('blue'), w: 220, h: 100, text: textSpec('{blue_tag}') });
   } else if (kind === 'shape') {
     Object.assign(L, { name: 'Forme', w: 420, h: 120, shape: { kind: 'rect', fill: '#3d7bff', radius: 14, grad: { on: false, color2: '#9b5cff', angle: 135 }, border: { w: 0, color: '#ffffff' }, glow: { size: 0, color: '#3d7bff' } } });
   } else if (kind === 'logo') {
@@ -3430,7 +3440,15 @@ function renderLayerProps() {
   if (L.type === 'text') {
     const t = L.text;
     const ta = textInput(() => t.content, v => { t.content = v; }, { area: true, id: 'insp-text', level: 'layers', rows: 2 });
-    insp.append(sec('Texte', 'text', ta,
+    const tagM = TAG_RE.exec(String(t.content || '').trim());
+    insp.append(sec('Texte', 'text',
+      /* calque « Tag d'équipe » : choix de l'équipe (le texte et le nom suivent) */
+      tagM ? row('Tag de', selectField(TEAM_OPTS, () => tagM[1], v => {
+        if (!L.name || /^Tag /.test(L.name)) L.name = TAG_NAME(v);
+        t.content = `{${v}_tag}`;
+      }, { level: 'layers', layers: true, rebuild: true })) : null,
+      tagM ? note('Tag choisi dans le panneau de contrôle (carte Équipes, 4 caractères max). Vide : les 4 premières lettres du nom de l\'équipe.') : null,
+      ta,
       note('Données en direct : clique pour insérer'),
       h('div', { class: 'chips', style: 'margin-bottom:12px' }, TOKENS.map(([k, l]) => h('button', { class: 'chip tok', title: l, onclick: () => {
         const p = ta.selectionStart ?? t.content.length;

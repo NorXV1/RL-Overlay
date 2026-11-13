@@ -247,13 +247,14 @@
     /* but / replay : buteur, passeur (vide s'il n'y en a pas), équipe du buteur, vitesse du tir */
     scorer: () => { const r = txt('replay-scorer'); return r && r !== '—' ? r : (lastScorerName || ''); },
     assist: () => { const a = txt('replay-assist-name'); return a === '—' ? '' : a; },
-    scorer_team: () => {
-      const rb = document.getElementById('replay-bar');
-      const t = rb && rb.dataset.team !== undefined && rb.dataset.team !== '' && has('replay-bar', 'show') ? +rb.dataset.team : lastScorer;
-      return txt(t === 1 ? 'orange-name' : 'blue-name');
-    },
+    scorer_team: () => txt(scorerTeam() === 1 ? 'orange-name' : 'blue-name'),
     speed: () => txt('replay-spd'),
   };
+  /* équipe du buteur : celle du replay affiché, sinon celle du dernier but */
+  function scorerTeam() {
+    const rb = document.getElementById('replay-bar');
+    return rb && rb.dataset.team !== undefined && rb.dataset.team !== '' && has('replay-bar', 'show') ? +rb.dataset.team : lastScorer;
+  }
   const fillTokens = s => String(s || '').replace(/\{(\w+)\}/g, (m, k) => TOKENS[k] ? TOKENS[k]() : m);
   const tokensEmpty = s => [...String(s || '').matchAll(/\{(\w+)\}/g)].some(m => TOKENS[m[1]] && !String(TOKENS[m[1]]() || '').replace(/[—\s]/g, ''));
   function seriesState() {
@@ -485,7 +486,18 @@
     mvp: () => (lastEnd && lastEnd.mvp ? lastEnd.mvp.name : ''),
     mvp_score: () => (lastEnd && lastEnd.mvp ? String(lastEnd.mvp.score) : ''),
     mvp_team: () => (lastEnd && lastEnd.mvp ? lastEnd.names[lastEnd.mvp.team] || teamNameOf(lastEnd.mvp.team) : ''),
+    /* tags d'équipe : celui saisi dans le panneau (4 caractères max), sinon les 4 premières lettres du nom affiché */
+    blue_tag: () => tagOf(0, txt('blue-name')),
+    orange_tag: () => tagOf(1, txt('orange-name')),
+    scorer_tag: () => { const t = scorerTeam(); return t < 0 ? '' : tagOf(t, TOKENS.scorer_team()); },
+    winner_tag: () => { const w = curWinner(); return w < 0 ? '' : tagOf(w, TOKENS.winner()); },
+    loser_tag: () => { const w = curWinner(); return w < 0 ? '' : tagOf(1 - w, TOKENS.loser()); },
   });
+  function tagOf(i, name) {
+    let t = '';
+    try { t = (state && state.game && state.game.teams && state.game.teams[i] && state.game.teams[i].tag) || ''; } catch (e) {}
+    return String(t).trim() || [...String(name || teamNameOf(i) || '').trim()].slice(0, 4).join('');
+  }
 
   /* Texte plus large que sa case (nom d'équipe long…) : la police rétrécit juste ce qu'il faut pour tenir
      en largeur, puis reprend sa taille quand le texte raccourcit. Option « Réduire pour tenir dans la case »

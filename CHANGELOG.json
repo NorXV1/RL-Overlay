@@ -181,5 +181,13 @@
       "Nouveau : groupes de médias pour le bandeau — créez des dossiers nommés (ex. « Sponsors Tournoi A »), rangez-y vos images et vidéos, choisissez leur ordre, puis sélectionnez le groupe à afficher en un clic",
       "Amélioration : le HUD à l'écran n'affiche plus les écrans de fin de match et de victoire, qui couvraient tout le jeu (réactivables avec l'option « Écrans de fin et de victoire »)"
     ]
+  },
+  "1.9.1": {
+    "date": "2026-11-13",
+    "notes": [
+      "Nouveau : tag d'équipe personnalisable — champs « Tag bleu » et « Tag orange » (optionnels, 4 caractères max) dans la carte Équipes, affichés par les thèmes qui montrent le tag (Default, RLCS 2026, RLCS 2023…). Laissé vide : les 4 premières lettres du nom, comme avant. Le bouton d'inversion échange aussi les tags",
+      "Nouveau (Studio) : bouton « Tag » pour placer le tag d'une équipe où vous voulez (bleue, orange, qui marque, gagnante ou perdante), avec tous les réglages d'un texte ; nouvelles données en direct {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag} et {loser_tag}",
+      "Correction : l'aperçu OBS du panneau et l'aperçu du Studio affichaient « BLU / ORA » au lieu du tag des équipes"
+    ]
   }
 }
