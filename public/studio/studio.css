@@ -251,7 +251,11 @@ select.in option { background:var(--panel-2); color:var(--text); }
 .swatch input { position:absolute; inset:-6px; width:calc(100% + 12px); height:calc(100% + 12px); opacity:0; cursor:pointer; }
 .color .hex { flex:1; min-width:0; height:28px; padding:0 8px; background:var(--bg); border:1px solid var(--border); border-radius:6px; outline:none; font:11px Consolas, monospace; }
 .color .hex:focus { border-color:var(--accent); }
-.color .alpha { width:52px; }
+/* l'opacité garde sa place (sinon un texte de couleur long l'écrase et le chiffre disparaît) */
+.color .alpha { width:72px; flex-shrink:0; }
+.color .alpha span { padding-left:6px; min-width:16px; }
+.color .alpha input { padding:0 3px; text-align:right; }
+.color .alpha em { padding-right:6px; }
 .reset { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:5px; color:var(--dim); flex-shrink:0; }
 .reset:hover { color:var(--text); background:var(--panel-3); }
 .reset i { width:13px; height:13px; }

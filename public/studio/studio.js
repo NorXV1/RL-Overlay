@@ -201,7 +201,7 @@ const TAG_NAME = team => 'Tag ' + TEAM_OPTS.find(o => o[0] === team)[1].toLowerC
 const TOKENS = [['blue_name', 'Équipe bleue'], ['orange_name', 'Équipe orange'],
   ['blue_tag', 'Tag équipe bleue (panneau, sinon 4 lettres du nom)'], ['orange_tag', 'Tag équipe orange (panneau, sinon 4 lettres du nom)'], ['blue_score', 'Score bleu'], ['orange_score', 'Score orange'], ['timer', 'Chrono'],
   ['league', 'Ligue'], ['bo', 'GAME X - BOX'], ['game', 'N° de la game'], ['bo_num', 'Best of (nombre)'], ['series_blue', 'Série bleue'], ['series_orange', 'Série orange'],
-  ['player', 'Joueur suivi'], ['boost', 'Boost'], ['goals', 'Buts (stat bar)'], ['assists', 'Passes D (stat bar)'], ['shots', 'Tirs (stat bar)'], ['saves', 'Arrêts (stat bar)'], ['demos', 'Démos (stat bar)'],
+  ['player', 'Joueur suivi'], ['score', 'Score du joueur suivi'], ['boost', 'Boost'], ['goals', 'Buts (stat bar)'], ['assists', 'Passes D (stat bar)'], ['shots', 'Tirs (stat bar)'], ['saves', 'Arrêts (stat bar)'], ['demos', 'Démos (stat bar)'],
   ['scorer', 'Buteur (but / replay)'], ['assist', 'Passeur (replay, vide sans passe)'], ['scorer_team', 'Équipe du buteur'], ['scorer_tag', 'Tag de l\'équipe du buteur'], ['speed', 'Vitesse du tir (replay)'],
   ['winner', 'Équipe gagnante (fin / victoire)'], ['loser', 'Équipe perdante (fin / victoire)'], ['winner_tag', 'Tag de l\'équipe gagnante'], ['loser_tag', 'Tag de l\'équipe perdante'], ['mvp', 'MVP du match (fin)'], ['mvp_score', 'Score du MVP (fin)'], ['mvp_team', 'Équipe du MVP (fin)']];
 const SHAPES = [['rect', 'Rectangle'], ['ellipse', 'Ellipse'], ['parallelogram', 'Parallélogramme'], ['trapezoid', 'Trapèze'], ['trapezoid-inv', 'Trapèze inversé'], ['slant', 'Biseau'],
@@ -434,6 +434,9 @@ function layerCss(L, sel, ctx) {
   if (L.blend && L.blend !== 'normal') base.push(`mix-blend-mode:${L.blend}`);
   if (L.shadow && L.shadow.on) base.push(`filter:drop-shadow(${L.shadow.x || 0}px ${L.shadow.y || 0}px ${L.shadow.blur || 0}px ${L.shadow.color || 'rgba(0,0,0,0.6)'})`);
   out.push(`${s} { ${base.join('; ')}; }`);
+  /* décalage quand la ligue est renseignée (calque + son dossier) : glisse en douceur quand le label change */
+  const lx = (L.lgDx || 0) + ((g && g.lgDx) || 0), ly = (L.lgDy || 0) + ((g && g.lgDy) || 0);
+  if (lx || ly) out.push(`html.st-c-league ${s} { translate:${round(lx, 1)}px ${round(ly, 1)}px; }`);
   const hasIn = a.in && a.in !== 'none';
   const inDur = a.inDur ?? .6, inDelay = a.inDelay ?? 0, after = hasIn ? round(inDur + inDelay, 3) : 0;
   if (hasIn) out.push(`${s}.st-on > .st-anim { animation:${animName(a.in, 'in')} ${inDur}s ${EASES[a.inEase || 'smooth']} ${inDelay}s both; }`);
@@ -761,10 +764,13 @@ function mediaCss(s, m, box) {
 const NOTIF_ANIMS = [['default', 'Glisse du bas (origine)'], ['side', 'Sort de la ligne'], ['down', 'Tombe du haut'], ['bounce', 'Rebond'], ['pop', 'Pop'],
   ['zoom', 'Zoom'], ['fade', 'Fondu'], ['flip', 'Bascule'], ['spin', 'Tourbillon']];
 /* couleurs propres à chaque équipe : jamais recopiées d'une sidebar à l'autre, même liées */
-const SB_TEAM_KEYS = ['accentColor', 'boostC1', 'boostC2', 'notifBg'];
+/* couleurs d'équipe : propres à chaque sidebar même liées (dont le chiffre du boost, valColor) */
+const SB_TEAM_KEYS = ['accentColor', 'boostC1', 'boostC2', 'notifBg', 'valColor'];
 /* forme des lignes et des notifications : propre à chaque sidebar (bleue / orange), même liées */
 const SB_SHAPE_KEYS = ['shape', 'skew', 'edgeL', 'edgeR', 'pts', 'cut', 'notifShape', 'notifSkew', 'notifSkewSync'];
-const SB_SIDE_KEYS = [...SB_TEAM_KEYS, ...SB_SHAPE_KEYS];
+/* place du pseudo et du chiffre de boost (gauche / centre / droite) : propre à chaque sidebar, même liées */
+const SB_POS_KEYS = ['namePos', 'valPos'];
+const SB_SIDE_KEYS = [...SB_TEAM_KEYS, ...SB_SHAPE_KEYS, ...SB_POS_KEYS];
 /* forme des lignes joueurs (les 3 lignes d'une sidebar) */
 const ROW_MODES = [['rect', 'Rectangle'], ['edges', 'Par côté (gauche / droite séparés)'], ['free', 'Libre (je place les points)'], ['skew', 'Inclinée (toute la ligne)'], ['pill', 'Arrondie (pilule)']];
 /* modèles rapides du mode « par côté » : ils remplissent les deux côtés, ajustables ensuite */
@@ -908,6 +914,14 @@ function sidebarsCss(sel) {
     if (c.nameColor) add(' .player-row:not(.spectating) .pr-name', `color:${c.nameColor} !important;`);
     if (c.valSize != null) add(' .pr-val', `font-size:${c.valSize}px !important;`);
     if (c.valColor) add(' .player-row:not(.spectating) .pr-val', `color:${c.valColor} !important;`);
+    /* pseudo à gauche / au centre / à droite de la ligne ; chiffre du boost à gauche ou à droite du pseudo
+       (la bande d'équipe reste au bord de l'écran) */
+    if (['left', 'center', 'right'].includes(c.namePos)) add(' .pr-name', `text-align:${c.namePos} !important;`);
+    if (c.valPos === 'left' || c.valPos === 'right') {
+      add(' .pr-accent', `order:${side === 'orange' ? 99 : -9} !important;`);
+      add(' .pr-name', 'order:1 !important;');
+      add(' .pr-val', `order:${c.valPos === 'left' ? 0 : 2} !important; padding:0 12px !important; text-align:${c.valPos} !important;`);
+    }
     if (c.boost === 'hide') add(' .pr-boost-bar', 'display:none !important;');
     if (c.boost === 'top') add(' .player-row', 'display:flex !important; flex-direction:column-reverse !important;');
     if (c.boost === 'fill') {
@@ -917,6 +931,11 @@ function sidebarsCss(sel) {
       add(' .pr-info', 'position:relative !important; z-index:1 !important;');
       add(' .pr-boost-fill', `opacity:${c.boostAlpha ?? .6} !important;${side === 'orange' && c.boostDir !== 'ltr' ? ' transform-origin:right center !important;' : ''}`);
     } else if (c.boostH != null) add(' .pr-boost-bar', `height:${c.boostH}px !important;`);
+    if (c.boost === 'inset') {
+      /* sous le nom, mais en retrait : marges sur les côtés et en bas, coins arrondis au choix */
+      const x = c.boostInsetX ?? 10, b = c.boostInsetB ?? 6;
+      add(' .pr-boost-bar', `width:auto !important; margin:0 ${x}px ${b}px ${x}px !important; border-radius:${c.boostRadius ?? 0}px !important; overflow:hidden !important;`);
+    }
     if (c.boostBg) add(' .pr-boost-bar', `background:${c.boostBg} !important;`);
     if (c.boostC1) add(' .pr-boost-fill', `background:linear-gradient(90deg, ${c.boostC1}, ${c.boostC2 || c.boostC1}) !important;`);
     const ns = c.notifSize ?? c.rowH;
@@ -1009,6 +1028,9 @@ function layerSpecs(ctx) {
     const spec = { id: L.id, type: L.type, show: showList(L), z: L.z || 'front', out: (L.anim && L.anim.out) || 'fade', loop: L.loop !== false };
     const gs = groupShow(groupOf(L));
     if (gs) spec.gshow = gs;
+    /* condition « ligue renseignée / vide » du calque et de son dossier */
+    if (L.cond) spec.cond = L.cond;
+    if (groupOf(L) && groupOf(L).cond) spec.gcond = groupOf(L).cond;
     if (effHidden(L)) spec.hidden = true;
     if (L.type === 'text') { spec.text = (L.text && L.text.content) || ''; if (L.text && L.text.hideEmpty) spec.hideEmpty = true; if (L.text && L.text.fit === false) spec.fit = false; }
     if (L.type === 'logo') spec.team = L.team || 'blue';
@@ -1059,6 +1081,9 @@ function flushPreview() {
     if (lvl >= 2) f.setLayers(layerSpecs(previewCtx));
     if (varsDirty) { varsDirty = false; f.reColor(); }
   } catch (e) { console.warn('[studio] aperçu', e); }
+  /* l'aperçu vient de changer : les couleurs mesurées des sidebars (champs non réglés) sont à relire */
+  sbMeasureGen++;
+  if (S.sel && S.sel.kind === 'el' && /^sidebar-/.test(String(S.sel.id))) setTimeout(refreshFields, 0);
 }
 
 async function loadBase(id) {
@@ -1268,7 +1293,22 @@ function measureAll() {
     S.boxes.set(E.key, { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w, h, rot, vis: visibleChain(el, win) && !d.hidden });
   }
 }
-const layerBox = L => ({ cx: L.x + L.w / 2, cy: L.y + L.h / 2, w: L.w, h: L.h, rot: L.r || 0, vis: true });
+/* décalage « ligue renseignée » d'un calque (le sien + celui de son dossier) — appliqué sur le canevas quand
+   l'aperçu affiche une ligue, comme dans l'overlay, pour que la sélection suive ce qu'on voit */
+const leagueOff = L => { const g = groupOf(L); return { x: (L.lgDx || 0) + ((g && g.lgDx) || 0), y: (L.lgDy || 0) + ((g && g.lgDy) || 0) }; };
+let sbMeasureGen = 0;   // incrémenté à chaque mise à jour de l'aperçu (mesures à relire)
+let lgCache = { gen: -1, v: true };
+function lgActive() {
+  if (lgCache.gen === sbMeasureGen) return lgCache.v;
+  lgCache = { gen: sbMeasureGen, v: previewHasLeague() };
+  return lgCache.v;
+}
+const layerBox = L => {
+  const o = lgActive() ? leagueOff(L) : { x: 0, y: 0 };
+  return { cx: L.x + o.x + L.w / 2, cy: L.y + o.y + L.h / 2, w: L.w, h: L.h, rot: L.r || 0, vis: true };
+};
+/* condition « ligue » du calque et de son dossier, selon la ligue de l'aperçu */
+const condShown = c => !c || (c === 'league' ? lgActive() : c === 'noleague' ? !lgActive() : true);
 function aabb(b) {
   const a = (b.rot || 0) * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
   const hw = (b.w * c + b.h * s) / 2, hh = (b.w * s + b.h * c) / 2;
@@ -1276,6 +1316,8 @@ function aabb(b) {
 }
 function layerVisibleInScene(L) {
   if (!L || isGroup(L) || effHidden(L)) return false;
+  /* caché par sa condition « ligue » (ou celle de son dossier) dans l'aperçu actuel */
+  if (!condShown(L.cond) || !condShown((groupOf(L) || {}).cond)) return false;
   const f = F();
   if (!f || !f.isShown) return true;
   const gs = groupShow(groupOf(L));
@@ -2687,6 +2729,7 @@ function renderGroupProps() {
       if (gs && f && !f.isShown(gs)) { const sc = SHOW_SCENE[gs[0]]; if (sc) setScene(sc, true); }
     }),
     note('Tout le contenu du dossier n\'apparaît qu\'à ces moments, en plus des réglages de chaque calque. Par exemple, décoche <b>Replay</b> pour cacher tout le dossier pendant les replays. <b>Toujours</b> = aucune restriction.')));
+  insp.append(leagueCondSection(g, 'Tout le dossier'));
   if (ms.length) {
     const sel = { kind: 'group', id: g.id };
     insp.append(sec('Position du groupe', 'pointer',
@@ -2701,6 +2744,98 @@ function renderGroupProps() {
     btn('Dissocier', 'folderOpen', () => ungroup(g.id)),
     btn('Dupliquer', 'copy', () => duplicateLayer(g.id)),
     btn('Supprimer', 'trash', deleteSelection, 'danger'))));
+}
+
+/* Condition « label de ligue » d'un calque ou d'un dossier : affiché seulement si la ligue est renseignée
+   (ou vide), et/ou décalé quand elle est renseignée — ex. un dossier forme + texte {league} qui n'apparaît
+   que s'il y a une ligue, et le reste qui descend pour lui laisser la place. */
+let leaguePreviewSaved = null;
+function previewLeague(on) {
+  try {
+    const w = frame.contentWindow, el = FD().getElementById('league-label');
+    if (!w || !el) return;
+    if (!on) { if (leaguePreviewSaved == null) leaguePreviewSaved = el.textContent; w.setLeagueLabel(''); }
+    else { w.setLeagueLabel(leaguePreviewSaved || el.textContent || 'SEMAINE 1 // LIGUE 1'); leaguePreviewSaved = null; }
+  } catch (e) {}
+  lgCache.gen = -1;   // le canevas relit la ligue de l'aperçu
+}
+const previewHasLeague = () => { try { return !!FD().getElementById('league-label').textContent.trim(); } catch (e) { return true; } };
+
+/* Positions enregistrées d'un calque / dossier : « sans ligue » = sa position normale, « avec ligue » = celle
+   qu'il prend quand une ligue est renseignée (le décalage lgDx / lgDy en découle). On place l'objet sur le
+   canevas dans chaque aperçu, puis on enregistre. */
+const lgSel = o => (isGroup(o) ? { kind: 'group', id: o.id } : { kind: 'layer', id: o.id });
+/* position « sans décalage » de l'objet (sur le canevas, un dossier inclut son décalage quand l'aperçu a une ligue) */
+function lgBase(o) {
+  const p = getPos(lgSel(o));
+  return isGroup(o) && lgActive() ? { x: p.x - (o.lgDx || 0), y: p.y - (o.lgDy || 0) } : { x: p.x, y: p.y };
+}
+function lgSetOff(o, dx, dy) {
+  dx = round(dx, 1); dy = round(dy, 1);
+  if (dx) o.lgDx = dx; else delete o.lgDx;
+  if (dy) o.lgDy = dy; else delete o.lgDy;
+}
+function lgSave(o) {
+  /* enregistrer une position pour le cas où l'objet serait caché = on le veut visible dans ce cas :
+     l'affichage repasse sur « Toujours » (il reste affiché et se déplace seulement) */
+  if ((o.cond === 'league' && !lgActive()) || (o.cond === 'noleague' && lgActive())) {
+    delete o.cond;
+    setTimeout(() => toast('Affichage repassé sur « Toujours » : il reste visible et se déplace selon la ligue', 'ok'), 400);
+  }
+  const base = lgBase(o);
+  if (!lgActive()) {
+    /* aperçu sans ligue : la position actuelle devient « sans ligue » ; « avec ligue » ne bouge pas */
+    o.lgNo = { x: round(base.x, 1), y: round(base.y, 1) };
+    if (o.lgWith) lgSetOff(o, o.lgWith.x - base.x, o.lgWith.y - base.y);
+    toast('Position « sans ligue » enregistrée', 'ok');
+  } else {
+    /* aperçu avec ligue : ce qu'on voit devient « avec ligue », l'objet revient à sa position « sans ligue » */
+    const disp = { x: base.x + (o.lgDx || 0), y: base.y + (o.lgDy || 0) };
+    const no = o.lgNo || base;
+    o.lgNo = { x: round(no.x, 1), y: round(no.y, 1) };
+    o.lgWith = { x: round(disp.x, 1), y: round(disp.y, 1) };
+    const sel = lgSel(o);
+    if (isGroup(o)) setPos(sel, no.x + (o.lgDx || 0), no.y + (o.lgDy || 0)); else setPos(sel, no.x, no.y);
+    lgSetOff(o, disp.x - no.x, disp.y - no.y);
+    toast('Position « avec ligue » enregistrée', 'ok');
+  }
+  changed('css', { commit: 'now', inspector: true });
+}
+function lgClear(o) {
+  /* revient à la position « sans ligue », sans décalage */
+  if (o.lgNo && lgActive()) { const sel = lgSel(o); if (isGroup(o)) setPos(sel, o.lgNo.x + (o.lgDx || 0), o.lgNo.y + (o.lgDy || 0)); else setPos(sel, o.lgNo.x, o.lgNo.y); }
+  delete o.lgNo; delete o.lgWith; delete o.lgDx; delete o.lgDy;
+  changed('css', { commit: 'now', inspector: true });
+}
+function leagueCondSection(o, what) {
+  const fmt = p => (p ? `${Math.round(p.x)}, ${Math.round(p.y)}` : '—');
+  const on = lgActive();
+  return sec('Condition : ligue', 'flag',
+    row('Aperçu', selectField([['1', 'Avec ligue'], ['0', 'Sans ligue']], () => (lgActive() ? '1' : '0'), v => previewLeague(v === '1'), { level: 'layers', layers: true, rebuild: true })),
+    /* 1. positions (le cas le plus courant : l'élément reste affiché et se déplace) */
+    h('div', { class: 'lbl', style: 'width:auto;margin:10px 0 4px' }, 'Positions (sans / avec ligue)'),
+    note(`Sans ligue : <b>${fmt(o.lgNo)}</b> · Avec ligue : <b>${fmt(o.lgWith)}</b>${(o.lgDx || o.lgDy) ? ` (décalage ${Math.round(o.lgDx || 0)}, ${Math.round(o.lgDy || 0)})` : ''}`),
+    h('div', { class: 'btns' },
+      btn(on ? 'Enregistrer : avec ligue' : 'Enregistrer : sans ligue', 'check', () => lgSave(o), 'primary'),
+      (o.lgNo || o.lgWith || o.lgDx || o.lgDy) ? btn('Effacer', 'replay', () => lgClear(o)) : null),
+    note(`${what} : place-le sur le canevas puis clique <b>Enregistrer</b>. Fais-le une fois avec l'aperçu <b>Sans ligue</b> et une fois <b>Avec ligue</b> : en direct, il prendra la bonne position selon le label de ligue du panneau (et glissera de l'une à l'autre quand la ligue change).`),
+    /* 2. visibilité : seulement pour CACHER un élément dans l'un des deux cas (ex. le bandeau {league}) */
+    h('div', { class: 'lbl', style: 'width:auto;margin:12px 0 4px' }, 'Cacher selon la ligue'),
+    row('Visibilité', selectField([['', 'Toujours visible'], ['league', 'Caché quand la ligue est vide'], ['noleague', 'Caché quand une ligue est renseignée']],
+      () => o.cond || '', v => {
+        if (v) o.cond = v; else delete o.cond;
+        /* l'aperçu passe dans le cas où l'objet est visible, pour ne pas le voir disparaître */
+        if (v === 'noleague' && lgActive()) { previewLeague(false); toast('Aperçu passé sans ligue (pour voir l\'élément)', 'ok'); }
+        if (v === 'league' && !lgActive()) { previewLeague(true); toast('Aperçu passé avec ligue (pour voir l\'élément)', 'ok'); }
+      }, { level: 'layers', layers: true, rebuild: true })),
+    note('Ne sert pas à choisir la position : <b>Toujours visible</b> pour un élément qui se déplace seulement. Les autres choix <b>cachent</b> l\'élément dans un cas (ex. le texte {league} et sa forme de fond : « caché quand la ligue est vide »).'),
+    /* piège courant : des positions enregistrées sur un objet entièrement caché dans l'un des deux cas */
+    o.cond && (o.lgNo || o.lgWith) ? note(`<b>⚠ ${what} disparaît entièrement ${o.cond === 'league' ? 'quand la ligue est vide' : 'quand une ligue est renseignée'}.</b> Pour qu'il reste affiché et change seulement de position, mets-le <b>Toujours visible</b>.`) : null,
+    o.cond && (o.lgNo || o.lgWith) ? h('div', { class: 'btns' }, btn('Le rendre toujours visible', 'eye', () => {
+      delete o.cond; changed('layers', { commit: 'now', layers: true, inspector: true });
+      toast('Toujours visible : il se déplace selon la ligue', 'ok');
+    }, 'primary')) : null,
+    note('Pour l\'overlay (OBS / panneau), clique ensuite <b>Installer le thème</b> : il garde la version installée jusque-là.'));
 }
 
 /* Sélection multiple : position du bloc, alignements, répartition et actions groupées */
@@ -2729,27 +2864,82 @@ function renderMultiProps() {
     note('<b>Maj</b> ou <b>Ctrl</b> + clic : ajouter / retirer · glisser dans le vide : rectangle de sélection · <b>Ctrl+A</b> : tous les calques · flèches : déplacer. Les éléments de l\'overlay sont masqués au lieu d\'être supprimés.')));
 }
 
-/* Sidebars : valeur affichée = réglage du projet, sinon valeur mesurée dans l'aperçu */
+/* Sidebars : valeur affichée = réglage du projet, sinon valeur mesurée dans l'aperçu.
+   Les couleurs sont lues telles qu'elles sont rendues, opacité comprise : un fond en dégradé donne
+   sa couleur la plus opaque (pas une hachure presque transparente posée par-dessus), et les
+   notifications (absentes la plupart du temps) sont lues sur une notif temporaire, sans animation,
+   avec l'opacité de l'élément intégrée (le réglage « Fond » la remplace : opacity:1). */
+const sbMeasureCache = {};
+function sbMeasureLive(side) {
+  const c = sbMeasureCache[side];
+  if (c && c.gen === sbMeasureGen) return c.v;
+  const v = sbMeasure(side);
+  sbMeasureCache[side] = { gen: sbMeasureGen, v };
+  return v;
+}
 function sbMeasure(side) {
   try {
     const doc = FD(), w = frame.contentWindow, sb = doc.getElementById('sidebar-' + side);
     const row = sb.querySelector('.player-row:not(.spectating)') || sb.querySelector('.player-row');
     const q = s => sb.querySelector(s), cs = el => el ? w.getComputedStyle(el) : null;
+    const alphaOf = s => { const p = parseColor(s); return p ? p.a : 0; };
+    const colorsIn = s => String(s || '').match(/rgba?\([^)]*\)/g) || [];
+    /* écriture courte, comme une couleur saisie : #1a5fff, ou rgba(8,8,20,0.88) si transparente */
+    const norm = s => { const p = parseColor(s); return p ? toCss(p) : s; };
+    /* couleur de fond rendue : background-color si visible, sinon la couleur la plus opaque du dégradé */
+    const bgOf = el => {
+      const c = cs(el); if (!c) return undefined;
+      if (alphaOf(c.backgroundColor) > 0) return norm(c.backgroundColor);
+      const list = colorsIn(c.backgroundImage); if (!list.length) return undefined;
+      /* les couches du dessus sont listées d'abord : à opacité égale, la dernière (le fond) l'emporte */
+      return norm(list.reduce((best, x) => (alphaOf(x) >= alphaOf(best) ? x : best), list[0]));
+    };
+    const fill = row && row.querySelector('.pr-boost-fill');
+    const fills = fill ? colorsIn(cs(fill).backgroundImage).map(norm) : [];
+    const fillBg = fill && !fills.length ? norm(cs(fill).backgroundColor) : undefined;
+    const spec = sb.querySelector('.player-row.spectating');
+    let notifBg;
+    const icons = row && row.parentNode && row.parentNode.querySelector('.pr-icons');
+    if (icons) {
+      const ic = doc.createElement('div');
+      ic.className = 'pr-icon'; ic.style.animation = 'none';
+      icons.appendChild(ic);
+      const p = parseColor(bgOf(ic) || '');
+      if (p) { p.a = round(p.a * (parseFloat(cs(ic).opacity) || 0), 3); notifBg = toCss(p); }
+      ic.remove();
+    }
     return {
       width: sb.offsetWidth, gap: parseFloat(cs(sb).rowGap) || 0,
       rowH: (q('.pr-info') || {}).offsetHeight, radius: parseFloat((cs(row) || {}).borderTopLeftRadius) || 0,
-      rowBg: (cs(row) || {}).backgroundColor, accentW: (q('.pr-accent') || {}).offsetWidth,
-      nameSize: parseFloat((cs(q('.pr-name')) || {}).fontSize), nameColor: (cs(row && row.querySelector('.pr-name')) || {}).color,
-      valSize: parseFloat((cs(q('.pr-val')) || {}).fontSize), valColor: (cs(row && row.querySelector('.pr-val')) || {}).color,
+      rowBg: bgOf(row), specBg: spec ? bgOf(spec) : undefined,
+      accentW: (q('.pr-accent') || {}).offsetWidth, accentColor: bgOf(row && row.querySelector('.pr-accent')),
+      nameSize: parseFloat((cs(q('.pr-name')) || {}).fontSize), nameColor: norm((cs(row && row.querySelector('.pr-name')) || {}).color),
+      valSize: parseFloat((cs(q('.pr-val')) || {}).fontSize), valColor: norm((cs(row && row.querySelector('.pr-val')) || {}).color),
       boostH: (q('.pr-boost-bar') || {}).offsetHeight, notifSize: (q('.pr-info') || {}).offsetHeight,
+      boostC1: fills[0] || fillBg, boostC2: fills[fills.length - 1] || fillBg,
+      boostBg: bgOf(row && row.querySelector('.pr-boost-bar')), notifBg,
     };
   } catch (e) { return {}; }
+}
+/* Opacité du fond des lignes (et pas de l'élément entier) : le fond des lignes des thèmes est souvent
+   semi-transparent (88 % sur Default), on voit donc à travers même avec « Opacité » à 100 %.
+   Part de l'opacité réellement affichée ; garde la teinte du fond. Sidebars liées : les deux. */
+function sbBgAlphaRow(side, label = 'Opacité du fond des lignes') {
+  const other = side === 'blue' ? 'orange' : 'blue';
+  const cur = () => ((S.p.sidebar || {})[side] || {}).rowBg ?? sbMeasureLive(side).rowBg;
+  return row(label, slider(() => { const p = parseColor(cur()); return p ? Math.round(p.a * 100) : 100; }, v => {
+    const p = parseColor(cur()) || { r: 8, g: 8, b: 20, a: 1 };
+    p.a = clamp(v, 0, 100) / 100;
+    S.p.sidebar ||= {};
+    for (const s of S.p.sidebar.link !== false ? [side, other] : [side]) { S.p.sidebar[s] ||= {}; S.p.sidebar[s].rowBg = toCss(p); }
+  }, { unit: ' %' }));
 }
 function sidebarSections(side) {
   const other = side === 'blue' ? 'orange' : 'blue';
   const m = sbMeasure(side);
   const conf = () => S.p.sidebar[side] || {};
-  const G = (k, d) => conf()[k] ?? m[k] ?? d;
+  /* valeur non réglée : relue dans l'aperçu à chaque mise à jour (couleurs avec leur vraie opacité) */
+  const G = (k, d) => conf()[k] ?? sbMeasureLive(side)[k] ?? m[k] ?? d;
   const set = k => v => {
     /* forme et couleurs d'équipe : seulement la sidebar sélectionnée, même liée */
     for (const s of S.p.sidebar.link !== false && !SB_SIDE_KEYS.includes(k) ? [side, other] : [side]) {
@@ -2764,7 +2954,8 @@ function sidebarSections(side) {
   const teamCol = (k, label, defB, defO) => (linked ? ['blue', 'orange'] : [side]).map(s => {
     const c = () => S.p.sidebar[s] || {};
     const setS = v => { S.p.sidebar[s] ||= {}; if (v == null || v === '') delete S.p.sidebar[s][k]; else S.p.sidebar[s][k] = v; };
-    return row(`${label}${linked ? (s === 'blue' ? ' — bleu' : ' — orange') : ''}`, colorField(() => c()[k] ?? (s === 'blue' ? defB : defO), setS, { reset: () => setS(null), isSet: () => c()[k] != null }));
+    /* non réglée : la couleur réellement affichée par le thème (opacité comprise), sinon la valeur par défaut */
+    return row(`${label}${linked ? (s === 'blue' ? ' — bleu' : ' — orange') : ''}`, colorField(() => c()[k] ?? sbMeasureLive(s)[k] ?? (s === 'blue' ? defB : defO), setS, { reset: () => setS(null), isSet: () => c()[k] != null }));
   });
   const testNotif = () => { try { const w = frame.contentWindow; w.showStatIcon(side === 'blue' ? 'p1' : 'p5', side === 'blue' ? 'Ayyjayy' : 'Joyo', 'goal'); } catch (e) {} };
   /* deux événements d'affilée sur la même ligne : pour régler l'espace entre les notifications */
@@ -2879,16 +3070,23 @@ function sidebarSections(side) {
   out.push(sec('Lignes joueurs', 'list',
     sl('width', 'Largeur', 120, 480, 210), sl('rowH', 'Hauteur', 20, 90, 40), sl('gap', 'Espacement', 0, 40, 3),
     ...rowShapeControls(),
-    col('rowBg', 'Fond', 'rgba(8,8,20,0.88)'), col('specBg', 'Joueur suivi', '#ffffff'),
+    col('rowBg', 'Fond', 'rgba(8,8,20,0.88)'), sbBgAlphaRow(side, 'Opacité du fond'), col('specBg', 'Joueur suivi', '#ffffff'),
     sl('accentW', 'Bande d\'équipe', 0, 30, 5), ...teamCol('accentColor', 'Couleur bande', '#1a5fff', '#d96000')));
   out.push(sec('Textes', 'text',
+    row('Pseudo', selectField([['', 'Comme le thème'], ['left', 'À gauche'], ['center', 'Au centre'], ['right', 'À droite']], () => conf().namePos || '', v => set('namePos')(v || null))),
+    row('Chiffre du boost', selectField([['', 'Comme le thème'], ['left', 'À gauche du pseudo'], ['right', 'À droite du pseudo']], () => conf().valPos || '', v => set('valPos')(v || null))),
+    note(`Place du pseudo et du boost pour la sidebar <b>${side === 'orange' ? 'orange' : 'bleue'}</b> seulement : sélectionne la sidebar ${side === 'orange' ? 'bleue' : 'orange'} pour régler la sienne.`),
     sl('nameSize', 'Taille du nom', 8, 40, 16), col('nameColor', 'Couleur du nom', '#ffffff'),
-    sl('valSize', 'Taille du boost', 8, 48, 22), col('valColor', 'Couleur du boost', '#ffd700')));
-  const fillMode = G('boost', 'bottom') === 'fill';
+    sl('valSize', 'Taille du boost', 8, 48, 22), ...teamCol('valColor', 'Couleur du chiffre de boost', '#ffd700', '#ffd700')));
+  const fillMode = G('boost', 'bottom') === 'fill', insetMode = G('boost', 'bottom') === 'inset';
   out.push(sec('Barre de boost', 'bar',
-    row('Position', selectField([['bottom', 'Sous le nom'], ['top', 'Au-dessus du nom'], ['fill', 'Remplit la ligne (derrière le nom)'], ['hide', 'Masquée']], () => G('boost', 'bottom'), v => { set('boost')(v); }, { rebuild: true })),
+    row('Position', selectField([['bottom', 'Sous le nom (au bord de la ligne)'], ['inset', 'Sous le nom, en retrait'], ['top', 'Au-dessus du nom'], ['fill', 'Remplit la ligne (derrière le nom)'], ['hide', 'Masquée']], () => G('boost', 'bottom'), v => { set('boost')(v); }, { rebuild: true })),
     fillMode ? row('Opacité', slider(() => Math.round((G('boostAlpha', .6)) * 100), v => set('boostAlpha')(v / 100), { min: 10, max: 100, unit: ' %' })) : sl('boostH', 'Épaisseur', 1, 30, 6),
     fillMode ? note('La ligne du joueur se remplit avec son boost, derrière son nom (côté orange : depuis la droite).') : null,
+    insetMode ? sl('boostInsetX', 'Retrait sur les côtés', 0, 80, 10) : null,
+    insetMode ? sl('boostInsetB', 'Retrait en bas', 0, 30, 6) : null,
+    insetMode ? sl('boostRadius', 'Arrondi de la barre', 0, 20, 0) : null,
+    insetMode ? note('La barre reste sous le nom mais ne touche plus les bords de la ligne : règle l\'écart sur les côtés et en bas.') : null,
     ...teamCol('boostC1', 'Couleur début', '#1a5fff', '#d96000'),
     ...teamCol('boostC2', 'Couleur fin', '#60a0ff', '#ff9c33'),
     col('boostBg', 'Fond de la barre', 'rgba(255,255,255,0.07)'),
@@ -3363,8 +3561,11 @@ function renderElProps() {
     insp.append(mediaSections(() => d.mb, x => { d.mb = x; }, { size: { w: 210, h: 100 } }));
     insp.lastChild.append(h('div', { class: 'btns', style: 'margin-top:10px' }, btn('Le placer librement (calque)', 'media', () => addLayer('media'))));
   }
+  const sbSide = E.key === 'sidebar-blue' ? 'blue' : E.key === 'sidebar-orange' ? 'orange' : null;
   insp.append(sec('Apparence', 'palette',
     row('Opacité', slider(() => d.o ?? 100, v => { d.o = v; }, { unit: ' %' })),
+    sbSide ? sbBgAlphaRow(sbSide) : null,
+    sbSide ? note('<b>Opacité</b> règle la sidebar entière (texte compris). Le <b>fond des lignes</b> a sa propre transparence, venue du thème : mets-le à 100 % pour ne plus voir à travers.') : null,
     row('Teinte', slider(() => d.hue || 0, v => { d.hue = v; }, { min: -180, max: 180, unit: '°' })),
     row('Saturation', slider(() => d.sat ?? 100, v => { d.sat = v; }, { max: 200, unit: ' %' })),
     row('Luminosité', slider(() => d.bright ?? 100, v => { d.bright = v; }, { min: 20, max: 200, unit: ' %' })),
@@ -3426,6 +3627,7 @@ function renderLayerProps() {
     row('Plan', selectField([['front', 'Devant l\'overlay'], ['back', 'Derrière l\'overlay']], () => L.z || 'front', v => { L.z = v; }, { level: 'layers', layers: true })),
     row('Opacité', slider(() => L.o ?? 100, v => { L.o = v; }, { unit: ' %' })),
     row('Fusion', selectField(BLENDS, () => L.blend || 'normal', v => { L.blend = v; }))));
+  insp.append(leagueCondSection(L, grp ? 'Ce calque (en plus de son dossier)' : 'Ce calque'));
 
   if (L.type === 'image' || L.type === 'video' || L.type === 'lottie') {
     const kids = [fileRow(null, () => L.asset, id => { L.asset = id; }, L.type === 'lottie' ? ACCEPT.lottie : L.type === 'video' ? ACCEPT.video : ACCEPT.image, { level: 'layers' })];

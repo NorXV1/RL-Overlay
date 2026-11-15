@@ -21,8 +21,8 @@
 #st-back { z-index:0; }
 #st-front { z-index:9000; }
 .st-layer { position:absolute; left:0; top:0; width:100px; height:100px; opacity:0; visibility:hidden;
-  transition: opacity var(--st-out,.35s) ease, visibility 0s linear var(--st-out,.35s); }
-.st-layer.st-on { opacity:var(--st-o,1); visibility:visible; transition: opacity .12s ease, visibility 0s; }
+  transition: opacity var(--st-out,.35s) ease, visibility 0s linear var(--st-out,.35s), translate .45s cubic-bezier(.2,.8,.3,1); }
+.st-layer.st-on { opacity:var(--st-o,1); visibility:visible; transition: opacity .12s ease, visibility 0s, translate .45s cubic-bezier(.2,.8,.3,1); }
 .st-layer[data-out="none"]:not(.st-on) { transition:none; }
 .st-anim, .st-loop, .st-kf, .st-c { position:absolute; inset:0; }
 .st-anim { transition: transform var(--st-out,.35s) ease-in, filter var(--st-out,.35s) ease-in, clip-path var(--st-out,.35s) ease-in; }
@@ -171,10 +171,18 @@
     flags.moment = flags.end ? 'end' : flags.win ? 'win' : flags.wlive ? 'wlive' : flags.wreplay ? 'wreplay'
       : flags.replay ? 'replay' : flags.goal ? 'goal' : live ? 'game' : '';
     flags.game = flags.moment === 'game';
+    /* condition : label de ligue renseigné (texte non vide) — html.st-c-league / html.st-c-noleague
+       servent aux calques et dossiers « si la ligue est renseignée / vide » et à leur décalage */
+    const lg = document.getElementById('league-label');
+    flags.league = !!(lg && lg.textContent.trim());
     const root = document.documentElement;
     MOMENT_KEYS.forEach(k => root.classList.toggle('st-m-' + k, flags.moment === k));
     root.classList.toggle('st-m-ot', !!flags.ot);
+    root.classList.toggle('st-c-league', flags.league);
+    root.classList.toggle('st-c-noleague', !flags.league);
   }
+  /* condition d'un calque / d'un dossier : '' (toujours), 'league' (ligue renseignée), 'noleague' (ligue vide) */
+  const condOk = c => !c || (c === 'league' ? !!flags.league : c === 'noleague' ? !flags.league : true);
   /* show : liste de moments (["game","goal"…] ou ["always"]) — ou ancien format texte d'un thème déjà installé.
      « ot » (prolongation) s'ajoute aux autres : vrai pendant toute la prolongation. */
   function isShown(show) {
@@ -204,7 +212,7 @@
     updateTokens();   // textes à jour avant l'apparition (ex. nom du buteur au début du replay)
     for (const L of layers) {
       /* gshow : moments du dossier qui contient le calque (filtre en plus des siens) */
-      const on = !L.spec.hidden && isShown(L.spec.show) && (!L.spec.gshow || isShown(L.spec.gshow));
+      const on = !L.spec.hidden && condOk(L.spec.cond) && condOk(L.spec.gcond) && isShown(L.spec.show) && (!L.spec.gshow || isShown(L.spec.gshow));
       if (on && !L.on) restart(L);
       else if (!on && L.on) {
         /* « Lire jusqu'au bout » : la vidéo reste affichée jusqu'à sa fin même si le moment est terminé
@@ -244,6 +252,8 @@
     series_blue: () => { try { return String(state?.series?.blue ?? 0); } catch (e) { return '0'; } },
     series_orange: () => { try { return String(state?.series?.orange ?? 0); } catch (e) { return '0'; } },
     player: () => txt('stat-player-name'), boost: () => txt('boost-big'),
+    /* {score} : score du joueur suivi (posé par l'app sur #stat-values, comme ses buts / tirs…) */
+    score: () => { const sv = document.getElementById('stat-values'); return sv && sv.dataset.score != null ? String(sv.dataset.score) : ''; },
     /* but / replay : buteur, passeur (vide s'il n'y en a pas), équipe du buteur, vitesse du tir */
     scorer: () => { const r = txt('replay-scorer'); return r && r !== '—' ? r : (lastScorerName || ''); },
     assist: () => { const a = txt('replay-assist-name'); return a === '—' ? '' : a; },
@@ -709,6 +719,9 @@
     const e = document.getElementById(id);
     if (e) mo.observe(e, { attributes: true, attributeFilter: ['class'] });
   });
+  /* texte du label de ligue : condition « ligue renseignée / vide » */
+  const lgLabel = document.getElementById('league-label');
+  if (lgLabel) mo.observe(lgLabel, { childList: true, characterData: true, subtree: true });
   /* mot de la transition (REPLAY / LIVE) et vidéos de transition des thèmes (affichées / masquées) */
   const rwWord = document.getElementById('rw-word');
   if (rwWord) mo.observe(rwWord, { attributes: true, attributeFilter: ['data-text'] });

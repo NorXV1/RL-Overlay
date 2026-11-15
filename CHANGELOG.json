@@ -189,5 +189,16 @@
       "Nouveau (Studio) : bouton « Tag » pour placer le tag d'une équipe où vous voulez (bleue, orange, qui marque, gagnante ou perdante), avec tous les réglages d'un texte ; nouvelles données en direct {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag} et {loser_tag}",
       "Correction : l'aperçu OBS du panneau et l'aperçu du Studio affichaient « BLU / ORA » au lieu du tag des équipes"
     ]
+  },
+  "1.9.2": {
+    "date": "2026-11-15",
+    "notes": [
+      "Nouveau (Studio) : condition « ligue » sur les calques et les dossiers — positions enregistrées sans / avec label de ligue (l'élément glisse de l'une à l'autre quand la ligue change) et possibilité de le cacher quand la ligue est vide ou renseignée",
+      "Nouveau (Studio) : sidebars — pseudo à gauche, au centre ou à droite et chiffre du boost à gauche ou à droite, réglés séparément pour la sidebar bleue et l'orange",
+      "Nouveau (Studio) : barre de boost des sidebars « sous le nom, en retrait » (écart sur les côtés et en bas, arrondi) et opacité du fond des lignes réglable directement",
+      "Nouveau (Studio) : donnée en direct {score} pour afficher le score du joueur suivi dans un texte",
+      "Amélioration (Studio) : la couleur du chiffre de boost des sidebars se règle séparément pour le bleu et l'orange ; les champs couleur affichent la couleur réelle du thème avec sa vraie opacité, et le champ d'opacité n'est plus coupé",
+      "Correction : l'installeur (npm run package) embarquait le code non obfusqué — le code est maintenant obfusqué pendant la création de l'installeur"
+    ]
   }
 }
