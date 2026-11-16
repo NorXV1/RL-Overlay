@@ -4049,8 +4049,8 @@ async function openProjectFile(file, filePath) {
 /* opts.file : fichier .rlstudio d'origine (Ctrl+S y réécrira) · opts.dirty : restauré avec des modifs non enregistrées */
 function loadProject(p, opts = {}) {
   S.p = normalize(p);
-  /* projet enregistré avant le renommage d'un thème intégré : nouvelle base (table envoyée par le serveur) */
-  if (S.p.base && S.renamed && S.renamed[S.p.base]) S.p.base = S.renamed[S.p.base];
+  /* projet basé sur un thème supprimé de RL Overlay (liste envoyée par le serveur) : base Default */
+  if (S.p.base && S.removed && S.removed.includes(S.p.base)) S.p.base = 'rlcs';
   setSel(null);
   $('#proj-name').value = S.p.name;
   resetHistory();
@@ -4568,7 +4568,7 @@ function renderAll() {
   renderLayers(); renderInspector(); applyView();
 }
 async function loadThemes() {
-  try { const r = await fetch('/api/studio/themes'); const j = await r.json(); S.themes = j.themes || []; S.renamed = j.renamed || {}; } catch (e) { S.themes = []; S.renamed = S.renamed || {}; }
+  try { const r = await fetch('/api/studio/themes'); const j = await r.json(); S.themes = j.themes || []; S.removed = j.removed || []; } catch (e) { S.themes = []; S.removed = S.removed || []; }
 }
 function onFrameReady() {
   if (S.frameOk) return;
@@ -4612,13 +4612,14 @@ window.addEventListener('beforeunload', () => {
     try { saved = JSON.parse(localStorage.getItem('rlo-studio:project') || 'null'); file = localStorage.getItem('rlo-studio:file') || null; dirty = true; } catch (e) {}
     if (saved && saved.format !== 'rlo-studio') saved = null;
   }
+  /* liste des thèmes avant le projet : l'aperçu ne doit jamais charger la base d'un thème supprimé */
+  await loadThemes();
   S.p = normalize(saved || newProject());
+  if (S.p.base && S.removed.includes(S.p.base)) S.p.base = 'rlcs';   // base d'un thème supprimé
   if (!saved) S.tab = 'theme';
   $('#proj-name').value = S.p.name;
   resetHistory();
   loadEditorFonts();
-  await loadThemes();
-  if (S.p.base && S.renamed[S.p.base]) S.p.base = S.renamed[S.p.base];   // base d'un thème intégré renommé
   loadBase(S.p.base);
   renderAll();
   S.filePath = file;

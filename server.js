@@ -46,17 +46,13 @@ settings.themeNames = settings.themeNames || {}; // noms affichés choisis dans 
 settings.mediaGroups = Array.isArray(settings.mediaGroups) ? settings.mediaGroups : [];
 settings.mediaBanner.group = settings.mediaBanner.group ?? null;
 
-/* ── Thèmes renommés : ancien identifiant → nouveau ──
-   Seule trace de l'ancien nom : elle sert à convertir les installations existantes (thème actif, nom
-   personnalisé, thèmes importés « basés sur », projets du Studio, ancien dossier laissé par une mise à
-   jour). Tout le reste de l'app n'utilise que le nouvel identifiant. */
-const RENAMED_THEMES = { vitality: 'blue-and-yellow' };
-const RENAMED_THEME_NAMES = { 'blue-and-yellow': 'Blue and Yellow' };   // nom affiché du thème migré
-const renamedTheme = id => RENAMED_THEMES[id] || id;
-if (settings.theme && RENAMED_THEMES[settings.theme]) settings.theme = renamedTheme(settings.theme);
-for (const [from, to] of Object.entries(RENAMED_THEMES)) {
-  if (settings.themeNames[from] != null) { settings.themeNames[to] ??= settings.themeNames[from]; delete settings.themeNames[from]; }
-}
+/* ── Thèmes supprimés de RL Overlay ──
+   Identifiants d'anciens thèmes fournis par RSCast et retirés : ils servent uniquement à nettoyer les
+   installations existantes (thème actif → Default, nom personnalisé, dossier laissé par une mise à jour,
+   thèmes importés et projets du Studio « basés sur » eux). */
+const REMOVED_THEMES = new Set(['vitality', 'blue-and-yellow']);
+if (settings.theme && REMOVED_THEMES.has(settings.theme)) settings.theme = 'rlcs';
+for (const id of REMOVED_THEMES) delete settings.themeNames[id];
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
 
@@ -944,45 +940,38 @@ app.post('/api/overlay-visible', (req, res) => {
 const THEMES_DIR = path.join(__dirname, 'public', 'themes');
 fs.mkdirSync(THEMES_DIR, { recursive: true });
 
-/* Migration des thèmes renommés (voir RENAMED_THEMES). Blue and Yellow n'est plus fourni avec l'app : c'est
-   un thème importé, téléchargeable sur le site.
-   - ancien dossier laissé par une mise à jour (qui ajoute sans supprimer) : s'il n'y a pas encore de dossier
-     au nouveau nom, il devient le thème importé (dossier renommé, sélecteurs CSS au nouveau nom, meta.json
-     avec son identité « alias » et son id du site) ; sinon il est retiré s'il ne contient que le CSS
-     d'origine, ou renommé en « …-ancien » (rien n'est perdu) ;
-   - thèmes installés basés dessus (meta.json « basedOn », projet studio.json) → nouvel identifiant. */
-function migrateRenamedThemes() {
-  for (const [from, to] of Object.entries(RENAMED_THEMES)) {
-    const oldDir = path.join(THEMES_DIR, from), newDir = path.join(THEMES_DIR, to);
-    if (!fs.existsSync(oldDir)) continue;
-    try {
-      if (!fs.existsSync(path.join(newDir, 'theme.css'))) {
-        fs.renameSync(oldDir, newDir);
-        const css = path.join(newDir, 'theme.css');
-        if (fs.existsSync(css)) fs.writeFileSync(css, fs.readFileSync(css, 'utf8').split(`[data-theme="${from}"]`).join(`[data-theme="${to}"]`));
-        let meta = {};
-        try { meta = JSON.parse(fs.readFileSync(path.join(newDir, 'meta.json'), 'utf8')); } catch {}
-        fs.writeFileSync(path.join(newDir, 'meta.json'), JSON.stringify({ ...meta, alias: to, siteId: meta.siteId || to, siteName: meta.siteName || RENAMED_THEME_NAMES[to] }, null, 2));
-      } else {
-        const files = fs.readdirSync(oldDir);
-        if (files.every(f => f === 'theme.css')) fs.rmSync(oldDir, { recursive: true, force: true });
-        else fs.renameSync(oldDir, path.join(THEMES_DIR, `${to}-ancien`));
-      }
-    } catch (e) { console.warn('[Thèmes] migration du dossier', from, ':', e.message); }
-  }
+/* Nettoyage des thèmes supprimés (voir REMOVED_THEMES) :
+   - leur dossier (laissé par une mise à jour, qui ajoute sans supprimer, ou téléchargé depuis le site) est
+     retiré — seulement si c'est bien le thème RSCast : dossier ne contenant que le CSS d'origine, ou thème
+     identifié comme tel dans son meta.json (alias / id du site). Un thème perso du même nom n'est pas touché ;
+   - les thèmes installés et projets du Studio « basés sur » eux perdent ce lien (base → aucune / Default). */
+function cleanRemovedThemes() {
   let dirs = [];
   try { dirs = fs.readdirSync(THEMES_DIR, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name); } catch {}
   for (const d of dirs) {
+    const dir = path.join(THEMES_DIR, d);
+    let meta = {};
+    try { meta = JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8')); } catch {}
+    const ours = REMOVED_THEMES.has(meta.siteId) || [].concat(meta.alias || []).some(a => REMOVED_THEMES.has(a));
+    let onlyCss = false;
+    try { onlyCss = fs.readdirSync(dir).every(f => f === 'theme.css'); } catch {}
+    if (ours || (REMOVED_THEMES.has(d) && onlyCss)) {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { console.warn('[Thèmes] suppression de', d, ':', e.message); }
+      if (settings.theme === d) { settings.theme = 'rlcs'; currentTheme = 'rlcs'; }
+      delete settings.themeNames[d];
+      continue;
+    }
     for (const [file, key] of [['meta.json', 'basedOn'], ['studio.json', 'base']]) {
-      const f = path.join(THEMES_DIR, d, file);
+      const f = path.join(dir, file);
       try {
         const j = JSON.parse(fs.readFileSync(f, 'utf8'));
-        if (j && RENAMED_THEMES[j[key]]) { j[key] = renamedTheme(j[key]); fs.writeFileSync(f, JSON.stringify(j, null, 2)); }
+        if (j && REMOVED_THEMES.has(j[key])) { if (key === 'base') j[key] = 'rlcs'; else delete j[key]; fs.writeFileSync(f, JSON.stringify(j, null, 2)); }
       } catch {}
     }
   }
+  saveSettings();
 }
-migrateRenamedThemes();
+cleanRemovedThemes();
 
 function listThemes() {
   const builtin = ['rlcs'];
@@ -1191,7 +1180,7 @@ app.get('/api/studio/themes', (req, res) => {
     return { id, label: settings.themeNames[id] || meta.siteName || null, studio: !!studio, name: studio?.name || null, basedOn: meta.basedOn || null };
   });
   /* renamed : le Studio convertit la base des projets enregistrés avant un renommage de thème */
-  res.json({ ok: true, themes, current: currentTheme, renamed: RENAMED_THEMES });
+  res.json({ ok: true, themes, current: currentTheme, removed: [...REMOVED_THEMES] });
 });
 
 /* Rouvre un thème créé avec le Studio : son projet (studio.json) + ses fichiers remis dans studio-work */
@@ -1546,7 +1535,7 @@ app.post('/api/themes/import', upload.single('css'), (req, res) => {
   css = css.replace(/\[data-theme="[^"]*"\]/g, `[data-theme="${name}"]`);
   fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
   // Sauver les métadonnées (thème d'origine pour les comportements JS)
-  basedOn = basedOn ? renamedTheme(basedOn) : basedOn;   // CSS d'un thème basé sur un thème renommé
+  if (REMOVED_THEMES.has(basedOn)) basedOn = null;   // basé sur un thème supprimé : plus de lien
   if (basedOn && basedOn !== name) {
     fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn }, null, 2));
   }
@@ -1604,8 +1593,8 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
           } catch {}
         }
 
-        /* thème téléchargé basé sur un thème renommé : nouvel identifiant */
-        const finalBasedOn = renamedTheme(forcedBasedOn || basedOn) || null;
+        /* thème basé sur un thème supprimé : plus de lien */
+        const finalBasedOn = REMOVED_THEMES.has(forcedBasedOn || basedOn) ? null : (forcedBasedOn || basedOn || null);
 
         // Détecter le nom original du thème (avant réécriture) pour corriger les chemins d'images
         const originalRefs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
