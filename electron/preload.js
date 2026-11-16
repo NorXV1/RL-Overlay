@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   authSuccess : (data) => ipcRenderer.send('auth-success', data),
   logout      : ()     => ipcRenderer.send('auth-logout'),
   openUrl     : (url)  => ipcRenderer.send('open-url', url),
+  /* acceptation des CGU (fenêtre affichée une seule fois par compte) */
+  cguAccept   : ()     => ipcRenderer.invoke('cgu:accept'),
+  cguRefuse   : ()     => ipcRenderer.send('cgu:refuse'),
   openStudio  : ()     => ipcRenderer.send('open-studio'),
   studioSave  : (opts) => ipcRenderer.invoke('studio:save', opts),
   studioOpen  : (opts) => ipcRenderer.invoke('studio:open', opts),

@@ -213,5 +213,11 @@
       "Changement : le thème cyan et jaune (Blue and Yellow) est retiré de RL Overlay. S'il était actif, l'overlay repasse sur le thème Default ; les thèmes importés basés dessus gardent leur style",
       "Nouveau : conditions générales d'utilisation sur le site (overlay.rscast.fr/cgu) — RL Overlay est la propriété de RSCast, les thèmes RSCast ne peuvent pas être réutilisés sans accord"
     ]
+  },
+  "1.9.5": {
+    "date": "2026-11-16",
+    "notes": [
+      "Nouveau : acceptation des conditions générales d'utilisation — demandée une seule fois par compte au lancement de l'app (pour les comptes créés avant), et obligatoire à l'inscription sur le site. Elle est enregistrée sur ton compte : plus besoin de la refaire, même sur un autre PC"
+    ]
   }
 }

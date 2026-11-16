@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+<title>RL Overlay — Conditions générales d'utilisation</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #04060c; color: #e0e8f0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  height: 100vh; display: flex; align-items: center; justify-content: center;
+  user-select: none;
+}
+.card {
+  background: #080c18; border: 1px solid rgba(26,88,200,.28); border-radius: 12px;
+  padding: 30px 30px 26px; width: 460px; max-width: calc(100vw - 32px);
+}
+.logo { text-align: center; margin-bottom: 18px; }
+.logo h1 { font-size: 20px; font-weight: 900; letter-spacing: 5px; text-transform: uppercase; color: #fff; }
+.logo h1 span { color: #1a58c8; }
+.logo p { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,.35); margin-top: 4px; }
+.intro { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,.75); margin-bottom: 12px; }
+ul { list-style: none; margin-bottom: 14px; }
+li { position: relative; padding-left: 16px; font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.62); margin-bottom: 7px; }
+li::before { content: ''; position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 1px; background: #1a58c8; }
+li strong { color: #fff; font-weight: 600; }
+.read { display: inline-block; font-size: 12px; color: #3a78e8; text-decoration: none; margin-bottom: 16px; cursor: pointer; }
+.read:hover { text-decoration: underline; }
+.check { display: flex; align-items: flex-start; gap: 9px; cursor: pointer; padding: 11px 12px; border: 1px solid rgba(255,255,255,.09); border-radius: 8px; background: rgba(255,255,255,.03); }
+.check input { width: 15px; height: 15px; margin-top: 1px; accent-color: #1a58c8; flex-shrink: 0; cursor: pointer; }
+.check span { font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,.8); }
+.btns { display: flex; gap: 10px; margin-top: 16px; }
+.btn { flex: 1; padding: 11px; border: none; border-radius: 7px; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: filter .15s; }
+.btn.primary { background: #1a58c8; color: #fff; }
+.btn.ghost { background: transparent; color: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.12); flex: 0 0 auto; padding: 11px 16px; }
+.btn:hover { filter: brightness(1.15); }
+.btn:disabled { opacity: .45; cursor: default; filter: none; }
+.msg { margin-top: 12px; padding: 9px 12px; border-radius: 6px; font-size: 12px; text-align: center; display: none; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #ef4444; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <h1>RL <span>Overlay</span></h1>
+    <p>CONDITIONS GÉNÉRALES D'UTILISATION</p>
+  </div>
+
+  <p class="intro">Avant de continuer, merci de lire et d'accepter les conditions générales d'utilisation de RL Overlay. Cette étape n'est demandée qu'une seule fois pour ton compte.</p>
+  <ul>
+    <li><strong>RL Overlay est la propriété de RSCast</strong> (application, site, Studio de thèmes).</li>
+    <li><strong>Les thèmes créés par RSCast sont privés</strong> : ils ne peuvent être ni réutilisés, ni copiés, ni redistribués sans accord préalable de RSCast.</li>
+    <li>Tu es <strong>seul responsable des thèmes que tu crées</strong> avec le Studio : RSCast n'est pas responsable d'un thème reprenant la création protégée d'une autre personne, et contactera les personnes concernées pour régler le problème.</li>
+    <li>Le pseudo et l'e-mail de ton compte sont associés aux thèmes que tu soumets (visibles par la modération uniquement).</li>
+  </ul>
+  <a class="read" id="read">Lire les conditions générales d'utilisation complètes ↗</a>
+
+  <label class="check">
+    <input type="checkbox" id="accept">
+    <span>J'ai lu et j'accepte les conditions générales d'utilisation de RL Overlay.</span>
+  </label>
+
+  <div class="btns">
+    <button class="btn ghost" id="refuse">Refuser et quitter</button>
+    <button class="btn primary" id="ok" disabled>Accepter et continuer</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+const ok = document.getElementById('ok'), box = document.getElementById('accept'), msg = document.getElementById('msg');
+box.addEventListener('change', () => { ok.disabled = !box.checked; });
+document.getElementById('read').addEventListener('click', () => window.electronAPI.openUrl('https://overlay.rscast.fr/cgu'));
+document.getElementById('refuse').addEventListener('click', () => window.electronAPI.cguRefuse());
+ok.addEventListener('click', async () => {
+  if (!box.checked) return;
+  ok.disabled = true; ok.textContent = 'ENREGISTREMENT…'; msg.style.display = 'none';
+  const r = await window.electronAPI.cguAccept().catch(() => ({ error: 'Impossible de joindre le serveur.' }));
+  if (r && r.ok) return;   // la fenêtre se ferme, le panneau s'ouvre
+  msg.textContent = (r && r.error) || 'Impossible de joindre le serveur, réessaie.';
+  msg.style.display = 'block';
+  ok.disabled = !box.checked; ok.textContent = 'Accepter et continuer';
+});
+</script>
+</body>
+</html>

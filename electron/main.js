@@ -111,7 +111,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.exit(0); } else {
 
   app.on('second-instance', (event, argv) => {
-    const win = mainWindow || loginWindow;
+    const win = mainWindow || cguWindow || loginWindow;
     if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
     handleProtocolArgv(argv);
   });
@@ -192,13 +192,67 @@ if (!gotLock) { app.exit(0); } else {
     mainWindow.on('closed', () => { mainWindow = null; });
   }
 
-  /* ── IPC : login réussi depuis la fenêtre de login ─────────── */
-  ipcMain.on('auth-success', (e, data) => {
-    saveSession(data);
-    if (loginWindow) { loginWindow.destroy(); loginWindow = null; }
-    createMainWindow(data);
+  /* ── Ouverture de l'app après connexion : CGU d'abord si le compte ne les a pas encore acceptées ── */
+  function openApp(session) {
+    createMainWindow(session);
     createTray();
     initDiscordRPC();
+  }
+  /* cguAccepted === false : compte existant qui n'a pas encore accepté les CGU (renvoyé par le site) →
+     fenêtre d'acceptation, une seule fois : l'acceptation est enregistrée sur le compte, côté site.
+     Valeur absente (site injoignable / ancienne réponse) : on n'empêche pas d'utiliser l'app. */
+  let cguWindow = null, cguSession = null, cguDone = false;
+  function startSession(session, cguAccepted) {
+    if (cguAccepted === false) showCguWindow(session);
+    else openApp(session);
+  }
+  function showCguWindow(session) {
+    cguSession = session; cguDone = false;
+    if (cguWindow) { cguWindow.focus(); return; }
+    cguWindow = new BrowserWindow({
+      width: 540, height: 660, useContentSize: true, resizable: false, maximizable: false, minimizable: true,
+      title: 'RL Overlay — Conditions générales d\'utilisation',
+      autoHideMenuBar: true, backgroundColor: '#04060c',
+      icon: path.join(__dirname, '../public/logos/logo.png'),
+      webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') },
+    });
+    cguWindow.loadFile(path.join(__dirname, 'cgu.html'));
+    /* fermer la fenêtre sans accepter = refuser : l'app se ferme */
+    cguWindow.on('closed', () => { cguWindow = null; if (!cguDone) { app.isQuitting = true; app.quit(); } });
+  }
+  function postCguAccept(key) {
+    return new Promise(resolve => {
+      const body = JSON.stringify({ key });
+      const req = https.request('https://overlay.rscast.fr/api/cgu/accept', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout: 10000,
+      }, res => {
+        let raw = '';
+        res.on('data', c => raw += c);
+        res.on('end', () => { try { resolve(JSON.parse(raw)); } catch { resolve({ error: 'Réponse invalide du serveur.' }); } });
+      });
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', () => resolve({ error: 'Impossible de joindre le serveur, vérifie ta connexion.' }));
+      req.end(body);
+    });
+  }
+  ipcMain.handle('cgu:accept', async () => {
+    if (!cguSession) return { error: 'Session introuvable, relance l\'application.' };
+    const r = await postCguAccept(cguSession.license);
+    if (!r || !r.ok) return { error: (r && r.error) || 'Erreur lors de l\'enregistrement.' };
+    cguDone = true;
+    const session = cguSession; cguSession = null;
+    if (cguWindow) cguWindow.destroy();
+    openApp(session);
+    return { ok: true };
+  });
+  ipcMain.on('cgu:refuse', () => { app.isQuitting = true; app.quit(); });
+
+  /* ── IPC : login réussi depuis la fenêtre de login ─────────── */
+  ipcMain.on('auth-success', (e, data) => {
+    const { cguAccepted, ...session } = data || {};
+    saveSession(session);
+    if (loginWindow) { loginWindow.destroy(); loginWindow = null; }
+    startSession(session, cguAccepted);
   });
 
   /* ── IPC : ouvrir URL dans le navigateur externe ─────────────── */
@@ -452,9 +506,7 @@ if (!gotLock) { app.exit(0); } else {
         // Mettre à jour le tier et l'avatar depuis le serveur
         const updatedSession = { ...session, tier: result.tier || session.tier || 'basic', avatar_url: result.avatar_url ?? session.avatar_url ?? null };
         saveSession(updatedSession);
-        createMainWindow(updatedSession);
-        createTray();
-        initDiscordRPC();
+        startSession(updatedSession, result.cguAccepted);
         return;
       }
     }
@@ -465,7 +517,7 @@ if (!gotLock) { app.exit(0); } else {
 
   app.on('window-all-closed', e => e.preventDefault());
   app.on('activate', () => {
-    const win = mainWindow || loginWindow;
+    const win = mainWindow || cguWindow || loginWindow;
     if (win) win.show();
   });
   app.on('before-quit', () => { destroyDiscordRPC(); });

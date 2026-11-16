@@ -88,7 +88,8 @@ function finishAuth(r) {
     license   : r.license,
     username  : r.username,
     tier      : r.tier || 'basic',
-    avatar_url: r.avatar_url ?? null
+    avatar_url: r.avatar_url ?? null,
+    cguAccepted: r.cguAccepted
   });
 }
 
