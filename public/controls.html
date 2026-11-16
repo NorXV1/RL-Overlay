@@ -1111,39 +1111,6 @@ input:checked + .slider:before { transform:translateX(18px); }
           </div>
         </div>
 
-        <!-- Vitality -->
-        <div class="tc" data-t="vitality" onclick="setTheme('vitality')">
-          <div class="tc-preview">
-            <div class="tc-bg" style="background:#1e1e1e;">
-              <div class="tc-header">
-                <div class="tc-h-blue"   style="background:#262626;border-top:2px solid #00AAFE;"></div>
-                <div class="tc-h-score">
-                  <div class="tc-h-sb" style="background:#00AAFE;"></div>
-                  <div style="background:#ffffff;flex:0.8;display:flex;align-items:center;justify-content:center;"><div style="font-size:5px;color:#1e1e1e;font-weight:700;">3:08</div></div>
-                  <div class="tc-h-so" style="background:#FEFF02;"></div>
-                </div>
-                <div class="tc-h-orange" style="background:#262626;border-top:2px solid #FEFF02;"></div>
-              </div>
-              <div class="tc-body">
-                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;">
-                  <div style="height:5px;width:40px;background:#262626;border-bottom:1px solid #00AAFE;border-radius:0;"></div>
-                  <div style="height:5px;width:40px;background:#262626;border-bottom:1px solid #00AAFE;border-radius:0;"></div>
-                  <div style="height:5px;width:40px;background:#00AAFE;border-radius:0;"></div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 0 0;margin-left:auto;">
-                  <div style="height:5px;width:40px;background:#262626;border-bottom:1px solid #FEFF02;border-radius:0;"></div>
-                  <div style="height:5px;width:40px;background:#262626;border-bottom:1px solid #FEFF02;border-radius:0;"></div>
-                  <div style="height:5px;width:40px;background:#262626;border-bottom:1px solid #FEFF02;border-radius:0;"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <div class="tc-name">Vitality</div>
-            <div class="tc-check">✓</div>
-          </div>
-        </div>
-
         <!-- ENISorail -->
         <div class="tc" data-t="enisorail" onclick="setTheme('enisorail')">
           <div class="tc-preview">
@@ -1471,8 +1438,8 @@ input:checked + .slider:before { transform:translateX(18px); }
 
 <script>
 /* ══════════ THEME ══════════════════════════════════ */
-let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025','fifa-world-cup'];
-const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','vitality','enisorail','rlcs2025','fifa-world-cup']);
+let _allThemes = ['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','enisorail','rlcs2025','fifa-world-cup'];
+const BUILTIN   = new Set(['rlcs','neon','onyx','nord','amber','rlcs2026','rlcs2023','enisorail','rlcs2025','fifa-world-cup']);
 
 /* ── Thèmes réservés aux comptes Premium — tous déverrouillés ── */
 const PREMIUM_THEMES = new Set([]);

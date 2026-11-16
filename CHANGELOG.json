@@ -72,7 +72,7 @@
   "1.7.7": {
     "date": "2026-10-22",
     "notes": [
-      "Amélioration : refonte complète du thème Vitality (scoreboard, sidebars, stat bar, boost meter, barre replay, nouvelle transition REPLAY / LIVE)",
+      "Amélioration : refonte complète du thème Blue and Yellow (scoreboard, sidebars, stat bar, boost meter, barre replay, nouvelle transition REPLAY / LIVE)",
       "Correction : l'arc du boost meter gardait la couleur de l'ancien thème après un changement de thème"
     ]
   },
@@ -199,6 +199,13 @@
       "Nouveau (Studio) : donnée en direct {score} pour afficher le score du joueur suivi dans un texte",
       "Amélioration (Studio) : la couleur du chiffre de boost des sidebars se règle séparément pour le bleu et l'orange ; les champs couleur affichent la couleur réelle du thème avec sa vraie opacité, et le champ d'opacité n'est plus coupé",
       "Correction : l'installeur (npm run package) embarquait le code non obfusqué — le code est maintenant obfusqué pendant la création de l'installeur"
+    ]
+  },
+  "1.9.3": {
+    "date": "2026-11-16",
+    "notes": [
+      "Changement : le thème cyan et jaune s'appelle maintenant « Blue and Yellow » et devient un thème importé — il n'est plus installé avec l'app, il se télécharge depuis la bibliothèque du site (code LD9PMZ). Si vous l'aviez déjà, il reste installé dans vos thèmes importés et reste actif s'il l'était",
+      "Amélioration : les thèmes téléchargés depuis le site s'affichent sous leur nom du site dans le panneau (et plus sous le nom de leur dossier) ; un nom choisi dans le panneau reste prioritaire"
     ]
   }
 }

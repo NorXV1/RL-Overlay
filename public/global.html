@@ -1309,12 +1309,11 @@ const THEME_COLS = {
   nord:     { b:'#5e81ac', bL:'#88c0d0', o:'#d08770', oL:'#ebcb8b' },
   amber:    { b:'#f59e0b', bL:'#fbbf24', o:'#ef4444', oL:'#f87171' },
   rlcs2026: { b:'#21AFD7', bL:'#21AFD7', o:'#FD5C00', oL:'#FD5C00' },
-  vitality:  { b:'#00AAFE', bL:'#4CC4FF', o:'#FEFF02', oL:'#FFFF66' },
   enisorail: { b:'#1a58c8', bL:'#3a78e8', o:'#cb522d', oL:'#e07848' },
   rlcs2025:  { b:'#0098EA', bL:'#33B9FF', o:'#E84A00', oL:'#FF7040' },
 };
 let currentTheme = 'rlcs';
-let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'vitality' pour un thème copié)
+let currentThemeBase = 'rlcs'; // thème d'origine si importé (ex: 'rlcs2025' pour un thème copié)
 /* Identités supplémentaires déclarées par le meta.json du thème ("alias": "rs-cup") —
    permet à un thème renommé (import / téléchargement) de garder ses comportements
    spécifiques EN PLUS de l'héritage "basedOn" (qui ne peut désigner qu'un seul parent). */
@@ -1591,10 +1590,10 @@ let _lastArcTeam = null, _lastArcIs34 = null, _lastArcTheme = null, _lastArcHigh
 
 function setBoostArc(pct, team) {
   const theme = document.body.dataset.theme;
-  const is34  = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('rlcs2026');
+  const is34  = themeIs('blue-and-yellow') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('rlcs2026');
   const themeOrTeamChanged = theme !== _lastArcTheme || team !== _lastArcTeam || is34 !== _lastArcIs34;
 
-  /* Vitality / ENISorail : 100 % = 3/4 du cercle */
+  /* Blue and Yellow / ENISorail : 100 % = 3/4 du cercle */
   const total = is34 ? ARC_CIRC * 0.75 : ARC_CIRC;
   if (themeOrTeamChanged) {
     boostArc.style.strokeDasharray = is34 ? `${total} ${ARC_CIRC}` : total;
@@ -1616,7 +1615,7 @@ function setBoostArc(pct, team) {
       if (bt) {
         if (themeIs('fifa-world-cup'))
           bt.style.stroke = 'rgba(255,255,255,.07)';
-        else if (themeIs('vitality'))
+        else if (themeIs('blue-and-yellow'))
           bt.style.stroke = team === 1 ? (_boostTrackCssO || 'rgba(250,213,0,.6)')   : (_boostTrackCssB || 'rgba(26,172,230,.6)');
         else if (themeIs('rlcs2025'))
           bt.style.stroke = team === 1 ? (_boostTrackCssO || 'rgba(232,74,0,.45)')   : (_boostTrackCssB || 'rgba(0,152,234,.45)');
@@ -1768,7 +1767,7 @@ function doReplayWipe(word, onDone, hold = 1600) {
     return;
   }
 
-  if (themeIs('vitality')) {
+  if (themeIs('blue-and-yellow')) {
     /* Animation lettre par lettre : contour jaune → clignotement → plein jaune */
     hold = Math.max(hold, 2500);
     lbl.dataset.text = word;
@@ -2209,11 +2208,11 @@ function autoFitTeamName(el) {
 
 /* Tag d'équipe (#sub-abbr-*, affiché par certains thèmes) : celui choisi dans le panneau
    (4 caractères max), sinon les 4 premières lettres du nom.
-   Vitality / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup / RS Cup : #sub-abbr-* contient des
+   Blue and Yellow / ENISorail / RLCS 2025 / FIFA WC / Lysorn Cup / RS Cup : #sub-abbr-* contient des
    vlt-win-pip spans — ne pas l'écraser avec textContent (qui détruirait les pips à 30 Hz). */
 const teamTag = (t, def) => String((t && t.tag) || '').trim() || [...String((t && t.name) || def)].slice(0, 4).join('');
 function renderTeamTags(teams) {
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) return;
+  if (themeIs('blue-and-yellow') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) return;
   const t = teams || [];
   _setText(document.getElementById('sub-abbr-blue'),   teamTag(t[0], 'BLU'));
   _setText(document.getElementById('sub-abbr-orange'), teamTag(t[1], 'ORA'));
@@ -2253,8 +2252,8 @@ function render(data) {
 
 function fmtTimer(s) {
   const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-  /* rlcs2025 / Vitality : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
-  if (themeIs('rlcs2025') || themeIs('vitality') || themeIs('rlcs2026') || currentThemeTimerShort) return `${m}:${String(sec).padStart(2, '0')}`;
+  /* rlcs2025 / Blue and Yellow : pas de zéro devant les minutes (3:33 au lieu de 03:33) */
+  if (themeIs('rlcs2025') || themeIs('blue-and-yellow') || themeIs('rlcs2026') || currentThemeTimerShort) return `${m}:${String(sec).padStart(2, '0')}`;
   return fmt(s);
 }
 
@@ -2324,7 +2323,7 @@ function buildSubTrack(blue, orange, bo) {
   /* Sans BO (format « Aucun ») : ni « GAME X ► BEST OF X », ni pips de victoire, ni points de
      série. Les thèmes qui affichent OVERTIME dans cette barre le gardent en prolongation. */
   if (!bo) {
-    const pipThemes = themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup');
+    const pipThemes = themeIs('blue-and-yellow') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup');
     if (pipThemes) {
       ['sub-abbr-blue', 'sub-abbr-orange'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     }
@@ -2341,8 +2340,8 @@ function buildSubTrack(blue, orange, bo) {
     return;
   }
 
-  /* Vitality / ENISorail / FIFA WC / Lysorn Cup : affiche "GAME X  ►  BEST OF X" + pips de victoire */
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
+  /* Blue and Yellow / ENISorail / FIFA WC / Lysorn Cup : affiche "GAME X  ►  BEST OF X" + pips de victoire */
+  if (themeIs('blue-and-yellow') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup') || themeIs('lysorn-cup') || themeIs('rs-cup')) {
     const gameNum = blue + orange + 1;
     const span = document.createElement('span');
     span.className = 'sub-game-text';
@@ -2369,7 +2368,7 @@ function buildSubTrack(blue, orange, bo) {
       if (abbrB) abbrB.innerHTML = Array.from({length: total}, (_, i) => mkPip(i < blue)).join('');
       if (abbrO) abbrO.innerHTML = Array.from({length: total}, (_, i) => mkPip(i < orange)).join('');
     } else {
-      /* Vitality : uniquement les pips gagnés */
+      /* Blue and Yellow : uniquement les pips gagnés */
       const pip = () => '<span class="vlt-win-pip"></span>';
       if (abbrB) abbrB.innerHTML = Array.from({length: blue},   pip).join('');
       if (abbrO) abbrO.innerHTML = Array.from({length: orange}, pip).join('');
@@ -2807,8 +2806,8 @@ function onGoal(data) {
   /* Lysorn Cup : pas de notif goal — pareil si l'animation GOAL est désactivée */
   if (themeIs('lysorn-cup') || !animSettings.goal) return;
 
-  if (themeIs('vitality') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
-    /* Vitality / ENISorail / RLCS2025 / FIFA WC : la CSS gère la couleur — reset l'inline style */
+  if (themeIs('blue-and-yellow') || themeIs('enisorail') || themeIs('rlcs2025') || themeIs('fifa-world-cup')) {
+    /* Blue and Yellow / ENISorail / RLCS2025 / FIFA WC : la CSS gère la couleur — reset l'inline style */
     word.style.color = '';
     /* Reset pour re-déclenchement rapide */
     notif.classList.remove('show');

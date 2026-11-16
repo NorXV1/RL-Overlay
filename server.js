@@ -45,6 +45,18 @@ settings.themeNames = settings.themeNames || {}; // noms affichés choisis dans 
    settings.mediaBanner.group = groupe affiché (null = tous les médias) */
 settings.mediaGroups = Array.isArray(settings.mediaGroups) ? settings.mediaGroups : [];
 settings.mediaBanner.group = settings.mediaBanner.group ?? null;
+
+/* ── Thèmes renommés : ancien identifiant → nouveau ──
+   Seule trace de l'ancien nom : elle sert à convertir les installations existantes (thème actif, nom
+   personnalisé, thèmes importés « basés sur », projets du Studio, ancien dossier laissé par une mise à
+   jour). Tout le reste de l'app n'utilise que le nouvel identifiant. */
+const RENAMED_THEMES = { vitality: 'blue-and-yellow' };
+const RENAMED_THEME_NAMES = { 'blue-and-yellow': 'Blue and Yellow' };   // nom affiché du thème migré
+const renamedTheme = id => RENAMED_THEMES[id] || id;
+if (settings.theme && RENAMED_THEMES[settings.theme]) settings.theme = renamedTheme(settings.theme);
+for (const [from, to] of Object.entries(RENAMED_THEMES)) {
+  if (settings.themeNames[from] != null) { settings.themeNames[to] ??= settings.themeNames[from]; delete settings.themeNames[from]; }
+}
 let currentTheme = settings.theme || 'rlcs';
 saveSettings();
 
@@ -932,6 +944,46 @@ app.post('/api/overlay-visible', (req, res) => {
 const THEMES_DIR = path.join(__dirname, 'public', 'themes');
 fs.mkdirSync(THEMES_DIR, { recursive: true });
 
+/* Migration des thèmes renommés (voir RENAMED_THEMES). Blue and Yellow n'est plus fourni avec l'app : c'est
+   un thème importé, téléchargeable sur le site.
+   - ancien dossier laissé par une mise à jour (qui ajoute sans supprimer) : s'il n'y a pas encore de dossier
+     au nouveau nom, il devient le thème importé (dossier renommé, sélecteurs CSS au nouveau nom, meta.json
+     avec son identité « alias » et son id du site) ; sinon il est retiré s'il ne contient que le CSS
+     d'origine, ou renommé en « …-ancien » (rien n'est perdu) ;
+   - thèmes installés basés dessus (meta.json « basedOn », projet studio.json) → nouvel identifiant. */
+function migrateRenamedThemes() {
+  for (const [from, to] of Object.entries(RENAMED_THEMES)) {
+    const oldDir = path.join(THEMES_DIR, from), newDir = path.join(THEMES_DIR, to);
+    if (!fs.existsSync(oldDir)) continue;
+    try {
+      if (!fs.existsSync(path.join(newDir, 'theme.css'))) {
+        fs.renameSync(oldDir, newDir);
+        const css = path.join(newDir, 'theme.css');
+        if (fs.existsSync(css)) fs.writeFileSync(css, fs.readFileSync(css, 'utf8').split(`[data-theme="${from}"]`).join(`[data-theme="${to}"]`));
+        let meta = {};
+        try { meta = JSON.parse(fs.readFileSync(path.join(newDir, 'meta.json'), 'utf8')); } catch {}
+        fs.writeFileSync(path.join(newDir, 'meta.json'), JSON.stringify({ ...meta, alias: to, siteId: meta.siteId || to, siteName: meta.siteName || RENAMED_THEME_NAMES[to] }, null, 2));
+      } else {
+        const files = fs.readdirSync(oldDir);
+        if (files.every(f => f === 'theme.css')) fs.rmSync(oldDir, { recursive: true, force: true });
+        else fs.renameSync(oldDir, path.join(THEMES_DIR, `${to}-ancien`));
+      }
+    } catch (e) { console.warn('[Thèmes] migration du dossier', from, ':', e.message); }
+  }
+  let dirs = [];
+  try { dirs = fs.readdirSync(THEMES_DIR, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name); } catch {}
+  for (const d of dirs) {
+    for (const [file, key] of [['meta.json', 'basedOn'], ['studio.json', 'base']]) {
+      const f = path.join(THEMES_DIR, d, file);
+      try {
+        const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+        if (j && RENAMED_THEMES[j[key]]) { j[key] = renamedTheme(j[key]); fs.writeFileSync(f, JSON.stringify(j, null, 2)); }
+      } catch {}
+    }
+  }
+}
+migrateRenamedThemes();
+
 function listThemes() {
   const builtin = ['rlcs'];
   try {
@@ -942,8 +994,18 @@ function listThemes() {
   } catch { return builtin; }
 }
 
+/* Noms affichés des thèmes : celui choisi dans le panneau, sinon le nom du site retenu au téléchargement
+   (meta.json « siteName »), sinon rien (le panneau affiche le nom du dossier) */
+function themeDisplayNames() {
+  const out = {};
+  for (const id of listThemes()) {
+    try { const n = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'meta.json'), 'utf8')).siteName; if (n) out[id] = String(n); } catch {}
+  }
+  return { ...out, ...settings.themeNames };
+}
+
 app.get('/api/themes', (req, res) => {
-  res.json({ themes: listThemes(), current: currentTheme, names: settings.themeNames });
+  res.json({ themes: listThemes(), current: currentTheme, names: themeDisplayNames() });
 });
 
 /* Bibliothèque du panneau de contrôle : thèmes custom publics du site (aperçu, code) avec leur
@@ -1126,9 +1188,10 @@ app.get('/api/studio/themes', (req, res) => {
     let studio = null, meta = {};
     try { meta = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'meta.json'), 'utf8')); } catch {}
     try { studio = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'studio.json'), 'utf8')); } catch {}
-    return { id, label: settings.themeNames[id] || null, studio: !!studio, name: studio?.name || null, basedOn: meta.basedOn || null };
+    return { id, label: settings.themeNames[id] || meta.siteName || null, studio: !!studio, name: studio?.name || null, basedOn: meta.basedOn || null };
   });
-  res.json({ ok: true, themes, current: currentTheme });
+  /* renamed : le Studio convertit la base des projets enregistrés avant un renommage de thème */
+  res.json({ ok: true, themes, current: currentTheme, renamed: RENAMED_THEMES });
 });
 
 /* Rouvre un thème créé avec le Studio : son projet (studio.json) + ses fichiers remis dans studio-work */
@@ -1446,7 +1509,7 @@ app.post('/api/themes/:name/label', (req, res) => {
   if (label) settings.themeNames[name] = label;
   else delete settings.themeNames[name];
   saveSettings();
-  res.json({ ok: true, names: settings.themeNames });
+  res.json({ ok: true, names: themeDisplayNames() });
 });
 
 app.post('/api/theme', (req, res) => {
@@ -1483,6 +1546,7 @@ app.post('/api/themes/import', upload.single('css'), (req, res) => {
   css = css.replace(/\[data-theme="[^"]*"\]/g, `[data-theme="${name}"]`);
   fs.writeFileSync(path.join(themeDir, 'theme.css'), css);
   // Sauver les métadonnées (thème d'origine pour les comportements JS)
+  basedOn = basedOn ? renamedTheme(basedOn) : basedOn;   // CSS d'un thème basé sur un thème renommé
   if (basedOn && basedOn !== name) {
     fs.writeFileSync(path.join(themeDir, 'meta.json'), JSON.stringify({ basedOn }, null, 2));
   }
@@ -1540,7 +1604,8 @@ function extractThemeZip(buffer, themeDir, name, forcedBasedOn) {
           } catch {}
         }
 
-        const finalBasedOn = forcedBasedOn || basedOn;
+        /* thème téléchargé basé sur un thème renommé : nouvel identifiant */
+        const finalBasedOn = renamedTheme(forcedBasedOn || basedOn) || null;
 
         // Détecter le nom original du thème (avant réécriture) pour corriger les chemins d'images
         const originalRefs = [...css.matchAll(/\[data-theme="([^"]+)"\]/g)].map(m => m[1]);
@@ -1695,6 +1760,7 @@ app.post('/api/themes/download-by-id', async (req, res) => {
       let meta = {};
       try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
       meta.siteId = id;
+      meta.siteName = String(name || '').slice(0, 60) || undefined;   // nom affiché par défaut dans le panneau
       fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
       fs.rmSync(themeDir, { recursive: true, force: true });
       fs.cpSync(tmpDir, themeDir, { recursive: true });

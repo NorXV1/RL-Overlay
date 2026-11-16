@@ -130,7 +130,7 @@ const elSel = E => E.sel || '#' + E.key;
 const elNode = (doc, E) => (doc && E ? doc.querySelector(elSel(E)) : null);
 const TEAM_OPTS = [['blue', 'Équipe bleue'], ['orange', 'Équipe orange'], ['scorer', 'Équipe qui marque'], ['winner', 'Équipe gagnante'], ['loser', 'Équipe perdante']];
 
-const BUILTIN_THEMES = { rlcs: 'Default (RLCS)', neon: 'Néon', onyx: 'Onyx', nord: 'Nord', amber: 'Amber', rlcs2026: 'RLCS 2026', rlcs2023: 'RLCS 2023', vitality: 'Vitality', enisorail: 'Enisorail', rlcs2025: 'RLCS 2025', 'fifa-world-cup': 'FIFA WC' };
+const BUILTIN_THEMES = { rlcs: 'Default (RLCS)', neon: 'Néon', onyx: 'Onyx', nord: 'Nord', amber: 'Amber', rlcs2026: 'RLCS 2026', rlcs2023: 'RLCS 2023', enisorail: 'Enisorail', rlcs2025: 'RLCS 2025', 'fifa-world-cup': 'FIFA WC' };
 
 /* Polices Google (axes disponibles pour chaque famille) */
 const FONTS = [
@@ -4049,6 +4049,8 @@ async function openProjectFile(file, filePath) {
 /* opts.file : fichier .rlstudio d'origine (Ctrl+S y réécrira) · opts.dirty : restauré avec des modifs non enregistrées */
 function loadProject(p, opts = {}) {
   S.p = normalize(p);
+  /* projet enregistré avant le renommage d'un thème intégré : nouvelle base (table envoyée par le serveur) */
+  if (S.p.base && S.renamed && S.renamed[S.p.base]) S.p.base = S.renamed[S.p.base];
   setSel(null);
   $('#proj-name').value = S.p.name;
   resetHistory();
@@ -4566,7 +4568,7 @@ function renderAll() {
   renderLayers(); renderInspector(); applyView();
 }
 async function loadThemes() {
-  try { const r = await fetch('/api/studio/themes'); const j = await r.json(); S.themes = j.themes || []; } catch (e) { S.themes = []; }
+  try { const r = await fetch('/api/studio/themes'); const j = await r.json(); S.themes = j.themes || []; S.renamed = j.renamed || {}; } catch (e) { S.themes = []; S.renamed = S.renamed || {}; }
 }
 function onFrameReady() {
   if (S.frameOk) return;
@@ -4616,6 +4618,7 @@ window.addEventListener('beforeunload', () => {
   resetHistory();
   loadEditorFonts();
   await loadThemes();
+  if (S.p.base && S.renamed[S.p.base]) S.p.base = S.renamed[S.p.base];   // base d'un thème intégré renommé
   loadBase(S.p.base);
   renderAll();
   S.filePath = file;

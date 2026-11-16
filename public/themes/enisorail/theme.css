@@ -296,8 +296,8 @@
 }
 [data-theme="enisorail"] .row-wrap.blue   .pr-icon img { filter: brightness(0) invert(1); }
 [data-theme="enisorail"] .row-wrap.orange .pr-icon img { filter: brightness(0) invert(1); }
-[data-theme="enisorail"] #sidebar-blue   .pr-icon { animation: vitalityIconRight 5s forwards; }
-[data-theme="enisorail"] #sidebar-orange .pr-icon { animation: vitalityIconLeft  5s forwards; }
+[data-theme="enisorail"] #sidebar-blue   .pr-icon { animation: sideIconRight 5s forwards; }
+[data-theme="enisorail"] #sidebar-orange .pr-icon { animation: sideIconLeft  5s forwards; }
 
 /* Bannière démolition — par-dessus la row (pas à l'extérieur comme les icônes classiques) */
 [data-theme="enisorail"] #sidebar-blue   .pr-icons:has(.pr-demo-names),
