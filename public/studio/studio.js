@@ -4628,6 +4628,16 @@ window.addEventListener('beforeunload', () => {
   if (frame.contentDocument && frame.contentDocument.readyState === 'complete') onFrameReady();
   loop();
   if (saved) toast(file ? `Projet repris — ${baseName(file)}` : 'Projet précédent repris');
+  /* projet .rlstudio ouvert par double-clic : l'app ouvre le Studio avec ?open=<chemin>, ou l'envoie au
+     Studio déjà ouvert. Modifications non enregistrées : on demande avant de remplacer (comme Ouvrir…). */
+  const openFromOs = f => {
+    if (!f) return;
+    if (S.filePath === f && !S.dirty) { toast(`« ${baseName(f)} » est déjà ouvert`, 'ok'); return; }
+    ifReplaceOk(() => openProjectFile(null, f));
+  };
+  const qOpen = new URLSearchParams(location.search).get('open');
+  if (qOpen) { history.replaceState(null, '', location.pathname); openFromOs(qOpen); }   // un rechargement ne rouvre pas le fichier
+  if (window.electronAPI && window.electronAPI.onStudioOpenFile) window.electronAPI.onStudioOpenFile(openFromOs);
   window.__studioEditor = { S, select, setScene, addLayer, loadProject, themePayload, fit, zoomAt, renderInspector, setTab, changed, undo, redo, commit,
     projectBlob, openProjectFile, importFont, importAnimCss, uploadBlob, playTest, newProject, groupSelection, ungroup, leaveGroup, moveLayer,
     previewMedia, studioPreviewCss, layerSpecs, previewCtx, importZip, recentDialog, restoreVersion, cleanupDialog, keepFiles, markSaved, shareDialog, createShare, shareOpenDialog, openShared };

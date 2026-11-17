@@ -48,6 +48,14 @@
         "rloverlay"
       ]
     },
+    "fileAssociations": [
+      {
+        "ext": "rlstudio",
+        "name": "RL Overlay Studio Project",
+        "description": "Projet du Studio RL Overlay",
+        "role": "Editor"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "public/logos/logo.png"

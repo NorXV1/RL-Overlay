@@ -36,6 +36,38 @@ function triggerThemeDownload(shareId) {
 /* Extrait un éventuel lien rloverlay:// des arguments de lancement et, si l'app
    est déjà prête (fenêtre principale ouverte), lance le téléchargement tout de
    suite ; sinon on le garde en attente jusqu'à ce que l'utilisateur soit connecté. */
+/* ── Fichier de projet du Studio (.rlstudio) ouvert avec l'app (double-clic, « Ouvrir avec ») ──
+   Windows passe le chemin du fichier dans la ligne de commande : au lancement (process.argv) ou, si l'app
+   tourne déjà, à l'instance déjà ouverte (second-instance). Le Studio s'ouvre avec le projet une fois le
+   panneau prêt (connexion et CGU faites). */
+let pendingStudioFile = null;
+function findStudioFile(argv) {
+  return (argv || []).find(a => typeof a === 'string' && /\.rlstudio$/i.test(a) && fs.existsSync(a)) || null;
+}
+/* Association .rlstudio → RL Overlay pour l'utilisateur Windows (HKCU, sans droits admin). L'installeur la
+   crée aussi, mais une mise à jour depuis l'app ne relance pas l'installeur : on l'enregistre ici, une
+   fois par emplacement de l'exécutable (app installée seulement, jamais en développement). */
+function registerStudioFileAssociation() {
+  if (process.platform !== 'win32' || !app.isPackaged) return;
+  const exe = process.execPath, flag = path.join(app.getPath('userData'), 'rlstudio-assoc.json');
+  try { if (JSON.parse(fs.readFileSync(flag, 'utf8')).exe === exe) return; } catch {}
+  const { execFile } = require('child_process');
+  const progId = 'RLOverlay.rlstudio', root = 'HKCU\\Software\\Classes';
+  const keys = [
+    [`${root}\\.rlstudio`, progId],
+    [`${root}\\${progId}`, 'Projet du Studio RL Overlay'],
+    [`${root}\\${progId}\\DefaultIcon`, `"${exe}",0`],
+    [`${root}\\${progId}\\shell\\open\\command`, `"${exe}" "%1"`],
+  ];
+  let i = 0;
+  const next = () => {
+    if (i >= keys.length) { try { fs.writeFileSync(flag, JSON.stringify({ exe, at: new Date().toISOString() })); } catch {} return; }
+    const [key, val] = keys[i++];
+    execFile('reg.exe', ['add', key, '/ve', '/d', val, '/f'], { windowsHide: true }, err => { if (err) console.warn('[Association .rlstudio]', err.message); else next(); });
+  };
+  next();
+}
+
 function handleProtocolArgv(argv) {
   const url = (argv || []).find(a => a.startsWith('rloverlay://'));
   const shareId = parseProtocolUrl(url);
@@ -111,6 +143,13 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.exit(0); } else {
 
   app.on('second-instance', (event, argv) => {
+    /* .rlstudio ouvert alors que l'app tourne déjà : Studio tout de suite si le panneau est ouvert,
+       sinon après la connexion / les CGU */
+    const studioFile = findStudioFile(argv);
+    if (studioFile) {
+      if (mainWindow) { openStudio(studioFile); return; }
+      pendingStudioFile = studioFile;
+    }
     const win = mainWindow || cguWindow || loginWindow;
     if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
     handleProtocolArgv(argv);
@@ -197,6 +236,11 @@ if (!gotLock) { app.exit(0); } else {
     createMainWindow(session);
     createTray();
     initDiscordRPC();
+    /* app lancée par un double-clic sur un .rlstudio : le Studio s'ouvre ensuite avec ce projet */
+    if (pendingStudioFile) {
+      const file = pendingStudioFile; pendingStudioFile = null;
+      setTimeout(() => openStudio(file), 600);
+    }
   }
   /* cguAccepted === false : compte existant qui n'a pas encore accepté les CGU (renvoyé par le site) →
      fenêtre d'acceptation, une seule fois : l'acceptation est enregistrée sur le compte, côté site.
@@ -264,10 +308,13 @@ if (!gotLock) { app.exit(0); } else {
 
   /* ── IPC : Studio de thèmes (fenêtre dédiée, plein écran) ────── */
   let studioWindow = null;
-  ipcMain.on('open-studio', () => {
+  ipcMain.on('open-studio', () => openStudio());
+  /* file : projet .rlstudio à ouvrir dans le Studio (double-clic sur le fichier) */
+  function openStudio(file) {
     if (studioWindow && !studioWindow.isDestroyed()) {
       if (studioWindow.isMinimized()) studioWindow.restore();
       studioWindow.show(); studioWindow.focus();
+      if (file) studioWindow.webContents.send('studio:open-file', file);
       return;
     }
     studioWindow = new BrowserWindow({
@@ -284,9 +331,9 @@ if (!gotLock) { app.exit(0); } else {
       },
     });
     studioWindow.once('ready-to-show', () => { studioWindow.maximize(); studioWindow.show(); });
-    studioWindow.loadURL('http://localhost:3000/studio.html');
+    studioWindow.loadURL('http://localhost:3000/studio.html' + (file ? '?open=' + encodeURIComponent(file) : ''));
     studioWindow.on('closed', () => { studioWindow = null; });
-  });
+  }
 
   /* ── HUD à l'écran pour le caster (overlay par-dessus le jeu, voir hud.js) ── */
   const hud = require('./hud')({ getMainWindow: () => mainWindow, port: 3000 });
@@ -483,9 +530,12 @@ if (!gotLock) { app.exit(0); } else {
   // Lancement initial via rloverlay:// (l'app n'était pas encore ouverte) —
   // mis en attente ici, traité une fois la fenêtre principale prête.
   handleProtocolArgv(process.argv);
+  // Lancement initial par un double-clic sur un projet .rlstudio : Studio ouvert après le panneau
+  pendingStudioFile = findStudioFile(process.argv);
 
   /* ── Démarrage ──────────────────────────────────────────────── */
   app.whenReady().then(async () => {
+    registerStudioFileAssociation();   // double-clic sur un .rlstudio → RL Overlay (en arrière-plan)
     // Demande le dossier RL si pas encore configuré, puis vérifie PacketSendRate
     const rlPath = await ensureRLPath();
     if (checkAndFixStatsApi(rlPath)) {

@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openStudio  : ()     => ipcRenderer.send('open-studio'),
   studioSave  : (opts) => ipcRenderer.invoke('studio:save', opts),
   studioOpen  : (opts) => ipcRenderer.invoke('studio:open', opts),
+  /* projet .rlstudio ouvert par double-clic alors que le Studio est déjà ouvert */
+  onStudioOpenFile: (cb) => ipcRenderer.on('studio:open-file', (e, file) => cb(file)),
   /* HUD à l'écran (caster) : afficher / masquer, écran, opacité, masqué des captures */
   hudGet      : ()     => ipcRenderer.invoke('hud:get'),
   hudSet      : (opts) => ipcRenderer.invoke('hud:set', opts),

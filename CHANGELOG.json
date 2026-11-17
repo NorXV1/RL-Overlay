@@ -219,5 +219,11 @@
     "notes": [
       "Nouveau : acceptation des conditions générales d'utilisation — demandée une seule fois par compte au lancement de l'app (pour les comptes créés avant), et obligatoire à l'inscription sur le site. Elle est enregistrée sur ton compte : plus besoin de la refaire, même sur un autre PC"
     ]
+  },
+  "1.9.6": {
+    "date": "2026-11-17",
+    "notes": [
+      "Nouveau : double-clic sur un projet du Studio (.rlstudio) — RL Overlay s'ouvre puis le Studio avec le projet chargé (si l'app est déjà ouverte, le Studio s'ouvre directement avec le projet). Si le projet ouvert a des modifications non enregistrées, le Studio demande avant de le remplacer"
+    ]
   }
 }
