@@ -1,6 +1,12 @@
 'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
 
+/* langue de l'interface : les fenêtres locales (connexion, CGU) reçoivent le dictionnaire au chargement
+   (les pages du serveur local le chargent elles-mêmes avec /i18n/boot.js) */
+if (location.protocol === 'file:') {
+  try { contextBridge.exposeInMainWorld('__i18nData', ipcRenderer.sendSync('i18n:get-sync')); } catch {}
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   authSuccess : (data) => ipcRenderer.send('auth-success', data),
   logout      : ()     => ipcRenderer.send('auth-logout'),
@@ -17,4 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hudGet      : ()     => ipcRenderer.invoke('hud:get'),
   hudSet      : (opts) => ipcRenderer.invoke('hud:set', opts),
   onHudState  : (cb)   => ipcRenderer.on('hud:state', (e, s) => cb(s)),
+  /* langue de l'interface (FR / EN) */
+  i18nGet     : (lang) => ipcRenderer.invoke('i18n:get', lang),
+  i18nSet     : (lang) => ipcRenderer.invoke('i18n:set', lang),
+  onI18nChange: (cb)   => ipcRenderer.on('i18n:changed', (e, lang) => cb(lang)),
 });

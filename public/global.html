@@ -2,6 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script>window.__I18N_STATIC = true;</script>
+<script src="/i18n/boot.js"></script>
 <title>RL Overlay — Global</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 <link id="theme-stylesheet" rel="stylesheet" href="">
@@ -1095,7 +1097,7 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
   <div id="ot-notif">
     <div id="ot-inner">
       <div id="ot-word">OVERTIME</div>
-      <div id="ot-sub">PROLONGATION</div>
+      <div id="ot-sub" data-i18n>PROLONGATION</div>
     </div>
   </div>
 
@@ -1176,7 +1178,7 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
       <div id="win-logo-letter">B</div>
     </div>
     <div id="win-team-name">BLUE</div>
-    <div id="win-subtitle">REMPORTE LA SÉRIE</div>
+    <div id="win-subtitle" data-i18n>REMPORTE LA SÉRIE</div>
     <div id="win-series-score"></div>
   </div>
 </div>
@@ -1929,6 +1931,8 @@ function connect() {
   ws.onopen = () => {};
   ws.onmessage = e => {
     const { type, data } = JSON.parse(e.data);
+    /* langue choisie dans le panneau : textes fixes de l'overlay (PROLONGATION, REMPORTE LA SÉRIE…) */
+    if (type === 'lang_change') { if (window.I18N && data && data.lang) I18N.setLang(data.lang); return; }
     /* En mode preview : thème, logos et bandeau média sont traités */
     if (IS_PREVIEW) {
       if (type === 'theme_change') applyTheme(data.theme);

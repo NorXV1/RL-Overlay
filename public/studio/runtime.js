@@ -469,8 +469,10 @@
   if (winSub) winSub.dataset.stOrig = winSub.textContent;
   function setWinOpts(o) {
     const w = o && typeof o === 'object' ? o : {};
-    if (winLbl) winLbl.textContent = w.label != null ? w.label : winLbl.dataset.stOrig;
-    if (winSub) winSub.textContent = w.sub != null ? w.sub : winSub.dataset.stOrig;
+    /* texte d'origine du thème : dans la langue choisie (FR / EN) */
+    const orig = s => (window.I18N ? window.I18N.tr(s) : s);
+    if (winLbl) winLbl.textContent = w.label != null ? w.label : orig(winLbl.dataset.stOrig);
+    if (winSub) winSub.textContent = w.sub != null ? w.sub : orig(winSub.dataset.stOrig);
   }
   const origCheckWin = window.checkSeriesWin;
   if (typeof origCheckWin === 'function') {

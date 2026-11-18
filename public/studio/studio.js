@@ -130,6 +130,8 @@ const elSel = E => E.sel || '#' + E.key;
 const elNode = (doc, E) => (doc && E ? doc.querySelector(elSel(E)) : null);
 const TEAM_OPTS = [['blue', 'Équipe bleue'], ['orange', 'Équipe orange'], ['scorer', 'Équipe qui marque'], ['winner', 'Équipe gagnante'], ['loser', 'Équipe perdante']];
 
+/* dates et heures dans la langue de l'interface (FR / EN) */
+const LOCALE = () => (window.I18N && window.I18N.lang === 'en' ? 'en-GB' : 'fr-FR');
 const BUILTIN_THEMES = { rlcs: 'Default (RLCS)', neon: 'Néon', onyx: 'Onyx', nord: 'Nord', amber: 'Amber', rlcs2026: 'RLCS 2026', rlcs2023: 'RLCS 2023', enisorail: 'Enisorail', rlcs2025: 'RLCS 2025', 'fifa-world-cup': 'FIFA WC' };
 
 /* Polices Google (axes disponibles pour chaque famille) */
@@ -197,7 +199,9 @@ const groupShow = g => (g && Array.isArray(g.show) && g.show.length && !g.show.i
 const SHOW_SCENE = { always: null, game: 'game', goal: 'goal', wreplay: 'wreplay', replay: 'replay', wlive: 'wlive', ot: 'ot', end: 'end', win: 'win' };
 /* calque texte « Tag d'équipe » : {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag}, {loser_tag} */
 const TAG_RE = /^\{(blue|orange|scorer|winner|loser)_tag\}$/;
-const TAG_NAME = team => 'Tag ' + TEAM_OPTS.find(o => o[0] === team)[1].toLowerCase();
+/* nom par défaut d'un calque, dans la langue de l'interface (FR / EN) : il est enregistré dans le projet */
+const trName = s => (window.I18N ? window.I18N.tr(s) : s);
+const TAG_NAME = team => trName('Tag ' + TEAM_OPTS.find(o => o[0] === team)[1].toLowerCase());
 const TOKENS = [['blue_name', 'Équipe bleue'], ['orange_name', 'Équipe orange'],
   ['blue_tag', 'Tag équipe bleue (panneau, sinon 4 lettres du nom)'], ['orange_tag', 'Tag équipe orange (panneau, sinon 4 lettres du nom)'], ['blue_score', 'Score bleu'], ['orange_score', 'Score orange'], ['timer', 'Chrono'],
   ['league', 'Ligue'], ['bo', 'GAME X - BOX'], ['game', 'N° de la game'], ['bo_num', 'Best of (nombre)'], ['series_blue', 'Série bleue'], ['series_orange', 'Série orange'],
@@ -217,7 +221,7 @@ const BLENDS = [['normal', 'Normal'], ['screen', 'Superposition claire'], ['ligh
 function newProject() {
   return {
     format: 'rlo-studio', version: 1, id: 'p' + Date.now().toString(36) + uid(),
-    name: 'Mon thème', themeId: '', base: 'rlcs',
+    name: trName('Mon thème'), themeId: '', base: 'rlcs',
     vars: {}, font: null, fonts: [], elements: {}, layers: [], assets: {},
     sidebar: { link: true, blue: {}, orange: {} },
     transitions: {}, endBg: null, options: { timerShort: false }, end: {}, win: {},
@@ -1147,7 +1151,7 @@ function autosave() {
     try {
       const r = await fetch('/api/studio/autosave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: autosaveBody() });
       if (!r.ok) throw new Error();
-      $('#st-save').textContent = 'Sauvegarde auto ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      $('#st-save').textContent = 'Sauvegarde auto ' + new Date().toLocaleTimeString(LOCALE(), { hour: '2-digit', minute: '2-digit' });
     } catch (e) { $('#st-save').textContent = 'Sauvegarde auto impossible'; }
   }, 600);
 }
@@ -2023,28 +2027,28 @@ async function addLayer(kind, file, at) {
   const L = { id: 'l' + uid(), name: '', type: kind, x: 0, y: 0, w: 400, h: 225, r: 0, o: 100, show: [...DEFAULT_SHOW], z: 'front', anim: DEFAULT_ANIM() };
   const textSpec = content => ({ content, font: 'Barlow Condensed', size: 72, weight: 800, color: '#ffffff', align: 'center', spacing: 2, upper: true, italic: false, stroke: { w: 0, color: '#000000' }, glow: { size: 0, color: '#3d7bff' }, grad: { on: false, color2: '#7aa8ff', angle: 90 } });
   if (kind === 'text') {
-    Object.assign(L, { name: 'Texte', w: 520, h: 110, text: textSpec('MON TEXTE') });
+    Object.assign(L, { name: trName('Texte'), w: 520, h: 110, text: textSpec(trName('MON TEXTE')) });
   } else if (kind === 'tag') {
     /* tag d'équipe : un calque texte lié à {blue_tag} (tag du panneau, sinon 4 premières lettres du nom) */
     kind = 'text';
     Object.assign(L, { type: 'text', name: TAG_NAME('blue'), w: 220, h: 100, text: textSpec('{blue_tag}') });
   } else if (kind === 'shape') {
-    Object.assign(L, { name: 'Forme', w: 420, h: 120, shape: { kind: 'rect', fill: '#3d7bff', radius: 14, grad: { on: false, color2: '#9b5cff', angle: 135 }, border: { w: 0, color: '#ffffff' }, glow: { size: 0, color: '#3d7bff' } } });
+    Object.assign(L, { name: trName('Forme'), w: 420, h: 120, shape: { kind: 'rect', fill: '#3d7bff', radius: 14, grad: { on: false, color2: '#9b5cff', angle: 135 }, border: { w: 0, color: '#ffffff' }, glow: { size: 0, color: '#3d7bff' } } });
   } else if (kind === 'logo') {
-    Object.assign(L, { name: 'Logo équipe bleue', team: 'blue', w: 180, h: 180, fit: 'contain' });
+    Object.assign(L, { name: trName('Logo équipe bleue'), team: 'blue', w: 180, h: 180, fit: 'contain' });
   } else if (kind === 'series') {
-    Object.assign(L, { name: 'Série équipe bleue', w: 200, h: 16, series: { team: 'blue', style: 'rects', dir: 'ltr', gap: 6, radius: 3, bw: 8, off: 'rgba(255,255,255,0.16)' } });
+    Object.assign(L, { name: trName('Série équipe bleue'), w: 200, h: 16, series: { team: 'blue', style: 'rects', dir: 'ltr', gap: 6, radius: 3, bw: 8, off: 'rgba(255,255,255,0.16)' } });
   } else if (kind === 'boost') {
     /* même place que le boost meter d'origine, qui est masqué (réaffichable avec l'œil) */
     const ob = S.boxes.get('boost-meter');
-    Object.assign(L, { name: 'Jauge de boost', w: 360, h: 36, boost: { style: 'bar', num: 'center', numSize: 26, radius: 8, bw: 9, segs: 10, gap: 4 } });
+    Object.assign(L, { name: trName('Jauge de boost'), w: 360, h: 36, boost: { style: 'bar', num: 'center', numSize: 26, radius: 8, bw: 9, segs: 10, gap: 4 } });
     if (ob && !at) at = { x: ob.cx, y: ob.cy };
     elData('boost-meter').hidden = true;
     setTimeout(() => toast('Boost meter d\'origine masqué — la jauge le remplace (réaffichable avec l\'œil)'), 300);
   } else if (kind === 'media') {
     /* même taille et même place que le bandeau d'origine, qui est masqué (réaffichable avec l'œil) */
     const ob = S.boxes.get('media-banner'), om = (S.p.elements['media-banner'] || {}).mb || {};
-    Object.assign(L, { name: 'Bandeau médias', w: om.w || 210, h: om.h || 100, media: { bg: om.bg ?? 'rgba(0,0,0,0.27)', radius: om.radius ?? 8, pad: om.pad ?? 10, fit: om.fit || 'contain', vfit: om.vfit || 'cover' } });
+    Object.assign(L, { name: trName('Bandeau médias'), w: om.w || 210, h: om.h || 100, media: { bg: om.bg ?? 'rgba(0,0,0,0.27)', radius: om.radius ?? 8, pad: om.pad ?? 10, fit: om.fit || 'contain', vfit: om.vfit || 'cover' } });
     if (ob && !at) at = { x: ob.cx, y: ob.cy };
     elData('media-banner').hidden = true;
     setTimeout(() => toast('Bandeau d\'origine masqué — le calque le remplace (réaffichable avec l\'œil)'), 300);
@@ -2080,7 +2084,7 @@ function duplicateLayer(id, inPlace) {
   const off = inPlace ? 0 : 24;
   if (isGroup(L)) {
     /* dossier : copie du dossier et de tous ses calques, juste au-dessus */
-    const g = { ...clone(L), id: 'g' + uid(), name: (L.name || 'Dossier') + ' copie' };
+    const g = { ...clone(L), id: 'g' + uid(), name: trName((L.name || 'Dossier') + ' copie') };
     const ms = membersOf(L.id).map(m => ({ ...clone(m), id: 'l' + uid(), group: g.id, x: m.x + off, y: m.y + off }));
     S.p.layers.splice(S.p.layers.indexOf(L), 0, g, ...ms);
     setSel({ kind: 'group', id: g.id });
@@ -2145,7 +2149,7 @@ function moveLayer(id, where) {
 /* Ctrl+G : range le calque sélectionné dans un nouveau dossier (ou crée un dossier vide) */
 function groupSelection() {
   const n = S.p.layers.filter(isGroup).length + 1;
-  const g = { id: 'g' + uid(), type: 'group', name: `Dossier ${n}`, open: true };
+  const g = { id: 'g' + uid(), type: 'group', name: trName(`Dossier ${n}`), open: true };
   if (isMulti()) {
     /* plusieurs calques (et dossiers, fusionnés) → un seul nouveau dossier, à la place du plus haut */
     const sels = selList(), dissolve = sels.filter(s => s.kind === 'group').map(s => s.id);
@@ -3445,7 +3449,7 @@ function seriesSections(L) {
   const teamCol = () => r.team === 'orange' ? 'var(--orange)' : 'var(--blue)';
   const kids = [
     row('Équipe', selectField([['blue', 'Équipe bleue'], ['orange', 'Équipe orange']], () => r.team || 'blue', v => {
-      if (!L.name || /^Série équipe/.test(L.name)) L.name = `Série équipe ${v === 'orange' ? 'orange' : 'bleue'}`;
+      if (!L.name || /^Série équipe| team series$/i.test(L.name)) L.name = trName(`Série équipe ${v === 'orange' ? 'orange' : 'bleue'}`);
       r.team = v;
     }, { level: 'layers', layers: true })),
     row('Style', selectField([['rects', 'Rectangles remplis'], ['bars', 'Bâtons'], ['dots', 'Ronds'], ['text', 'Texte']], () => st, v => { r.style = v; }, { level: 'layers', rebuild: true })),
@@ -3603,7 +3607,7 @@ function renderLayerProps() {
   if (L.type === 'logo') {
     insp.append(sec('Logo d\'équipe', 'shield',
       row('Équipe', selectField(TEAM_OPTS, () => L.team || 'blue', v => {
-        if (!L.name || /^Logo équipe/.test(L.name)) L.name = 'Logo ' + TEAM_OPTS.find(o => o[0] === v)[1].toLowerCase();
+        if (!L.name || /^Logo équipe| team logo$/i.test(L.name)) L.name = trName('Logo ' + TEAM_OPTS.find(o => o[0] === v)[1].toLowerCase());
         L.team = v;
       }, { level: 'layers', layers: true })),
       row('Ajustement', selectField([['contain', 'Contenir'], ['cover', 'Remplir (rogner)'], ['fill', 'Étirer']], () => L.fit || 'contain', v => { L.fit = v; })),
@@ -3646,7 +3650,7 @@ function renderLayerProps() {
     insp.append(sec('Texte', 'text',
       /* calque « Tag d'équipe » : choix de l'équipe (le texte et le nom suivent) */
       tagM ? row('Tag de', selectField(TEAM_OPTS, () => tagM[1], v => {
-        if (!L.name || /^Tag /.test(L.name)) L.name = TAG_NAME(v);
+        if (!L.name || /^Tag | team tag$/i.test(L.name)) L.name = TAG_NAME(v);
         t.content = `{${v}_tag}`;
       }, { level: 'layers', layers: true, rebuild: true })) : null,
       tagM ? note('Tag choisi dans le panneau de contrôle (carte Équipes, 4 caractères max). Vide : les 4 premières lettres du nom de l\'équipe.') : null,
@@ -3760,7 +3764,8 @@ function renderLayerAnim() {
     btn('Rejouer', 'play', () => replayLayer(L.id), 'primary'),
     btn('Importer des animations (.css)', 'upload', () => importAnimCss()))));
   insp.append(sec('Entrée', 'play',
-    note(`Jouée à chaque apparition du calque (${esc(SHOW_OPTS.find(o => o[0] === (L.show || 'always'))[1].toLowerCase())}).`),
+    /* moments d'affichage du calque : une liste (plusieurs possibles), ou une seule valeur dans les anciens projets */
+    note(`Jouée à chaque apparition du calque (${esc((Array.isArray(L.show) ? L.show : [L.show || 'always']).map(s => (SHOW_OPTS.find(o => o[0] === s) || [s, s])[1].toLowerCase()).join(', '))}).`),
     row('Animation', selectField(animSelectOpts(IN_ANIMS), () => a.in || 'none', v => { a.in = v; setTimeout(() => replayLayer(L.id), 30); })),
     h('div', { class: 'grid2' }, num('Durée', () => a.inDur ?? .6, v => { a.inDur = clamp(v, .05, 20); }, { unit: 's', step: .05, dec: 2, scrub: .2 }),
       num('Délai', () => a.inDelay ?? 0, v => { a.inDelay = clamp(v, 0, 30); }, { unit: 's', step: .05, dec: 2, scrub: .2 })),
@@ -4167,11 +4172,11 @@ function fmtWhen(t) {
   const d = new Date(t), now = new Date(), min = Math.round((now - d) / 60000);
   if (min < 1) return 'à l\'instant';
   if (min < 60) return `il y a ${min} min`;
-  const hm = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const hm = d.toLocaleTimeString(LOCALE(), { hour: '2-digit', minute: '2-digit' });
   if (d.toDateString() === now.toDateString()) return `aujourd'hui ${hm}`;
   const y = new Date(now); y.setDate(now.getDate() - 1);
   if (d.toDateString() === y.toDateString()) return `hier ${hm}`;
-  return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ${hm}`;
+  return `${d.toLocaleDateString(LOCALE(), { day: 'numeric', month: 'short' })} ${hm}`;
 }
 /* modifications non enregistrées : on prévient avant de remplacer le projet (elles restent dans les versions) */
 function ifReplaceOk(fn) {
@@ -4308,7 +4313,7 @@ async function shareDialog() {
       const cp = btn('', 'copy', () => copyCode(s.code));
       cp.title = 'Copier le code';
       list.append(h('div', { class: 'm-item share' },
-        h('div', { class: 'm-txt' }, h('b', {}, s.name), h('small', {}, `${fmtSize(s.size)} · ${s.downloads} ouverture${s.downloads > 1 ? 's' : ''} · expire le ${new Date(s.expiresAt).toLocaleDateString('fr-FR')}`)),
+        h('div', { class: 'm-txt' }, h('b', {}, s.name), h('small', {}, `${fmtSize(s.size)} · ${s.downloads} ouverture${s.downloads > 1 ? 's' : ''} · expire le ${new Date(s.expiresAt).toLocaleDateString(LOCALE())}`)),
         h('code', { class: 'share-code' }, s.code), cp, del));
     }
     hydrateIcons(list);
@@ -4335,7 +4340,7 @@ async function createShare() {
       title: 'Projet partagé', icon: 'check', ok: 'Copier le code', onOk: () => copyCode(s.code),
       body: [
         h('div', { class: 'share-big' }, s.code),
-        h('div', { html: `Donne ce code : dans le Studio, <b>Fichier → Ouvrir un projet partagé</b>. Valable jusqu'au <b>${new Date(s.expiresAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</b> (${fmtSize(s.size)}).` }),
+        h('div', { html: `Donne ce code : dans le Studio, <b>Fichier → Ouvrir un projet partagé</b>. Valable jusqu'au <b>${new Date(s.expiresAt).toLocaleDateString(LOCALE(), { day: 'numeric', month: 'long' })}</b> (${fmtSize(s.size)}).` }),
         j.replaced ? note(`Tu avais déjà ${j.max} partages : le plus ancien (${j.replaced}) a été remplacé.`) : null,
       ],
     });

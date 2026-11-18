@@ -2,6 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script src="/i18n/boot.js"></script>
+<link rel="stylesheet" href="/i18n/flags.css">
 <title>RL Overlay — Contrôles</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
 <style>
@@ -332,6 +334,12 @@ html[data-season="halloween"] #season-banner .sb-sub { color:#ff9c3a; }
 #version-badge { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:var(--radius-xs); padding:2px 7px; }
 #donate-btn { font-size:10px; font-weight:700; letter-spacing:1px; text-decoration:none; color:#60a5fa; background:rgba(96,165,250,.1); border:1px solid rgba(96,165,250,.25); border-radius:var(--radius-xs); padding:2px 9px; transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease); white-space:nowrap; }
 #donate-btn:hover { background:rgba(96,165,250,.2); border-color:rgba(96,165,250,.5); transform:translateY(-1px); }
+/* langue de l'interface (FR / EN) */
+#lang-switch { display:flex; flex-shrink:0; border:1px solid rgba(255,255,255,.12); border-radius:var(--radius-xs); overflow:hidden; }
+#lang-switch button { display:flex; align-items:center; gap:5px; font:inherit; font-size:10px; font-weight:800; letter-spacing:1.5px; color:var(--muted); background:transparent; border:0; padding:5px 8px; cursor:pointer; transition:background var(--dur) var(--ease), color var(--dur) var(--ease); }
+#lang-switch button + button { border-left:1px solid rgba(255,255,255,.12); }
+#lang-switch button:hover { color:var(--text); background:rgba(255,255,255,.06); }
+#lang-switch button.on { color:#fff; background:rgba(96,165,250,.28); }
 #update-banner {
   display: none; position:sticky; top:0; z-index:999;
   align-items:center; justify-content:center; gap:12px;
@@ -687,7 +695,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="sl-logo blue" id="sl-logo-blue">
         <img id="sl-img-blue" alt=""><span id="sl-ltr-blue">B</span>
       </div>
-      <span class="sl-name" id="lp-blue">BLUE</span>
+      <span class="sl-name" id="lp-blue" data-no-i18n>BLUE</span>
     </div>
     <div id="sl-center">
       <div class="sl-score blue" id="lp-sb">0</div>
@@ -706,7 +714,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="sl-score orange" id="lp-so">0</div>
     </div>
     <div class="sl-team orange">
-      <span class="sl-name" id="lp-orange">ORANGE</span>
+      <span class="sl-name" id="lp-orange" data-no-i18n>ORANGE</span>
       <div class="sl-logo orange" id="sl-logo-orange">
         <img id="sl-img-orange" alt=""><span id="sl-ltr-orange">O</span>
       </div>
@@ -744,8 +752,13 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div id="acc-avatar" style="width:38px;height:38px;border-radius:6px;background:rgba(26,88,200,.2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:var(--blue);flex-shrink:0">?</div>
         <div style="flex:1;min-width:0">
-          <div id="acc-name" style="font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
+          <div id="acc-name" data-no-i18n style="font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div>
           <div id="acc-tier" style="margin-top:3px"></div>
+        </div>
+        <!-- langue de l'interface (FR / EN), à côté du pseudo -->
+        <div id="lang-switch" role="group" aria-label="Langue de l'interface" data-no-i18n>
+          <button type="button" data-lang="fr" title="Français" onclick="setUiLang('fr')"><i class="lang-flag fr"></i>FR</button>
+          <button type="button" data-lang="en" title="English" onclick="setUiLang('en')"><i class="lang-flag en"></i>EN</button>
         </div>
       </div>
       <button onclick="doLogout()" class="btn btn-danger" style="width:100%;margin-top:4px;font-size:11px">SE DÉCONNECTER</button>
@@ -1883,8 +1896,25 @@ if (el) el.textContent = `${BASE}/global.html`;
 ws.onopen  = () => { document.getElementById('dot').classList.add('on');    document.getElementById('conn-txt').textContent = 'CONNECTÉ';    };
 ws.onclose = () => { document.getElementById('dot').classList.remove('on'); document.getElementById('conn-txt').textContent = 'HORS LIGNE'; };
 
+/* ══════════ LANGUE DE L'INTERFACE (FR / EN) ══════════
+   Le panneau change tout de suite, puis le choix est enregistré : le serveur prévient l'overlay (OBS),
+   le Studio et les fenêtres de l'app. */
+function syncLangSwitch() {
+  const l = window.I18N ? I18N.lang : 'fr';
+  document.querySelectorAll('#lang-switch button').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+}
+async function setUiLang(lang) {
+  if (!window.I18N) return;
+  if (I18N.lang !== lang) await I18N.setLang(lang);
+  syncLangSwitch();
+  fetch('/api/lang', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lang }) }).catch(() => {});
+}
+if (window.I18N) I18N.onChange(syncLangSwitch);
+syncLangSwitch();
+
 ws.onmessage = e => {
   const { type, data } = JSON.parse(e.data);
+  if (type === 'lang_change') { if (window.I18N && data && data.lang) I18N.setLang(data.lang); return; }
   if (type === 'init' || type === 'update_state') {
     document.getElementById('lp-sb').textContent     = data.game.teams[0].score;
     document.getElementById('lp-so').textContent     = data.game.teams[1].score;
@@ -2391,12 +2421,18 @@ function closeChangelogModal() {
     const r = await fetch('/api/changelog/unseen').then(r => r.json());
     if (!r.show) return;
     document.getElementById('changelog-version-lbl').textContent = `Version ${r.current}`;
-    document.getElementById('changelog-body').innerHTML = r.entries.map(e => `
+    /* notes en anglais (notes_en) quand l'interface est en anglais et qu'elles existent, sinon en français */
+    const renderNotes = () => {
+      const en = window.I18N && I18N.lang === 'en';
+      document.getElementById('changelog-body').innerHTML = r.entries.map(e => `
       <div>
         <div class="cl-version-hdr">v${e.version}${e.date ? `<span>${e.date}</span>` : ''}</div>
-        <ul class="cl-notes">${e.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+        <ul class="cl-notes" data-no-i18n>${((en && e.notes_en) || e.notes).map(n => `<li>${n}</li>`).join('')}</ul>
       </div>
     `).join('');
+    };
+    renderNotes();
+    if (window.I18N) I18N.onChange(renderNotes);
     document.getElementById('changelog-modal-overlay').style.display = 'flex';
   } catch {}
 })();

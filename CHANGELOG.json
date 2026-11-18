@@ -180,6 +180,12 @@
       "Nouveau : les cartes de la colonne de gauche se replient en cliquant sur leur titre ; les menus ouverts ou fermés sont gardés d'une ouverture de l'app à l'autre",
       "Nouveau : groupes de médias pour le bandeau — créez des dossiers nommés (ex. « Sponsors Tournoi A »), rangez-y vos images et vidéos, choisissez leur ordre, puis sélectionnez le groupe à afficher en un clic",
       "Amélioration : le HUD à l'écran n'affiche plus les écrans de fin de match et de victoire, qui couvraient tout le jeu (réactivables avec l'option « Écrans de fin et de victoire »)"
+    ],
+    "notes_en": [
+      "New: control panel reorganized into drop-down menus — \"Themes\", \"Teams\" (names & league, BO series, logos) and \"Media banner\" (settings, groups, images & videos) open and close in one click, with a summary shown in the header (active theme, series score, media shown)",
+      "New: the left column cards collapse when you click their title; open or closed menus are kept from one app launch to the next",
+      "New: media groups for the banner — create named folders (e.g. \"Tournament A sponsors\"), put your images and videos in them, choose their order, then select the group to show in one click",
+      "Improvement: the on-screen HUD no longer shows the match end and victory screens, which covered the whole game (can be turned back on with the \"End and victory screens\" option)"
     ]
   },
   "1.9.1": {
@@ -188,6 +194,11 @@
       "Nouveau : tag d'équipe personnalisable — champs « Tag bleu » et « Tag orange » (optionnels, 4 caractères max) dans la carte Équipes, affichés par les thèmes qui montrent le tag (Default, RLCS 2026, RLCS 2023…). Laissé vide : les 4 premières lettres du nom, comme avant. Le bouton d'inversion échange aussi les tags",
       "Nouveau (Studio) : bouton « Tag » pour placer le tag d'une équipe où vous voulez (bleue, orange, qui marque, gagnante ou perdante), avec tous les réglages d'un texte ; nouvelles données en direct {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag} et {loser_tag}",
       "Correction : l'aperçu OBS du panneau et l'aperçu du Studio affichaient « BLU / ORA » au lieu du tag des équipes"
+    ],
+    "notes_en": [
+      "New: customizable team tag — \"Blue tag\" and \"Orange tag\" fields (optional, 4 characters max) in the Teams card, shown by the themes that display the tag (Default, RLCS 2026, RLCS 2023…). Left empty: the first 4 letters of the name, as before. The swap button also swaps the tags",
+      "New (Studio): \"Tag\" button to place a team tag wherever you want (blue, orange, scoring, winning or losing team), with all the settings of a text; new live data {blue_tag}, {orange_tag}, {scorer_tag}, {winner_tag} and {loser_tag}",
+      "Fix: the panel's OBS preview and the Studio preview showed \"BLU / ORA\" instead of the team tags"
     ]
   },
   "1.9.2": {
@@ -199,12 +210,23 @@
       "Nouveau (Studio) : donnée en direct {score} pour afficher le score du joueur suivi dans un texte",
       "Amélioration (Studio) : la couleur du chiffre de boost des sidebars se règle séparément pour le bleu et l'orange ; les champs couleur affichent la couleur réelle du thème avec sa vraie opacité, et le champ d'opacité n'est plus coupé",
       "Correction : l'installeur (npm run package) embarquait le code non obfusqué — le code est maintenant obfusqué pendant la création de l'installeur"
+    ],
+    "notes_en": [
+      "New (Studio): \"league\" condition on layers and folders — positions saved without / with a league label (the element slides from one to the other when the league changes) and the option to hide it when the league is empty or set",
+      "New (Studio): sidebars — player name on the left, center or right and boost number on the left or right, set separately for the blue and orange sidebars",
+      "New (Studio): sidebar boost bar \"under the name, inset\" (gap on the sides and at the bottom, rounding) and row background opacity adjustable directly",
+      "New (Studio): live data {score} to show the spectated player's score in a text",
+      "Improvement (Studio): the sidebar boost number color is set separately for blue and orange; color fields show the theme's real color with its real opacity, and the opacity field is no longer cut off",
+      "Fix: the installer (npm run package) shipped non-obfuscated code — the code is now obfuscated while the installer is built"
     ]
   },
   "1.9.3": {
     "date": "2026-11-16",
     "notes": [
       "Amélioration : les thèmes téléchargés depuis le site s'affichent sous leur nom du site dans le panneau (et plus sous le nom de leur dossier) ; un nom choisi dans le panneau reste prioritaire"
+    ],
+    "notes_en": [
+      "Improvement: themes downloaded from the site show up under their site name in the panel (and no longer under their folder name); a name chosen in the panel still takes priority"
     ]
   },
   "1.9.4": {
@@ -212,18 +234,41 @@
     "notes": [
       "Changement : le thème cyan et jaune (Blue and Yellow) est retiré de RL Overlay. S'il était actif, l'overlay repasse sur le thème Default ; les thèmes importés basés dessus gardent leur style",
       "Nouveau : conditions générales d'utilisation sur le site (overlay.rscast.fr/cgu) — RL Overlay est la propriété de RSCast, les thèmes RSCast ne peuvent pas être réutilisés sans accord"
+    ],
+    "notes_en": [
+      "Change: the cyan and yellow theme (Blue and Yellow) is removed from RL Overlay. If it was active, the overlay switches back to the Default theme; imported themes based on it keep their style",
+      "New: terms of use on the site (overlay.rscast.fr/cgu) — RL Overlay is the property of RSCast, RSCast themes may not be reused without consent"
     ]
   },
   "1.9.5": {
     "date": "2026-11-16",
     "notes": [
       "Nouveau : acceptation des conditions générales d'utilisation — demandée une seule fois par compte au lancement de l'app (pour les comptes créés avant), et obligatoire à l'inscription sur le site. Elle est enregistrée sur ton compte : plus besoin de la refaire, même sur un autre PC"
+    ],
+    "notes_en": [
+      "New: terms of use acceptance — asked only once per account when the app starts (for accounts created before), and required when signing up on the site. It is saved on your account: no need to do it again, even on another PC"
     ]
   },
   "1.9.6": {
     "date": "2026-11-17",
     "notes": [
       "Nouveau : double-clic sur un projet du Studio (.rlstudio) — RL Overlay s'ouvre puis le Studio avec le projet chargé (si l'app est déjà ouverte, le Studio s'ouvre directement avec le projet). Si le projet ouvert a des modifications non enregistrées, le Studio demande avant de le remplacer"
+    ],
+    "notes_en": [
+      "New: double-click a Studio project (.rlstudio) — RL Overlay opens, then the Studio with the project loaded (if the app is already open, the Studio opens directly with the project). If the open project has unsaved changes, the Studio asks before replacing it"
+    ]
+  },
+  "1.9.7": {
+    "date": "2026-11-18",
+    "notes": [
+      "Nouveau : RL Overlay en anglais — l'application (panneau de contrôle, Studio de thèmes, overlay, fenêtres de connexion et de configuration, menus) et le site overlay.rscast.fr sont disponibles en français et en anglais. Sélecteur FR / EN avec drapeaux dans la carte Compte du panneau (à côté du pseudo), sur la fenêtre de connexion et dans le menu du site ; sans choix, la langue de Windows (ou du navigateur) est utilisée",
+      "Nouveau : les textes de l'interface sont dans deux fichiers modifiables, public/i18n/fr.json et en.json (texte français d'origine → texte affiché). La langue change en direct, sans redémarrer, y compris dans l'overlay OBS",
+      "Correction (Studio) : l'onglet Animation des calques ne s'affichait pas (erreur) pour les calques affichés à plusieurs moments"
+    ],
+    "notes_en": [
+      "New: RL Overlay in English — the app (control panel, Theme Studio, overlay, login and setup windows, menus) and the overlay.rscast.fr site are available in French and English. FR / EN switch with flags in the panel's Account card (next to your name), on the login window and in the site menu; without a choice, the Windows (or browser) language is used",
+      "New: the interface texts are in two editable files, public/i18n/fr.json and en.json (original French text → displayed text). The language changes live, without restarting, including in the OBS overlay",
+      "Fix (Studio): the layers' Animation tab did not show up (error) for layers shown at several moments"
     ]
   }
 }

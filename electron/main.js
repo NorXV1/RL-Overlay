@@ -11,6 +11,20 @@ let loginWindow = null;
 let tray        = null;
 let srv         = null;  // référence au module server
 
+/* ── Traduction des boîtes de dialogue et menus (public/i18n/fr.json, en.json) ── */
+const I18N_DIR = path.join(__dirname, '..', 'public', 'i18n');
+const _dicts = {};
+function curLang() { try { return srv && srv.getLang ? srv.getLang() : 'fr'; } catch { return 'fr'; } }
+function dictFor(lang) {
+  if (!_dicts[lang]) { try { _dicts[lang] = JSON.parse(fs.readFileSync(path.join(I18N_DIR, `${lang}.json`), 'utf8')); } catch { _dicts[lang] = {}; } }
+  return _dicts[lang];
+}
+function T(key, ...vars) {
+  const d = dictFor(curLang());
+  const s = (typeof d[key] === 'string' && d[key]) || key;
+  return s.replace(/\{(\d+)\}/g, (_, n) => vars[n] ?? '');
+}
+
 /* ── Protocole rloverlay:// (lien "Installer sur l'application" du site) ── */
 let pendingProtocolShareId = null;
 
@@ -120,7 +134,7 @@ function initDiscordRPC() {
     const startTimestamp = new Date();
     rpc.on('ready', () => {
       rpc.setActivity({
-        details: 'Overlay actif', startTimestamp,
+        details: T('Overlay actif'), startTimestamp,
         largeImageKey: 'logo', largeImageText: 'RL Overlay', instance: false,
       }).catch(() => {});
     });
@@ -160,9 +174,20 @@ if (!gotLock) { app.exit(0); } else {
     srv = require('../server');
     srv.onRestartRequest(() => { app.relaunch(); app.exit(0); });
   } catch (e) {
-    dialog.showErrorBox('Erreur serveur', `Impossible de démarrer :\n${e.message}`);
+    dialog.showErrorBox(T('Erreur serveur'), `${T('Impossible de démarrer :')}\n${e.message}`);
     app.exit(1);
   }
+
+  /* ── Langue de l'interface (FR / EN) ──
+     Choisie dans le panneau (sinon langue de Windows) ; les fenêtres locales (connexion, CGU, configuration)
+     reçoivent le dictionnaire par leur préchargement, le menu de la barre des tâches est reconstruit. */
+  ipcMain.on('i18n:get-sync', e => { const lang = curLang(); e.returnValue = { lang, dict: dictFor(lang) }; });
+  ipcMain.handle('i18n:get', (e, lang) => { const l = lang === 'en' ? 'en' : 'fr'; return { lang: l, dict: dictFor(l) }; });
+  ipcMain.handle('i18n:set', (e, lang) => (srv && srv.setLang ? srv.setLang(lang) : curLang()));
+  if (srv && srv.onLangChange) srv.onLangChange(lang => {
+    if (tray) tray.setContextMenu(trayMenu());
+    for (const w of BrowserWindow.getAllWindows()) { try { w.webContents.send('i18n:changed', lang); } catch {} }
+  });
 
   /* ── Fenêtre de login ──────────────────────────────────────── */
   function createLoginWindow() {
@@ -172,7 +197,7 @@ if (!gotLock) { app.exit(0); } else {
       height: 490,
       resizable   : false,
       maximizable : false,
-      title       : 'RL Overlay — Connexion',
+      title       : T('RL Overlay — Connexion'),
       autoHideMenuBar: true,
       backgroundColor: '#04060c',
       icon: path.join(__dirname, '../public/logos/logo.png'),
@@ -196,7 +221,7 @@ if (!gotLock) { app.exit(0); } else {
     mainWindow = new BrowserWindow({
       width : 1160, height: 840,
       minWidth: 860, minHeight: 600,
-      title: 'RL Overlay — Contrôles',
+      title: T('RL Overlay — Contrôles'),
       autoHideMenuBar: true,
       backgroundColor: '#09090f',
       icon: path.join(__dirname, '../public/logos/logo.png'),
@@ -255,7 +280,7 @@ if (!gotLock) { app.exit(0); } else {
     if (cguWindow) { cguWindow.focus(); return; }
     cguWindow = new BrowserWindow({
       width: 540, height: 660, useContentSize: true, resizable: false, maximizable: false, minimizable: true,
-      title: 'RL Overlay — Conditions générales d\'utilisation',
+      title: T('RL Overlay — Conditions générales d\'utilisation'),
       autoHideMenuBar: true, backgroundColor: '#04060c',
       icon: path.join(__dirname, '../public/logos/logo.png'),
       webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') },
@@ -272,17 +297,17 @@ if (!gotLock) { app.exit(0); } else {
       }, res => {
         let raw = '';
         res.on('data', c => raw += c);
-        res.on('end', () => { try { resolve(JSON.parse(raw)); } catch { resolve({ error: 'Réponse invalide du serveur.' }); } });
+        res.on('end', () => { try { resolve(JSON.parse(raw)); } catch { resolve({ error: T('Réponse invalide du serveur.') }); } });
       });
       req.on('timeout', () => req.destroy(new Error('timeout')));
-      req.on('error', () => resolve({ error: 'Impossible de joindre le serveur, vérifie ta connexion.' }));
+      req.on('error', () => resolve({ error: T('Impossible de joindre le serveur, vérifie ta connexion.') }));
       req.end(body);
     });
   }
   ipcMain.handle('cgu:accept', async () => {
-    if (!cguSession) return { error: 'Session introuvable, relance l\'application.' };
+    if (!cguSession) return { error: T('Session introuvable, relance l\'application.') };
     const r = await postCguAccept(cguSession.license);
-    if (!r || !r.ok) return { error: (r && r.error) || 'Erreur lors de l\'enregistrement.' };
+    if (!r || !r.ok) return { error: (r && r.error) || T('Erreur lors de l\'enregistrement.') };
     cguDone = true;
     const session = cguSession; cguSession = null;
     if (cguWindow) cguWindow.destroy();
@@ -302,6 +327,8 @@ if (!gotLock) { app.exit(0); } else {
   /* ── IPC : ouvrir URL dans le navigateur externe ─────────────── */
   ipcMain.on('open-url', (e, url) => {
     if (typeof url === 'string' && url.startsWith('https://overlay.rscast.fr')) {
+      /* le site s'ouvre dans la langue de l'app (gardée ensuite par le site) */
+      try { const u = new URL(url); if (!u.searchParams.has('lang')) u.searchParams.set('lang', curLang()); url = u.toString(); } catch {}
       shell.openExternal(url);
     }
   });
@@ -319,7 +346,7 @@ if (!gotLock) { app.exit(0); } else {
     }
     studioWindow = new BrowserWindow({
       width: 1500, height: 920, minWidth: 1100, minHeight: 680,
-      title: 'RL Overlay — Studio de thèmes',
+      title: T('RL Overlay — Studio de thèmes'),
       autoHideMenuBar: true,
       backgroundColor: '#0b0c10',
       show: false,
@@ -341,14 +368,14 @@ if (!gotLock) { app.exit(0); } else {
   /* ── IPC : fichiers de projet du Studio (.rlstudio) ──────────────
      Ctrl+S réécrit le fichier déjà ouvert (sans redemander où l'enregistrer) ;
      sans chemin connu (nouveau projet, « Enregistrer sous… ») on ouvre la boîte de dialogue. */
-  const STUDIO_FILTERS = [{ name: 'Projet Studio RL Overlay', extensions: ['rlstudio'] }];
+  const STUDIO_FILTERS = () => [{ name: T('Projet Studio RL Overlay'), extensions: ['rlstudio'] }];
   ipcMain.handle('studio:save', async (e, { file, data, suggested } = {}) => {
     let target = file;
     if (!target) {
       const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
-        title: 'Enregistrer le projet',
+        title: T('Enregistrer le projet'),
         defaultPath: path.join(app.getPath('documents'), `${suggested || 'projet'}.rlstudio`),
-        filters: STUDIO_FILTERS,
+        filters: STUDIO_FILTERS(),
       });
       if (r.canceled || !r.filePath) return { canceled: true };
       target = r.filePath;
@@ -360,7 +387,7 @@ if (!gotLock) { app.exit(0); } else {
     let target = file;
     if (!target) {
       const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
-        title: 'Ouvrir un projet', properties: ['openFile'], filters: STUDIO_FILTERS,
+        title: T('Ouvrir un projet'), properties: ['openFile'], filters: STUDIO_FILTERS(),
       });
       if (r.canceled || !r.filePaths || !r.filePaths[0]) return { canceled: true };
       target = r.filePaths[0];
@@ -378,19 +405,22 @@ if (!gotLock) { app.exit(0); } else {
   });
 
   /* ── Tray ───────────────────────────────────────────────────── */
+  /* menu de l'icône (reconstruit quand la langue change) */
+  function trayMenu() {
+    return Menu.buildFromTemplate([
+      { label: T('Afficher le panneau'),        click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
+      { label: T('Ouvrir dans le navigateur'),  click: () => shell.openExternal('http://localhost:3000/controls.html') },
+      { type: 'separator' },
+      { label: T('Quitter'), click: () => { app.isQuitting = true; app.quit(); } },
+    ]);
+  }
   function createTray() {
     if (tray) return;
     const img  = nativeImage.createFromPath(path.join(__dirname, '../public/logos/logo.png'));
     const icon = img.resize({ width: 16, height: 16 });
     tray = new Tray(icon);
     tray.setToolTip('RL Overlay');
-    const menu = Menu.buildFromTemplate([
-      { label: 'Afficher le panneau',        click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
-      { label: 'Ouvrir dans le navigateur',  click: () => shell.openExternal('http://localhost:3000/controls.html') },
-      { type: 'separator' },
-      { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } },
-    ]);
-    tray.setContextMenu(menu);
+    tray.setContextMenu(trayMenu());
     tray.on('click',        () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
     tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
   }
@@ -416,7 +446,7 @@ if (!gotLock) { app.exit(0); } else {
   /* IPC — appelé par le bouton "Choisir" dans setup.html */
   ipcMain.handle('setup:browse', async () => {
     const { filePaths } = await dialog.showOpenDialog(setupWindow, {
-      title      : 'Dossier d\'installation de Rocket League',
+      title      : T('Dossier d\'installation de Rocket League'),
       properties : ['openDirectory'],
     });
     if (!filePaths?.length) return null; // annulé → null envoyé à setup.html
@@ -431,13 +461,13 @@ if (!gotLock) { app.exit(0); } else {
       if (!stat.isFile()) throw new Error('not a file');
     } catch {
       return {
-        error: `RocketLeague.exe introuvable dans :\n${chosen}\\Binaries\\Win64\\\n\nVérifie que tu as bien sélectionné le dossier RACINE de Rocket League (pas un raccourci, pas un sous-dossier).`,
+        error: `${T('RocketLeague.exe introuvable dans :')}\n${chosen}\\Binaries\\Win64\\\n\n${T('Vérifie que tu as bien sélectionné le dossier RACINE de Rocket League (pas un raccourci, pas un sous-dossier).')}`,
       };
     }
 
     if (!fs.existsSync(iniPath)) {
       return {
-        error: `DefaultStatsAPI.ini introuvable dans :\n${chosen}\\TAGame\\Config\\\n\nLe dossier semble invalide.`,
+        error: `${T('DefaultStatsAPI.ini introuvable dans :')}\n${chosen}\\TAGame\\Config\\\n\n${T('Le dossier semble invalide.')}`,
       };
     }
 
@@ -478,7 +508,7 @@ if (!gotLock) { app.exit(0); } else {
         width : 540, height: 580,
         resizable   : false,
         maximizable : false,
-        title       : 'RL Overlay — Configuration',
+        title       : T('RL Overlay — Configuration'),
         autoHideMenuBar: true,
         backgroundColor: '#04060c',
         icon: path.join(__dirname, '../public/logos/logo.png'),
@@ -535,14 +565,15 @@ if (!gotLock) { app.exit(0); } else {
 
   /* ── Démarrage ──────────────────────────────────────────────── */
   app.whenReady().then(async () => {
+    if (srv && srv.setDefaultLocale) srv.setDefaultLocale(app.getLocale());   // langue de Windows, tant que rien n'est choisi
     registerStudioFileAssociation();   // double-clic sur un .rlstudio → RL Overlay (en arrière-plan)
     // Demande le dossier RL si pas encore configuré, puis vérifie PacketSendRate
     const rlPath = await ensureRLPath();
     if (checkAndFixStatsApi(rlPath)) {
       await dialog.showMessageBox({
         type   : 'warning',
-        title  : 'Configuration Rocket League corrigée',
-        message: 'Le PacketSendRate a été remis à 100 dans les fichiers de config de Rocket League.\n\nRelance Rocket League pour appliquer les changements.',
+        title  : T('Configuration Rocket League corrigée'),
+        message: `${T('Le PacketSendRate a été remis à 100 dans les fichiers de config de Rocket League.')}\n\n${T('Relance Rocket League pour appliquer les changements.')}`,
         buttons: ['OK'],
       });
     }

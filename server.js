@@ -134,6 +134,38 @@ app.use(['/logos', '/utils'], (_req, res, next) => {
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '25mb' }));   // projets du Studio (CSS + calques) : bien au-delà des 100 ko par défaut
 
+/* ── Langue de l'interface (FR / EN) ──
+   Dictionnaires public/i18n/fr.json et en.json (clé = texte français d'origine). settings.lang = choix fait
+   dans le panneau ; sans choix, la langue de Windows (français → FR, sinon EN).
+   /i18n/boot.js : dictionnaire de la langue + traducteur (public/i18n/runtime.js), chargé en tête des pages. */
+const I18N_DIR = path.join(__dirname, 'public', 'i18n');
+const LANGS = ['fr', 'en'];
+const langOfLocale = loc => /^fr/i.test(String(loc || '')) ? 'fr' : 'en';
+let detectedLang = (() => { try { return langOfLocale(Intl.DateTimeFormat().resolvedOptions().locale); } catch { return 'fr'; } })();
+const currentLang = () => LANGS.includes(settings.lang) ? settings.lang : detectedLang;
+function readDict(lang) {
+  try { return JSON.parse(fs.readFileSync(path.join(I18N_DIR, `${lang}.json`), 'utf8')); }
+  catch (e) { console.warn('[i18n]', lang, e.message); return {}; }
+}
+let _langCallback = null;
+function setLang(lang) {
+  if (!LANGS.includes(lang)) return currentLang();
+  settings.lang = lang;
+  saveSettings();
+  broadcast('lang_change', { lang });
+  if (_langCallback) try { _langCallback(lang); } catch (e) { console.warn('[i18n]', e.message); }
+  return lang;
+}
+app.get('/i18n/boot.js', (req, res) => {
+  const lang = LANGS.includes(req.query.lang) ? req.query.lang : currentLang();
+  let runtime = '';
+  try { runtime = fs.readFileSync(path.join(I18N_DIR, 'runtime.js'), 'utf8'); } catch {}
+  res.set('Cache-Control', 'no-store').type('application/javascript')
+    .send(`window.__I18N_BOOT=${JSON.stringify({ lang, dict: readDict(lang) })};\n${runtime}`);
+});
+app.get('/api/lang', (req, res) => res.json({ lang: currentLang(), langs: LANGS }));
+app.post('/api/lang', (req, res) => res.json({ lang: setLang(req.body && req.body.lang) }));
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 1024 * 1024 * 1024 } // 1 Go — les thèmes avec vidéos (fond.mp4) peuvent dépasser 200 Mo
@@ -1832,7 +1864,7 @@ app.get('/api/changelog/unseen', (req, res) => {
   const entries = Object.entries(changelog)
     .filter(([v]) => compareVersions(v, settings.lastSeenVersion) > 0 && compareVersions(v, current) <= 0)
     .sort((a, b) => compareVersions(a[0], b[0]))
-    .map(([version, data]) => ({ version, date: data.date || '', notes: data.notes || [] }));
+    .map(([version, data]) => ({ version, date: data.date || '', notes: data.notes || [], notes_en: Array.isArray(data.notes_en) ? data.notes_en : null }));
   if (!entries.length) return res.json({ show: false });
   res.json({ show: true, current, entries });
 });
@@ -1858,6 +1890,14 @@ app.get('/api/session', (req, res) => {
     avatarUrl: _session.avatar_url || null,
   });
 });
+
+/* ── Langue (fenêtres et menus d'Electron) ── */
+exports.getLang = currentLang;
+exports.setLang = setLang;
+exports.readDict = lang => readDict(LANGS.includes(lang) ? lang : currentLang());
+exports.onLangChange = (cb) => { _langCallback = cb; };
+/* langue de Windows (app.getLocale) : utilisée tant que rien n'est choisi dans le panneau */
+exports.setDefaultLocale = (loc) => { if (loc) detectedLang = langOfLocale(loc); };
 
 /* ── Auto-update ── */
 let _restartCallback = null;

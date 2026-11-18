@@ -1,0 +1,10 @@
+/* Drapeaux du sélecteur de langue (FR / EN), dessinés en SVG : Windows n'affiche pas les émojis de drapeaux.
+   Grisés quand la langue n'est pas active, en couleur au survol et sur la langue choisie. */
+.lang-flag {
+  display: inline-block; width: 16px; height: 11px; flex-shrink: 0; border-radius: 2px;
+  background: center / cover no-repeat; box-shadow: 0 0 0 1px rgba(255,255,255,.18);
+  filter: saturate(.25) brightness(.75); transition: filter .2s;
+}
+button.on .lang-flag, button:hover .lang-flag { filter: none; }
+.lang-flag.fr { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Cpath fill='%23002395' d='M0 0h1v2H0z'/%3E%3Cpath fill='%23fff' d='M1 0h1v2H1z'/%3E%3Cpath fill='%23ED2939' d='M2 0h1v2H2z'/%3E%3C/svg%3E"); }
+.lang-flag.en { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Cpath fill='%23012169' d='M0 0h60v30H0z'/%3E%3Cpath stroke='%23fff' stroke-width='6' d='M0 0l60 30M60 0L0 30'/%3E%3Cpath stroke='%23C8102E' stroke-width='2.4' d='M0 0l60 30M60 0L0 30'/%3E%3Cpath stroke='%23fff' stroke-width='10' d='M30 0v30M0 15h60'/%3E%3Cpath stroke='%23C8102E' stroke-width='6' d='M30 0v30M0 15h60'/%3E%3C/svg%3E"); }

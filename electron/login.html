@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://overlay.rscast.fr; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+<script src="../public/i18n/runtime.js"></script>
+<link rel="stylesheet" href="../public/i18n/flags.css">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://overlay.rscast.fr; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
 <title>RL Overlay — Connexion</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -42,9 +44,19 @@ input:focus { border-color: #1a58c8; background: rgba(26,88,200,.07); }
 .link { text-align: center; margin-top: 14px; font-size: 11px; color: rgba(255,255,255,.3); }
 .link a { color: #3a78e8; text-decoration: none; }
 .link a:hover { text-decoration: underline; }
+/* langue de l'interface (FR / EN) */
+#lang-switch { position: fixed; top: 10px; right: 12px; display: flex; border: 1px solid rgba(255,255,255,.12); border-radius: 5px; overflow: hidden; -webkit-app-region: no-drag; }
+#lang-switch button { display: flex; align-items: center; gap: 5px; font: inherit; font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: rgba(255,255,255,.4); background: transparent; border: 0; padding: 3px 7px; cursor: pointer; }
+#lang-switch button + button { border-left: 1px solid rgba(255,255,255,.12); }
+#lang-switch button:hover { color: #fff; }
+#lang-switch button.on { color: #fff; background: rgba(26,88,200,.45); }
 </style>
 </head>
 <body>
+<div id="lang-switch" role="group" aria-label="Langue de l'interface" data-no-i18n>
+  <button type="button" data-lang="fr" title="Français"><i class="lang-flag fr"></i>FR</button>
+  <button type="button" data-lang="en" title="English"><i class="lang-flag en"></i>EN</button>
+</div>
 <div class="card">
   <div class="logo">
     <h1>RL <span>Overlay</span></h1>
@@ -109,7 +121,7 @@ async function doLogin() {
     const r = await fetch('https://overlay.rscast.fr/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: user, password: pass })
+      body: JSON.stringify({ username: user, password: pass, lang: window.I18N ? I18N.lang : 'fr' })   // messages et e-mail du code dans la langue de l'app
     }).then(r => r.json());
 
     if (r.ok && r.requires2fa) {
@@ -151,7 +163,7 @@ async function doVerify2fa() {
     const r = await fetch('https://overlay.rscast.fr/api/login/2fa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: pending2faUserId, code })
+      body: JSON.stringify({ userId: pending2faUserId, code, lang: window.I18N ? I18N.lang : 'fr' })
     }).then(r => r.json());
     if (r.ok) finishAuth(r);
     else showMsg(r.error || 'Code incorrect.', false);
@@ -168,6 +180,20 @@ function showMsg(text, ok) {
   el.className = 'msg ' + (ok ? 'ok' : 'err');
   el.style.display = 'block';
 }
+
+/* ── Langue de l'interface (FR / EN) : enregistrée pour toute l'app ── */
+function syncLang() {
+  const l = window.I18N ? I18N.lang : 'fr';
+  document.querySelectorAll('#lang-switch button').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+}
+document.querySelectorAll('#lang-switch button').forEach(b => b.addEventListener('click', async () => {
+  const lang = b.dataset.lang;
+  if (window.I18N) await I18N.setLang(lang);
+  syncLang();
+  if (window.electronAPI && window.electronAPI.i18nSet) window.electronAPI.i18nSet(lang);
+}));
+if (window.I18N) I18N.onChange(syncLang);
+syncLang();
 </script>
 </body>
 </html>
