@@ -163,6 +163,31 @@ function buildDist() {
 }
 
 // ── npm run package : hook afterPack d'electron-builder ─────
+/* Données locales de la machine qui construit l'installeur : jamais livrées aux utilisateurs.
+   (réglages et noms d'équipes, logos, médias du bandeau, musique du timeout, fichiers du Studio, thèmes importés)
+   Sans settings.json, la première ouverture est reconnue comme une nouvelle installation (assistant). */
+function stripLocalData(appDir) {
+  const rm = p => { try { fs.rmSync(p, { recursive: true, force: true }); } catch {} };
+  const list = d => { try { return fs.readdirSync(d); } catch { return []; } };
+  rm(path.join(appDir, 'settings.json'));
+  rm(path.join(appDir, 'studio-work'));
+  for (const d of ['logos/bleu', 'logos/orange', 'utils', 'timeout']) {
+    const dir = path.join(appDir, 'public', d);
+    for (const f of list(dir)) rm(path.join(dir, f));
+  }
+  /* thèmes : seuls ceux suivis par git (intégrés à l'app) restent */
+  let tracked = null;
+  try {
+    tracked = new Set(require('child_process').execSync('git ls-files public/themes', { cwd: __dirname }).toString()
+      .split('\n').map(l => l.split('/')[2]).filter(Boolean));
+  } catch {}
+  if (!tracked || !tracked.size) tracked = new Set(['amber', 'enisorail', 'fifa-world-cup', 'neon', 'nord', 'onyx', 'rlcs2023', 'rlcs2025', 'rlcs2026']);
+  const themesDir = path.join(appDir, 'public', 'themes');
+  const removed = list(themesDir).filter(d => !tracked.has(d));
+  removed.forEach(d => rm(path.join(themesDir, d)));
+  console.log(`  Données locales retirées de l'installeur (réglages, logos, médias${removed.length ? ', thèmes importés : ' + removed.join(', ') : ''})`);
+}
+
 async function afterPack(context) {
   const res = context.packager && typeof context.packager.getResourcesDir === 'function'
     ? context.packager.getResourcesDir(context.appOutDir)
@@ -171,6 +196,7 @@ async function afterPack(context) {
   if (!fs.existsSync(path.join(appDir, 'package.json'))) {
     throw new Error(`[obfuscation] dossier de l'application introuvable : ${appDir} (asar doit rester désactivé)`);
   }
+  stripLocalData(appDir);
   console.log('\n  ── Obfuscation de l\'application empaquetée ──');
   console.log(`  ${appDir}\n`);
   const t0 = Date.now();

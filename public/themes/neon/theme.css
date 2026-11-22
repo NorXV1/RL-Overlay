@@ -14,3 +14,19 @@
 [data-theme="neon"] .score-box.blue   { box-shadow: 0 0 18px rgba(26,95,255,.55); }
 [data-theme="neon"] .score-box.orange { box-shadow: 0 0 18px rgba(217,96,0,.55); }
 [data-theme="neon"] #replay-label { box-shadow: inset 0 0 20px rgba(26,95,255,.08); }
+
+/* ── Timeouts : icône hexagonale lumineuse ── */
+[data-theme="neon"] .to-pip { --to-bg: rgba(2,2,20,.85); filter: drop-shadow(0 0 5px var(--to-c)) drop-shadow(0 0 10px color-mix(in srgb, var(--to-c) 55%, transparent)); }
+/* ── Écran de timeout : néons à la couleur de l'équipe ── */
+[data-theme="neon"] #to-screen { --tos-bg: #020210; }
+[data-theme="neon"] #tos-word  { text-shadow: 0 0 18px var(--to-c), 0 0 60px var(--to-c); }
+[data-theme="neon"] #tos-timer { text-shadow: 0 0 16px var(--to-c), 0 0 40px color-mix(in srgb, var(--to-c) 60%, transparent); }
+[data-theme="neon"] #tos-icon  { filter: drop-shadow(0 0 10px var(--to-c)) drop-shadow(0 0 34px var(--to-c)); }
+[data-theme="neon"] #tos-team  { border: 1px solid var(--to-c); border-left-width: 6px; box-shadow: 0 0 30px color-mix(in srgb, var(--to-c) 40%, transparent), inset 0 0 26px color-mix(in srgb, var(--to-c) 20%, transparent); }
+[data-theme="neon"] #tos-bar i { box-shadow: 0 0 12px var(--to-c); }
+
+/* ══ CLIPS DES BUTS — carte d'ouverture aux lueurs néon (clips tels qu'enregistrés) ══ */
+[data-theme="neon"] #gcr-intro { --gcr-bg: #020210; }
+[data-theme="neon"] #gcr-word { text-shadow: 0 0 18px #8b5cf6, 0 0 60px #8b5cf6; }
+[data-theme="neon"] #gcr-fscore { text-shadow: 0 0 16px rgba(255,255,255,.6); }
+[data-theme="neon"] #gcr-wipe { box-shadow: 0 0 60px var(--gc-c); }

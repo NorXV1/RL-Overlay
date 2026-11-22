@@ -10,7 +10,9 @@
 <script>
   /* HUD à l'écran du caster (?hud) : sans les écrans de fin et de victoire, qui masqueraient tout le jeu
      (sauf ?hud&ends, réglage « Écrans de fin et de victoire » de la carte HUD du panneau) */
-  (function () { const q = new URLSearchParams(location.search); if (q.has('hud') && !q.has('ends')) document.documentElement.classList.add('hud-noend'); })();
+  (function () { const q = new URLSearchParams(location.search); if (q.has('hud') && !q.has('ends')) document.documentElement.classList.add('hud-noend');
+    /* Studio : icônes de timeout toujours affichées (élément à placer), même si les timeouts sont désactivés */
+    if (q.has('studio')) document.documentElement.classList.add('st-to'); })();
 </script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -700,6 +702,202 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
 }
 #ot-notif.show { display: block; }
 
+/* ════════════════════════════════════════════════════
+   TIMEOUTS (pause tactique) — petite icône hexagonale « pause » par équipe, dans #top-bar,
+   à la couleur de l'équipe, tant que son timeout est disponible (comme les overlays RLCS).
+   body.to-on = timeouts activés · .taking = l'équipe vient de le prendre (clignote) · .used = pris → disparaît.
+   Chaque thème la place dans son bandeau ; --to-c = couleur de l'équipe, --to-bg = fond de l'hexagone.
+   Placée par top / left / right seulement : translate, scale et rotate restent au Studio (élément déplaçable).
+════════════════════════════════════════════════════ */
+.to-pip {
+  --to-c: var(--blue-light);
+  position: absolute; z-index: 5;
+  width: 27px; height: 23px;
+  display: none;
+  color: var(--to-c);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--to-c) 45%, transparent));
+  transition: opacity .5s ease, scale .5s cubic-bezier(.5,0,.75,0);
+  pointer-events: none;
+}
+.to-pip.orange { --to-c: var(--orange-light); }
+.to-pip svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.to-pip .to-hex  { fill: var(--to-bg, rgba(0,0,0,.45)); stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.to-pip .to-bars { fill: currentColor; }
+body.to-on .to-pip { display: block; }
+.to-pip.used { opacity: 0; scale: .3; }
+.to-pip.taking { animation: toTake .6s ease-in-out 4; }
+@keyframes toTake { 0%, 100% { opacity: 1; } 50% { opacity: .1; } }
+/* par défaut : centrée au-dessus des carrés des logos (86px), de part et d'autre du titre.
+   :where() = spécificité nulle — ce <style> est lu après la feuille du thème, qui doit pouvoir tout remplacer */
+:where(.to-pip.blue)   { left: 29.5px;  top: 1px; }
+:where(.to-pip.orange) { right: 29.5px; top: 1px; }
+/* Studio (?studio) : toujours visibles, pour les placer et les habiller */
+html.st-to .to-pip { display: block; }
+html.st-to .to-pip.used { opacity: 1; scale: none; }
+
+/* ════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — plein écran pendant le timeout d'une équipe (au-dessus de l'écran de fin)
+   .show / .hide (fondus) · .blue / .orange = équipe · --to-c / --to-cl = sa couleur · --tos-bg = fond
+   Les thèmes l'habillent (polices, fonds, blocs) ; le contenu reste le même partout.
+════════════════════════════════════════════════════ */
+#to-screen {
+  --to-c: var(--blue); --to-cl: var(--blue-light);
+  position: absolute; inset: 0; z-index: 10050;
+  display: none; overflow: hidden; pointer-events: none;
+  color: #fff;
+}
+#to-screen.orange { --to-c: var(--orange); --to-cl: var(--orange-light); }
+#to-screen.show, #to-screen.hide { display: block; }
+#to-screen.show { animation: tosIn .7s cubic-bezier(.2,.8,.2,1) both; }
+#to-screen.hide { animation: tosOut .8s ease-in both; }
+@keyframes tosIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tosOut { from { opacity: 1; } to { opacity: 0; } }
+html.hud-noend #to-screen { display: none !important; }
+#to-screen.show #tos-frame { animation: tosRise .9s cubic-bezier(.2,.8,.2,1) .1s both; }
+@keyframes tosRise { from { opacity: 0; translate: 0 26px; } to { opacity: 1; translate: none; } }
+
+#tos-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 40%, color-mix(in srgb, var(--to-c) 34%, transparent), transparent 72%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 2px, transparent 2px 28px),
+    var(--tos-bg, #06080f);
+}
+/* grand hexagone en filigrane */
+#tos-bg::after {
+  content: ''; position: absolute; left: 50%; top: 44%; width: 1180px; height: 1006px; translate: -50% -50%;
+  border: 0; background: var(--to-c); opacity: .07;
+  clip-path: polygon(27.8% 4.3%, 72.2% 4.3%, 96.3% 50%, 72.2% 95.7%, 27.8% 95.7%, 3.7% 50%);
+}
+#tos-frame {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+}
+#tos-league {
+  position: absolute; top: 58px; left: 0; right: 0;
+  font-size: 22px; font-weight: 700; letter-spacing: 8px; text-transform: uppercase; color: rgba(255,255,255,.55);
+}
+#tos-icon {
+  width: 118px; height: 101px; margin-bottom: 14px; color: var(--to-cl);
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--to-c) 70%, transparent));
+}
+#tos-icon svg { width: 100%; height: 100%; overflow: visible; }
+#tos-icon .to-hex  { fill: rgba(0,0,0,.35); stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+#tos-icon .to-bars { fill: currentColor; }
+#to-screen.show #tos-icon { animation: tosPulse 2.2s ease-in-out infinite; }
+@keyframes tosPulse { 50% { scale: 1.07; } }
+#tos-word {
+  font-size: 190px; font-weight: 900; line-height: .88; letter-spacing: 18px; padding-left: 18px;
+  text-transform: uppercase;
+}
+#tos-sub { margin-top: 12px; font-size: 28px; font-weight: 800; letter-spacing: 10px; color: var(--to-cl); text-transform: uppercase; }
+#tos-team {
+  display: flex; align-items: center; gap: 26px; margin-top: 48px;
+  padding: 16px 44px 16px 16px; max-width: 1400px;
+  background: rgba(255,255,255,.045); border-left: 6px solid var(--to-c); border-radius: 14px;
+}
+#tos-logo {
+  width: 100px; height: 100px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; background: rgba(0,0,0,.35);
+  font-size: 50px; font-weight: 900; color: var(--to-cl);
+}
+#tos-logo img { width: 80px; height: 80px; object-fit: contain; display: none; }
+#tos-logo.has-img img { display: block; }
+#tos-logo.has-img span { display: none; }
+#tos-name { font-size: 66px; font-weight: 900; letter-spacing: 3px; line-height: 1; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tos-clock { margin-top: 44px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#tos-back { font-size: 22px; font-weight: 700; letter-spacing: 8px; text-transform: uppercase; color: rgba(255,255,255,.55); }
+#tos-timer { font-size: 124px; font-weight: 900; line-height: 1; letter-spacing: 4px; font-variant-numeric: tabular-nums; }
+#tos-bar { width: 640px; height: 8px; margin-top: 12px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+#tos-bar i { display: block; width: 100%; height: 100%; border-radius: 4px; background: var(--to-c); transform-origin: left center; }
+#tos-series {
+  position: absolute; bottom: 58px; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 22px;
+  font-size: 30px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,.7);
+}
+#tos-series b { font-size: 46px; font-weight: 900; color: #fff; }
+#tos-series i { font-style: normal; color: rgba(255,255,255,.35); }
+#tos-series em { font-style: normal; font-size: 22px; letter-spacing: 4px; color: rgba(255,255,255,.45); margin-left: 6px; }
+#tos-series .bl { color: var(--blue-light); }
+#tos-series .or { color: var(--orange-light); }
+
+/* ════════════════════════════════════════════════════
+   CLIPS DES BUTS — après l'écran de fin (scores), les buts du match en plein écran : vidéos du Replay
+   Buffer d'OBS telles qu'elles ont été enregistrées (avec l'overlay du cast), sans son, rien par-dessus,
+   puis retour aux scores. Au-dessus de l'écran de fin, sous l'écran de timeout.
+   .show / .hide (fondus) · .blue / .orange = équipe du but affiché · --gc-c / --gc-cl = sa couleur (transition)
+   .intro = carte d'ouverture (HIGHLIGHTS + score final) · .wipe = transition entre deux clips
+   .noclip = aperçu du panneau sans clip enregistré (fond aux couleurs de l'équipe)
+   Les thèmes habillent la carte d'ouverture et la transition.
+════════════════════════════════════════════════════ */
+#gc-reel {
+  --gc-c: var(--blue); --gc-cl: var(--blue-light);
+  position: absolute; inset: 0; z-index: 10040;
+  display: none; overflow: hidden; pointer-events: none;
+  background: #000; color: #fff;
+}
+#gc-reel.orange { --gc-c: var(--orange); --gc-cl: var(--orange-light); }
+#gc-reel.show, #gc-reel.hide { display: block; }
+#gc-reel.show { animation: tosIn .6s ease both; }
+#gc-reel.hide { animation: tosOut .8s ease-in both; }
+html.hud-noend #gc-reel { display: none !important; }
+.gcr-v { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; opacity: 0; }
+.gcr-v.on { opacity: 1; }
+#gcr-nofeed {
+  position: absolute; inset: 0; display: none;
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 45%, color-mix(in srgb, var(--gc-c) 38%, transparent), transparent 72%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 2px, transparent 2px 28px),
+    #05070d;
+}
+#gc-reel.noclip #gcr-nofeed { display: block; }
+#gc-reel.noclip .gcr-v { opacity: 0; }
+#gcr-nofeed span {
+  position: absolute; top: 50%; left: 0; right: 0; translate: 0 -50%; text-align: center;
+  font-size: 30px; font-weight: 700; letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,.4);
+}
+#gcr-nofeed span:empty { display: none; }
+
+/* carte d'ouverture */
+#gcr-intro {
+  position: absolute; inset: 0; opacity: 0; isolation: isolate;   /* tout son contenu passe sous la bande de transition */
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  background:
+    radial-gradient(ellipse 50% 45% at 30% 45%, color-mix(in srgb, var(--blue) 30%, transparent), transparent 72%),
+    radial-gradient(ellipse 50% 45% at 70% 45%, color-mix(in srgb, var(--orange) 30%, transparent), transparent 72%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 2px, transparent 2px 28px),
+    var(--gcr-bg, #06080f);
+  transition: opacity .35s ease;
+}
+#gc-reel.intro #gcr-intro { opacity: 1; }
+#gc-reel.intro #gcr-intro-in { animation: tosRise .9s cubic-bezier(.2,.8,.2,1) both; }
+#gcr-intro-in { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }   /* au-dessus des décors ::before / ::after des thèmes */
+#gcr-league { font-size: 22px; font-weight: 700; letter-spacing: 8px; text-transform: uppercase; color: rgba(255,255,255,.55); margin-bottom: 18px; }
+#gcr-league:empty { display: none; }
+#gcr-word { font-size: 176px; font-weight: 900; line-height: .9; letter-spacing: 14px; padding-left: 14px; text-transform: uppercase; }
+#gcr-sub { margin-top: 14px; font-size: 28px; font-weight: 800; letter-spacing: 10px; text-transform: uppercase; color: rgba(255,255,255,.75); }
+#gcr-final { display: flex; align-items: center; gap: 40px; margin-top: 50px; }
+/* équipe : logo au-dessus du nom (les noms longs tiennent sans déborder sur les décors des côtés) */
+.gcr-fteam { width: 480px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.gcr-flogo { width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(0,0,0,.35); }
+.gcr-flogo img { width: 76px; height: 76px; object-fit: contain; }
+.gcr-fname { font-size: 40px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gcr-fteam.bl .gcr-fname { color: var(--blue-light); }
+.gcr-fteam.or .gcr-fname { color: var(--orange-light); }
+#gcr-fscore { display: flex; align-items: center; gap: 18px; font-size: 84px; font-weight: 900; font-variant-numeric: tabular-nums; }
+#gcr-fscore i { font-style: normal; font-size: 56px; color: rgba(255,255,255,.35); }
+
+/* transition entre deux clips : bande oblique à la couleur de l'équipe qui traverse l'écran */
+#gcr-wipe {
+  position: absolute; top: -10%; bottom: -10%; left: -30%; width: 160%;
+  background: var(--gc-c); skew: -14deg; translate: -130% 0;
+}
+#gcr-wipe::after { content: ''; position: absolute; top: 0; bottom: 0; right: -70px; width: 70px; background: var(--gc-cl); }
+#gc-reel.wipe #gcr-wipe { animation: gcrWipe .7s cubic-bezier(.7,0,.3,1) both; }
+@keyframes gcrWipe { from { translate: -130% 0; } 50% { translate: 0 0; } to { translate: 130% 0; } }
+
 #goal-inner {
   background: var(--goal-bg);
   padding: 20px 70px; position: relative; overflow: hidden;
@@ -999,6 +1197,7 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
 }
 #win-screen.show #win-series-score { animation: winFadeUp .6s .72s both; }
 
+
 @keyframes winGlowPulse {
   0%   { opacity: 0; }
   50%  { opacity: .22; }
@@ -1163,6 +1362,10 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
     <div id="sub-abbr-orange">ORA</div>
   </div>
 
+  <!-- Timeouts : icône hexagonale « pause » par équipe tant que son timeout est disponible -->
+  <div class="to-pip blue" id="to-pip-blue"><svg viewBox="0 0 27 23" aria-hidden="true"><polygon class="to-hex" points="7.5,1 19.5,1 26,11.5 19.5,22 7.5,22 1,11.5"/><rect class="to-bars" x="9.6" y="6.8" width="2.7" height="9.4" rx=".6"/><rect class="to-bars" x="14.7" y="6.8" width="2.7" height="9.4" rx=".6"/></svg></div>
+  <div class="to-pip orange" id="to-pip-orange"><svg viewBox="0 0 27 23" aria-hidden="true"><polygon class="to-hex" points="7.5,1 19.5,1 26,11.5 19.5,22 7.5,22 1,11.5"/><rect class="to-bars" x="9.6" y="6.8" width="2.7" height="9.4" rx=".6"/><rect class="to-bars" x="14.7" y="6.8" width="2.7" height="9.4" rx=".6"/></svg></div>
+
 </div>
 
 <!-- WIN SCREEN et END SCREEN : hors overlay-root (cycle propre) mais dans all-overlay (toggle) -->
@@ -1238,7 +1441,56 @@ body[data-series="off"] .end-bo-tag                  { display: none !important;
   </div>
 </div><!-- /end-screen -->
 
+<!-- CLIPS DES BUTS : après l'écran de fin, les buts du match en plein écran (Replay Buffer d'OBS, tels
+     qu'enregistrés avec l'overlay du cast, sans son, rien par-dessus) -->
+<div id="gc-reel" class="blue">
+  <div id="gcr-nofeed"><span id="gcr-nofeed-txt"></span><i id="gcr-nofeed-src" data-i18n hidden>Aperçu : les clips de tes buts passeront ici</i></div>
+  <video id="gcr-v0" class="gcr-v" muted playsinline preload="auto"></video>
+  <video id="gcr-v1" class="gcr-v" muted playsinline preload="auto"></video>
+  <div id="gcr-intro">
+    <div id="gcr-intro-in">
+      <div id="gcr-league"></div>
+      <div id="gcr-word">HIGHLIGHTS</div>
+      <div id="gcr-sub" data-i18n>LES BUTS DU MATCH</div>
+      <div id="gcr-final">
+        <div class="gcr-fteam bl"><div class="gcr-flogo"><img id="gcr-flogo-b" alt=""></div><div class="gcr-fname" id="gcr-fname-b"></div></div>
+        <div id="gcr-fscore"><b id="gcr-fs-b">0</b><i>–</i><b id="gcr-fs-o">0</b></div>
+        <div class="gcr-fteam or"><div class="gcr-flogo"><img id="gcr-flogo-o" alt=""></div><div class="gcr-fname" id="gcr-fname-o"></div></div>
+      </div>
+    </div>
+  </div>
+  <div id="gcr-wipe"></div>
+</div>
+
+<!-- ÉCRAN DE TIMEOUT : plein écran aux couleurs du thème, au-dessus de tout (écran de fin compris)
+     pendant le timeout d'une équipe, compte à rebours, puis retour au match -->
+<div id="to-screen" class="blue">
+  <div id="tos-bg"></div>
+  <div id="tos-frame">
+    <div id="tos-league"></div>
+    <div id="tos-icon"><svg viewBox="0 0 27 23" aria-hidden="true"><polygon class="to-hex" points="7.5,1 19.5,1 26,11.5 19.5,22 7.5,22 1,11.5"/><rect class="to-bars" x="9.6" y="6.8" width="2.7" height="9.4" rx=".6"/><rect class="to-bars" x="14.7" y="6.8" width="2.7" height="9.4" rx=".6"/></svg></div>
+    <div id="tos-word">TIMEOUT</div>
+    <div id="tos-sub" data-i18n>TEMPS MORT TACTIQUE</div>
+    <div id="tos-team">
+      <div id="tos-logo"><img id="tos-logo-img" alt=""><span id="tos-logo-letter"></span></div>
+      <div id="tos-name"></div>
+    </div>
+    <div id="tos-clock">
+      <div id="tos-back" data-i18n>REPRISE DANS</div>
+      <div id="tos-timer">2:00</div>
+      <div id="tos-bar"><i id="tos-bar-fill"></i></div>
+    </div>
+    <div id="tos-series">
+      <span class="tos-tag bl" id="tos-tag-b"></span><b id="tos-ser-b">0</b><i>–</i><b id="tos-ser-o">0</b><span class="tos-tag or" id="tos-tag-o"></span>
+      <em id="tos-bo"></em>
+    </div>
+  </div>
+</div>
+
 </div><!-- /all-overlay -->
+
+<!-- musique de l'écran de timeout (overlay OBS seulement) -->
+<audio id="to-audio" preload="auto"></audio>
 
 <!-- VIDEO TRANSITION — Lysorn Cup -->
 <video id="lc-transition-video"
@@ -1933,14 +2185,22 @@ function connect() {
     const { type, data } = JSON.parse(e.data);
     /* langue choisie dans le panneau : textes fixes de l'overlay (PROLONGATION, REMPORTE LA SÉRIE…) */
     if (type === 'lang_change') { if (window.I18N && data && data.lang) I18N.setLang(data.lang); return; }
+    /* sauvegarde restaurée depuis le panneau : rechargement avec les nouveaux réglages */
+    if (type === 'reload_all') { location.reload(); return; }
     /* En mode preview : thème, logos et bandeau média sont traités */
     if (IS_PREVIEW) {
       if (type === 'theme_change') applyTheme(data.theme);
+      if (type === 'player_video_toggle') _pvVideoToggle(data.enabled);
       if (type === 'media_banner') onMediaBannerMsg(data);
       if (type === 'utils_updated') onUtilsUpdated(data.active || data.files);
+      if (type === 'timeouts') renderTimeouts(data);
+      if (type === 'goal_clips') syncGoalClips(data);
       if (type === 'logo_updated') {
         const side = data.side === 'bleu' ? 'blue' : 'orange';
         _showLogo(document.getElementById(`${side}-logo-img`), document.getElementById(`${side}-logo`), data.url, !!data.url);
+        const endImg = document.getElementById(`end-logo-img-${side}`);
+        if (endImg && endImg.classList.contains('active')) _showLogo(endImg, document.getElementById(`end-logo-letter-${side}`), data.url);
+        if (state?.game?.teams) state.game.teams[side === 'blue' ? 0 : 1].logo_url = data.url || '';
       }
       return;
     }
@@ -2086,20 +2346,22 @@ function connect() {
         break;
       case 'logo_updated': {
         const sideName = data.side === 'bleu' ? 'blue' : 'orange';
-        /* nouveau logo : rechargement forcé (même nom de fichier) ; supprimé : logo de remplacement */
+        /* nouveau logo : rechargement forcé (même nom de fichier) ; supprimé : logo de remplacement.
+           L'écran de fin déjà construit prend aussi le nouveau logo. */
         _showLogo(document.getElementById(`${sideName}-logo-img`), document.getElementById(`${sideName}-logo`), data.url, !!data.url);
+        const endImg = document.getElementById(`end-logo-img-${sideName}`);
+        if (endImg && endImg.classList.contains('active')) _showLogo(endImg, document.getElementById(`end-logo-letter-${sideName}`), data.url);
         break;
       }
       case 'teams_swapped':
+        /* logos échangés entre les dossiers bleu / orange (souvent sous le même nom de fichier) :
+           toutes les images de logo se rechargent */
         ['blue', 'orange'].forEach((side, i) => {
-          const img = document.getElementById(`${side}-logo-img`);
-          if (img && img.src && img.classList.contains('active')) {
-            img.src = img.src.split('?')[0] + '?t=' + Date.now();
-          }
+          const url = data?.teams?.[i]?.logo_url || '';
+          _bumpLogo(url);
+          _showLogo(document.getElementById(`${side}-logo-img`), document.getElementById(`${side}-logo`), url);
           const endImg = document.getElementById(`end-logo-img-${side}`);
-          if (endImg && endImg.src && endImg.classList.contains('active')) {
-            endImg.src = endImg.src.split('?')[0] + '?t=' + Date.now();
-          }
+          if (endImg && endImg.classList.contains('active')) _showLogo(endImg, document.getElementById(`end-logo-letter-${side}`), url);
         });
         break;
       case 'goal_assist_update':
@@ -2111,6 +2373,12 @@ function connect() {
           showDemoIcon(data.playerName, data.playerId, data.secondaryId, data.secondaryName);
         else
           showStatIcon(data.playerId, data.playerName, data.type);
+        break;
+      case 'timeouts':
+        renderTimeouts(data);
+        break;
+      case 'goal_clips':
+        syncGoalClips(data);
         break;
       case 'series_update':
         if (state) {
@@ -2151,12 +2419,19 @@ const FALLBACK_LOGO = '/img/logo-fallback.png';
    Ne recharge l'image que si l'adresse change : réaffecter img.src relançait un téléchargement
    complet du logo à CHAQUE message (2 logos × 30/s, cache désactivé sur /logos) → lag.
    force = recharger la même adresse (logo remplacé sous le même nom de fichier). */
+/* Version de chaque logo : un logo remplacé garde la même adresse (/logos/bleu/logo.png). Chaque image
+   (tableau, écran de fin, victoire, calques du Studio) le recharge grâce à ce numéro, sans rafraîchir la
+   source OBS — avant, seul le tableau se mettait à jour et l'écran de fin gardait l'ancien logo. */
+const _logoVer = {};
+function _bumpLogo(url) { if (url) _logoVer[url] = Date.now(); }
 function _showLogo(img, letter, url, force) {
   if (!img) return;
-  const src = url || FALLBACK_LOGO;
-  if (force || img.dataset.logo !== src) {
+  if (force && url) _bumpLogo(url);
+  const base = url || FALLBACK_LOGO;
+  const src = _logoVer[base] ? base + '?t=' + _logoVer[base] : base;
+  if (img.dataset.logo !== src) {
     img.dataset.logo = src;
-    img.src = force ? src + '?t=' + Date.now() : src;
+    img.src = src;
   }
   img.classList.add('active');
   img.classList.toggle('logo-fallback', !url);   // repère pour les thèmes qui voudraient le styler
@@ -2264,6 +2539,316 @@ function renderTimer(s, isOT) {
     if (el.className !== cls) el.className = cls;
     _wasOT = false; /* buildSubTrack retire data-ot au prochain render */
   }
+}
+
+/* ══ TIMEOUTS ══════════════════════════════════════════════
+   État reçu du serveur ({ enabled, used:[bleu, orange], announce? }) : une icône par timeout
+   disponible. announce = équipe qui vient de prendre le sien → son icône clignote puis disparaît. */
+const TO_TAKE_MS = 2400;
+const _toTakeT = [null, null];
+function renderTimeouts(d) {
+  if (!d) return;
+  const used = [!!(d.used && d.used[0]), !!(d.used && d.used[1])];
+  document.body.classList.toggle('to-on', !!d.enabled);
+  ['blue', 'orange'].forEach((side, i) => {
+    const p = document.getElementById('to-pip-' + side);
+    if (!p) return;
+    clearTimeout(_toTakeT[i]);
+    p.classList.remove('taking');
+    if (d.enabled && used[i] && d.announce === i) {
+      /* l'équipe prend son timeout : l'icône clignote, puis s'en va */
+      p.classList.remove('used'); void p.offsetWidth;
+      p.classList.add('taking');
+      _toTakeT[i] = setTimeout(() => { p.classList.remove('taking'); p.classList.add('used'); }, TO_TAKE_MS);
+    } else p.classList.toggle('used', used[i]);
+  });
+  syncTimeoutScreen(d);
+}
+
+/* ══ ÉCRAN DE TIMEOUT + MUSIQUE ═════════════════════════════
+   d.live = { team, remaining (ms), duration (s) } tant que l'écran doit être affiché — le serveur tient le
+   temps : à 0 il envoie live = null et l'écran s'en va (retour au match). Rechargement de la source OBS
+   pendant le timeout : l'écran et la musique reprennent où ils en étaient.
+   Musique : seulement dans l'overlay OBS (pas l'aperçu du panneau, le HUD ni le Studio) ; fondu d'entrée
+   1,5 s, fondu de sortie sur les 5 dernières secondes (ou 1,2 s si le timeout est arrêté avant). */
+const _TOQ = new URLSearchParams(location.search);
+const TO_AUDIO = !_TOQ.has('preview') && !_TOQ.has('hud') && !_TOQ.has('studio');
+const TO_FADE_IN = 1500, TO_FADE_OUT = 5000;
+const _tos = { on: false, preview: false, team: -1, end: 0, dur: 120, tick: null, hideT: null, prevT: null };
+const _tosM = { on: false, vol: .7, startAt: 0, fadeIv: null };
+const _toClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+function syncTimeoutScreen(d) {
+  const live = d && d.enabled && d.screen && d.live ? d.live : null;
+  if (live) showTimeoutScreen(live.team, live.remaining, live.duration, d);
+  else if (_tos.on && !_tos.preview) hideTimeoutScreen();
+  if (_tos.on && !_tos.preview) tosMusicCfg(d);
+}
+/* contenu : équipe (nom, logo du scoreboard), ligue, score de la série */
+function tosFill(team) {
+  const side = team === 1 ? 'orange' : 'blue', teams = state?.game?.teams || [];
+  const name = teams[team]?.name || (team === 1 ? 'ORANGE' : 'BLUE');
+  _setText(document.getElementById('tos-name'), name);
+  const src = document.getElementById(side + '-logo-img'), box = document.getElementById('tos-logo'), img = document.getElementById('tos-logo-img');
+  const has = !!(src && src.classList.contains('active') && src.getAttribute('src'));
+  if (has && img.getAttribute('src') !== src.getAttribute('src')) img.src = src.getAttribute('src');
+  box.classList.toggle('has-img', has);
+  _setText(document.getElementById('tos-logo-letter'), String(name).trim().charAt(0).toUpperCase());
+  _setText(document.getElementById('tos-league'), (document.getElementById('league-label')?.textContent || '').trim());
+  const ser = state?.series || {}, row = document.getElementById('tos-series');
+  if (ser.bestOf) {
+    const tag = i => (document.getElementById(i ? 'sub-abbr-orange' : 'sub-abbr-blue')?.textContent || '').trim() || String(teams[i]?.name || (i ? 'ORA' : 'BLU')).slice(0, 4);
+    _setText(document.getElementById('tos-tag-b'), tag(0)); _setText(document.getElementById('tos-tag-o'), tag(1));
+    _setText(document.getElementById('tos-ser-b'), ser.blue || 0); _setText(document.getElementById('tos-ser-o'), ser.orange || 0);
+    _setText(document.getElementById('tos-bo'), 'BO' + ser.bestOf);
+    row.style.display = '';
+  } else row.style.display = 'none';
+}
+function showTimeoutScreen(team, remaining, duration, cfg, preview) {
+  const el = document.getElementById('to-screen');
+  if (!el) return;
+  const fresh = !_tos.on || _tos.team !== team || _tos.preview !== !!preview;
+  clearTimeout(_tos.hideT); clearTimeout(_tos.prevT);
+  Object.assign(_tos, { on: true, preview: !!preview, team, dur: Math.max(1, duration), end: Date.now() + remaining });
+  el.classList.toggle('orange', team === 1); el.classList.toggle('blue', team !== 1);
+  if (fresh) { tosFill(team); el.classList.remove('hide'); void el.offsetWidth; el.classList.add('show'); }
+  if (!_tos.tick) _tos.tick = setInterval(tosTick, 100);
+  tosTick();
+  if (fresh && !preview) tosMusicStart(cfg, duration * 1000 - remaining);
+}
+function tosTick() {
+  const rem = Math.max(0, _tos.end - Date.now());
+  _setText(document.getElementById('tos-timer'), _toClock(Math.ceil(rem / 1000)));
+  const bar = document.getElementById('tos-bar-fill');
+  if (bar) bar.style.transform = `scaleX(${Math.min(1, rem / (_tos.dur * 1000)).toFixed(4)})`;
+  tosMusicVolume(rem);
+}
+function hideTimeoutScreen() {
+  const el = document.getElementById('to-screen');
+  if (!el || !_tos.on) return;
+  /* fin normale (le serveur arrête pile à 0, à quelques ms près) : le chrono finit à 0:00 */
+  if (_tos.end - Date.now() < 1500) { _setText(document.getElementById('tos-timer'), _toClock(0)); const bar = document.getElementById('tos-bar-fill'); if (bar) bar.style.transform = 'scaleX(0)'; }
+  _tos.on = false; _tos.preview = false;
+  clearInterval(_tos.tick); _tos.tick = null; clearTimeout(_tos.prevT);
+  el.classList.remove('show'); el.classList.add('hide');
+  _tos.hideT = setTimeout(() => el.classList.remove('hide'), 850);
+  tosMusicStop(1200);
+}
+function tosMusicStart(cfg, offsetMs) {
+  const a = document.getElementById('to-audio');
+  if (!a || !TO_AUDIO || !cfg) return;
+  clearInterval(_tosM.fadeIv);
+  _tosM.vol = Math.max(0, Math.min(1, (cfg.volume ?? 70) / 100));
+  _tosM.on = !!(cfg.music && cfg.musicFile);
+  if (!_tosM.on) { a.pause(); return; }
+  const src = `/timeout/${encodeURIComponent(cfg.musicFile)}?v=${cfg.musicVer || 0}`;
+  if (a.getAttribute('src') !== src) a.src = src;
+  a.loop = true; a.volume = 0;
+  /* reprise au bon endroit après un rechargement de la source (la musique boucle si elle est plus courte) */
+  const seek = () => { try { if (isFinite(a.duration) && a.duration > 0) a.currentTime = (Math.max(0, offsetMs) / 1000) % a.duration; } catch (e) {} };
+  if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true });
+  _tosM.startAt = Date.now();
+  a.play().catch(e => console.warn('[timeout] musique :', e.message));
+}
+function tosMusicVolume(rem) {
+  const a = document.getElementById('to-audio');
+  if (!a || !_tosM.on || a.paused) return;
+  const kIn = Math.min(1, (Date.now() - _tosM.startAt) / TO_FADE_IN), kOut = Math.min(1, rem / TO_FADE_OUT);
+  a.volume = Math.max(0, Math.min(1, _tosM.vol * Math.min(kIn, kOut)));
+}
+function tosMusicStop(ms) {
+  const a = document.getElementById('to-audio');
+  _tosM.on = false;
+  if (!a || a.paused) return;
+  const v0 = a.volume, t0 = Date.now();
+  clearInterval(_tosM.fadeIv);
+  _tosM.fadeIv = setInterval(() => {
+    const k = Math.min(1, (Date.now() - t0) / ms);
+    a.volume = Math.max(0, v0 * (1 - k));
+    if (k >= 1) { clearInterval(_tosM.fadeIv); a.pause(); }
+  }, 50);
+}
+/* réglages changés pendant l'écran : musique coupée / remise, volume, autre fichier */
+function tosMusicCfg(d) {
+  _tosM.vol = Math.max(0, Math.min(1, (d.volume ?? 70) / 100));
+  const want = !!(d.music && d.musicFile && TO_AUDIO);
+  const a = document.getElementById('to-audio');
+  const src = want ? `/timeout/${encodeURIComponent(d.musicFile)}?v=${d.musicVer || 0}` : '';
+  if (!want && _tosM.on) tosMusicStop(1200);
+  else if (want && (!_tosM.on || (a && a.getAttribute('src') !== src))) tosMusicStart(d, _tos.dur * 1000 - Math.max(0, _tos.end - Date.now()));
+}
+
+/* ══ CLIPS DES BUTS ═════════════════════════════════════════
+   Message 'goal_clips' : reel = { id, startIn (ms), clipSec, clips:[…], final:[b,o], intro, trans, outro } pendant
+   l'enchaînement, sinon null. Le serveur tient le temps ; l'overlay en déduit la phase :
+   intro (carte HIGHLIGHTS) → pour chaque but : transition (la bande passe, le clip change à mi-chemin),
+   puis les clipSec dernières secondes de la vidéo (elle s'arrête juste après le but, avant l'animation REPLAY
+   de l'overlay : le serveur la demande à OBS 0,7 s après le message goal_scored), telle qu'enregistrée par OBS
+   (avec l'overlay du cast) — rien n'est ajouté par-dessus → sortie (fondu, retour aux scores).
+   Deux <video> : pendant qu'un clip passe, le suivant se charge dans l'autre. Rechargement de la source
+   OBS en plein milieu : reprise au bon clip, au bon moment. Aperçu du panneau (preview) : mêmes clips,
+   ou des buts fictifs sans vidéo. Toujours muet. */
+const _gcr = { id: null, preview: false, t0: 0, clips: [], clipSec: 8, intro: 2200, trans: 700, outro: 900, final: [0, 0], cur: -2, wipeFor: -2, phase: '', tick: null, hideT: null, bad: new Set(), reported: new Set() };
+let _gcLast = null;   // dernier état reçu (aperçu : vrais clips du match)
+const _gcrVids = () => [document.getElementById('gcr-v0'), document.getElementById('gcr-v1')];
+const _gcrSlot = () => _gcr.trans + _gcr.clipSec * 1000;
+const _gcrTotal = () => _gcr.intro + _gcr.clips.length * _gcrSlot() + _gcr.outro;
+function syncGoalClips(d) {
+  _gcLast = d || null;
+  const r = d && d.reel;
+  if (r && r.clips && r.clips.length) gcrStart(r, false);
+  else if (_gcr.id && !_gcr.preview) gcrStop();
+}
+function gcrStart(r, preview) {
+  if (_gcr.id === r.id) { _gcr.t0 = Date.now() + (r.startIn || 0); return; }   // même enchaînement : recalage
+  gcrReset();
+  Object.assign(_gcr, {
+    id: r.id, preview: !!preview, t0: Date.now() + (r.startIn || 0), clips: r.clips.slice(), clipSec: r.clipSec || 8,
+    intro: r.intro ?? 2200, trans: r.trans ?? 700, outro: r.outro ?? 900, final: r.final || [0, 0], cur: -2, wipeFor: -2, phase: '',
+  });
+  gcrFillIntro();
+  _setText(document.getElementById('gcr-nofeed-txt'), '');
+  _gcr.tick = setInterval(gcrTick, 80);
+  gcrTick();
+}
+function gcrFillIntro() {
+  const teams = state?.game?.teams || [];
+  _setText(document.getElementById('gcr-league'), (document.getElementById('league-label')?.textContent || '').trim());
+  [['b', 0], ['o', 1]].forEach(([s, i]) => {
+    _setText(document.getElementById('gcr-fname-' + s), teams[i]?.name || (i ? 'ORANGE' : 'BLUE'));
+    _setText(document.getElementById('gcr-fs-' + s), _gcr.final[i] ?? 0);
+    _showLogo(document.getElementById('gcr-flogo-' + s), null, teams[i]?.logo_url);
+  });
+}
+/* couleur de l'équipe qui a marqué le but n° i (bande de transition) — rien n'est affiché sur le clip */
+function gcrTeam(i) {
+  const c = _gcr.clips[i], el = document.getElementById('gc-reel');
+  if (!c || !el) return;
+  el.classList.toggle('orange', c.team === 1); el.classList.toggle('blue', c.team !== 1);
+}
+/* clip illisible : sur le stream, la carte HIGHLIGHTS reste à l'écran ; dans l'aperçu, fond de remplacement */
+function gcrNoClip(on) {
+  const el = document.getElementById('gc-reel');
+  el.classList.toggle('intro', on && !_gcr.preview);
+  el.classList.toggle('noclip', on && _gcr.preview);
+}
+/* vidéo du clip i chargée dans son lecteur (i pair : v0, impair : v1), arrêtée à son point de départ */
+function gcrLoad(i) {
+  const c = _gcr.clips[i];
+  if (!c) return null;
+  const v = _gcrVids()[i % 2];
+  if (v.dataset.clip === c.id) return v;
+  v.dataset.clip = c.id;
+  v.onerror = null; v._gcrDurFix = false;
+  v.pause(); v.classList.remove('on');
+  if (!c.url) { v.removeAttribute('src'); v.load(); return v; }
+  v.muted = true;
+  v.onerror = () => gcrBad(c);
+  v.src = c.url;
+  v.load();
+  return v;
+}
+function gcrBad(c) {
+  if (!c) return;
+  _gcr.bad.add(c.id);
+  if (_gcr.clips[_gcr.cur] === c) gcrNoClip(true);
+  /* l'app prévient le streamer dans le panneau (format de la vidéo non lu par le navigateur d'OBS) */
+  if (!_gcr.preview && !_gcr.reported.has(c.id)) {
+    _gcr.reported.add(c.id);
+    fetch('/api/goal-clips', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playError: c.id }) }).catch(() => {});
+  }
+}
+/* durée inconnue (MP4 fragmenté, WebM sans durée) : un saut tout au bout la fait calculer au navigateur */
+function gcrNeedDur(v) {
+  if (isFinite(v.duration) && v.duration > 0) return false;
+  if (!v._gcrDurFix) { v._gcrDurFix = true; try { v.currentTime = 1e7; } catch (err) {} }
+  return true;
+}
+/* temps de la vidéo du clip i à l'instant e (ms depuis le début de l'enchaînement) */
+function gcrVideoTime(v, i, e) {
+  const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+  const start = Math.max(0, dur - _gcr.clipSec);
+  const t = start + (e - (_gcr.intro + i * _gcrSlot() + _gcr.trans)) / 1000;
+  return Math.max(0, dur ? Math.min(dur, t) : t);
+}
+function gcrShow(i, e) {
+  const el = document.getElementById('gc-reel');
+  _gcr.cur = i;
+  gcrTeam(i);
+  const c = _gcr.clips[i], vids = _gcrVids(), v = gcrLoad(i), other = vids[(i + 1) % 2];
+  other.pause(); other.classList.remove('on');
+  const noClip = !c.url || _gcr.bad.has(c.id);
+  gcrNoClip(noClip);
+  if (_gcr.preview && !c.url) _setText(document.getElementById('gcr-nofeed-txt'), document.getElementById('gcr-nofeed-src')?.textContent || '');
+  if (v && !noClip) {
+    const go = () => { if (gcrNeedDur(v)) return; try { v.currentTime = gcrVideoTime(v, i, Date.now() - _gcr.t0); } catch (err) {} v.play().catch(() => {}); };
+    if (v.readyState >= 1) go(); else v.addEventListener('loadedmetadata', go, { once: true });
+    v.classList.add('on');
+  }
+  gcrLoad(i + 1);   // le suivant se prépare dans l'autre lecteur
+}
+function gcrTick() {
+  const el = document.getElementById('gc-reel');
+  if (!el || !_gcr.id) return;
+  const e = Date.now() - _gcr.t0, n = _gcr.clips.length, slot = _gcrSlot(), total = _gcrTotal();
+  if (e < 0) { gcrLoad(0); return; }
+  if (e >= total) return gcrReset();
+  if (e >= total - _gcr.outro) {                      // sortie : fondu, les scores réapparaissent dessous
+    if (_gcr.phase !== 'out') { _gcr.phase = 'out'; el.classList.remove('show'); el.classList.add('hide'); }
+    return;
+  }
+  if (_gcr.phase === '') {
+    _gcr.phase = 'on';
+    clearTimeout(_gcr.hideT);
+    el.classList.remove('hide', 'noclip', 'wipe'); void el.offsetWidth;
+    el.classList.add('show');
+    gcrLoad(0);
+  }
+  const k = e - _gcr.intro;
+  if (k < 0) { if (_gcr.cur !== -1) { _gcr.cur = -1; el.classList.add('intro'); } return; }
+  const i = Math.min(n - 1, Math.floor(k / slot)), inSlot = k - i * slot;
+  /* transition : la bande traverse l'écran au début de chaque clip */
+  if (inSlot < _gcr.trans && _gcr.wipeFor !== i) {
+    _gcr.wipeFor = i;
+    el.classList.remove('wipe'); void el.offsetWidth; el.classList.add('wipe');
+  }
+  const want = inSlot >= _gcr.trans / 2 ? i : i - 1;  // le clip change quand la bande couvre l'écran
+  if (want >= 0 && want !== _gcr.cur) gcrShow(want, e);
+  if (want < 0) return;
+  /* recalage de la vidéo si elle a pris du retard (chargement, onglet en pause) */
+  const v = _gcrVids()[want % 2];
+  if (v.dataset.clip === _gcr.clips[want].id && v.readyState >= 1 && !_gcr.bad.has(_gcr.clips[want].id) && !gcrNeedDur(v)) {
+    const t = gcrVideoTime(v, want, e);
+    if (t < v.duration - .05 && Math.abs(v.currentTime - t) > .6) { try { v.currentTime = t; } catch (err) {} }
+    if (v.paused && t < v.duration - .05) v.play().catch(() => {});
+  }
+}
+/* arrêt demandé (nouveau match, timeout, bouton du panneau) : fondu */
+function gcrStop() {
+  const el = document.getElementById('gc-reel');
+  if (!_gcr.id) return;
+  clearInterval(_gcr.tick); _gcr.tick = null; _gcr.id = null;
+  if (el.classList.contains('show')) { el.classList.remove('show'); el.classList.add('hide'); }
+  clearTimeout(_gcr.hideT);
+  _gcr.hideT = setTimeout(() => gcrReset(), 850);
+}
+function gcrReset() {
+  const el = document.getElementById('gc-reel');
+  clearInterval(_gcr.tick); _gcr.tick = null; clearTimeout(_gcr.hideT);
+  _gcr.id = null; _gcr.preview = false; _gcr.cur = -2; _gcr.phase = '';
+  el.classList.remove('show', 'hide', 'intro', 'wipe', 'noclip');
+  _gcrVids().forEach(v => { v.onerror = null; v.pause(); v.classList.remove('on'); delete v.dataset.clip; v.removeAttribute('src'); try { v.load(); } catch (err) {} });
+}
+/* aperçu du panneau : clips prêts du match, sinon 3 buts fictifs sans vidéo */
+function gcrPreview() {
+  const ready = (_gcLast?.clips || []).filter(c => c.status === 'ready' && c.url);
+  const demo = [
+    { id: 'demo1', team: 0, scorer: 'Ayyjayy', assister: 'jstn.', speed: 118, clock: 241, ot: false, score: [1, 0] },
+    { id: 'demo2', team: 1, scorer: 'Vatira.', assister: '', speed: 134, clock: 97, ot: false, score: [1, 1] },
+    { id: 'demo3', team: 0, scorer: 'jstn.', assister: 'Garrett', speed: 101, clock: 34, ot: true, score: [2, 1] },
+  ];
+  const clips = ready.length ? ready : demo;
+  const last = clips[clips.length - 1].score || [0, 0];
+  gcrStart({ id: 'preview-' + Date.now(), startIn: 0, clips, clipSec: _gcLast?.clipSec || 8, final: last, intro: 2200, trans: 700, outro: 900 }, true);
 }
 
 function triggerOTNotif() {
@@ -2600,6 +3185,10 @@ function ensureVideoFrame(name, link) {
     iframe = document.createElement('iframe');
     iframe.className = 'pv-frame';
     iframe.setAttribute('allow', 'autoplay');
+    /* page d'un tiers (lien saisi dans le panneau ou par la salle de contrôle) : elle joue sa vidéo, mais ne peut
+       ni rediriger l'overlay, ni ouvrir de fenêtre, ni envoyer de formulaire, ni lancer de téléchargement */
+    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+    iframe.setAttribute('referrerpolicy', 'no-referrer');
     iframe.setAttribute('frameborder', '0');
     getVideoLayer().appendChild(iframe); // ajoutée une fois pour toutes, jamais redéplacée
     _videoPool.set(name, iframe);
@@ -2637,6 +3226,9 @@ function _placeFrame(iframe, targetEl) {
   iframe.style.width   = r.width  + 'px';
   iframe.style.height  = r.height + 'px';
   iframe.style.opacity = '1';
+  /* coins arrondis du cadre (thèmes) : la caméra est découpée pareil */
+  const br = getComputedStyle(targetEl).borderRadius;
+  if (iframe.style.borderRadius !== br) iframe.style.borderRadius = br;
 }
 function _hideFrame(iframe) { iframe.style.opacity = '0'; }
 
@@ -2657,8 +3249,10 @@ function renderPlayerVideo(p) {
 
 /* Jusqu'à 3 joueurs d'une équipe, triés par ordre de raccourci spectateur (1-9) */
 function orderedTeamPlayers(team) {
-  if (!state?.game?.players) return [];
-  return Object.values(state.game.players)
+  /* aperçu du panneau : les joueurs fictifs (pas de vraie partie) */
+  const players = state?.game?.players || (IS_PREVIEW ? _pvPlayers : null);
+  if (!players) return [];
+  return Object.values(players)
     .filter(p => p.team === team)
     .sort((a, b) => (a.shortcut ?? 99) - (b.shortcut ?? 99))
     .slice(0, 3);
@@ -3218,6 +3812,18 @@ function detectStatChanges(data) {
 
 /* ── MODE PREVIEW ── */
 const IS_PREVIEW = new URLSearchParams(location.search).has('preview');
+/* Aperçu : joueurs fictifs et joueur suivi (flux vidéo joueur, caméras du replay) */
+let _pvPlayers = null, _pvPrimary = null;
+/* Aperçu : « Flux vidéo joueur » du panneau → cadre au-dessus de la stat bar et caméras pendant le replay,
+   avec l'image de remplacement (les joueurs fictifs n'ont pas de flux ; ils comptent comme ayant une
+   caméra, pour voir le rendu même avec « Masquer sans caméra »). Aucun vrai flux n'est chargé ici. */
+function _pvVideoToggle(on) {
+  playerVideoEnabled = !!on;
+  playerVideoHideEmpty = false;
+  if (!playerVideoEnabled) hideReplayCams();
+  else if (document.getElementById('replay-bar').classList.contains('show')) showReplayCams();
+  renderPlayerVideo(_pvPrimary);
+}
 
 connect();
 
@@ -3285,6 +3891,10 @@ if (IS_PREVIEW) {
     const primary = Object.values(fakePlayers).find(p => p.isPrimary);
     renderBoostMeter(primary);
     renderStatBar(primary);
+    // Flux vidéo joueur (si coché dans le panneau) : cadre du joueur suivi, caméras pendant le replay
+    _pvPlayers = fakePlayers;
+    _pvPrimary = primary;
+    _pvVideoToggle(s.playerVideoEnabled);
     /* Deux raisons de re-rendre le boost meter :
        1. CSS du thème charge en async → couleurs tc() incorrectes au 1er appel
        2. currentThemeBase résolu en async (ds→da→rlcs2025) → is34 incorrect au 1er appel
@@ -3329,6 +3939,23 @@ if (IS_PREVIEW) {
 window.addEventListener('message', ({ data }) => {
   if (!data?.type?.startsWith('preview-')) return;
 
+  /* ── Timeout : l'icône de l'équipe (data.team) clignote puis disparaît, sans toucher au réglage ── */
+  if (data.type === 'preview-timeout') {
+    const team = data.team === 1 ? 1 : 0;
+    renderTimeouts({ enabled: true, used: [team === 0, team === 1], announce: team });
+    return;
+  }
+  /* ── Écran de timeout : 10 s d'aperçu (sans musique), compte à rebours de la durée réglée ── */
+  if (data.type === 'preview-tos') {
+    const team = data.team === 1 ? 1 : 0, dur = Number(data.duration) || 120;
+    showTimeoutScreen(team, dur * 1000, dur, null, true);
+    _tos.prevT = setTimeout(() => { if (_tos.preview) hideTimeoutScreen(); }, 10000);
+    return;
+  }
+  /* ── Clips des buts : aperçu (vrais clips du match s'il y en a, sinon buts fictifs), rien sur le stream ── */
+  if (data.type === 'preview-gcr') { gcrPreview(); return; }
+  if (data.type === 'preview-gcr-stop') { if (_gcr.preview) gcrStop(); return; }
+
   /* ── Goal : notif + wipe REPLAY + barre replay + wipe LIVE ── */
   if (data.type === 'preview-goal') {
     const team = data.team ?? 0;
@@ -3353,6 +3980,7 @@ window.addEventListener('message', ({ data }) => {
           doReplayWipe('LIVE', () => {
             hideReplay();
             setScoreboardExpanded(false);
+            renderPlayerVideo(_pvPrimary);   // retour au direct : le cadre du joueur suivi revient
           }, 2900);
         }, 8200);
       }, 2800);

@@ -39,7 +39,6 @@
       "electron/**/*",
       "server.js",
       "public/**/*",
-      "settings.json",
       "package.json"
     ],
     "protocols": {

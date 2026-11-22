@@ -11,3 +11,18 @@
   --end-mid-bg:  #000000;
   --end-tbl-bg:  #050505;
 }
+
+/* ── Timeouts : icône hexagonale sur fond noir, sans halo ── */
+[data-theme="onyx"] .to-pip { --to-bg: rgba(0,0,0,.9); filter: none; }
+/* ── Écran de timeout : noir profond, couleur d'équipe discrète ── */
+[data-theme="onyx"] #to-screen { --tos-bg: #000; }
+[data-theme="onyx"] #tos-bg { background: radial-gradient(ellipse 60% 50% at 50% 40%, color-mix(in srgb, var(--to-c) 16%, transparent), transparent 70%), #000; }
+[data-theme="onyx"] #tos-bg::after { opacity: .035; }
+[data-theme="onyx"] #tos-word, [data-theme="onyx"] #tos-timer, [data-theme="onyx"] #tos-name { color: #e6e6e6; }
+[data-theme="onyx"] #tos-icon { filter: none; }
+[data-theme="onyx"] #tos-team { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-left: 4px solid var(--to-c); }
+
+/* ══ CLIPS DES BUTS — carte d'ouverture noir profond (clips tels qu'enregistrés) ══ */
+[data-theme="onyx"] #gcr-intro { --gcr-bg: #000; }
+[data-theme="onyx"] #gcr-word, [data-theme="onyx"] .gcr-fname, [data-theme="onyx"] #gcr-fscore { color: #e6e6e6; }
+[data-theme="onyx"] .gcr-flogo { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); }

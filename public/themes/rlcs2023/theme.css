@@ -493,3 +493,35 @@
 [data-theme="rlcs2023"] #end-or .end-p-top { border-top-color: #fc6b21; background: rgba(252,107,33,.12); }
 [data-theme="rlcs2023"] .end-side.blue   { border-left-color:  #027dd1; }
 [data-theme="rlcs2023"] .end-side.orange { border-right-color: #fc6b21; }
+
+/* ════════════════════════════════════════════════════
+   TIMEOUTS — icône hexagonale aux deux bouts de la bande du titre
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] .to-pip { width: 24px; height: 20px; top: 3px; --to-bg: #13141a; filter: none; }
+[data-theme="rlcs2023"] .to-pip.blue   { left: 12px; }
+[data-theme="rlcs2023"] .to-pip.orange { right: 12px; }
+
+/* ════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — police Aldrich, bandeau couleur d'équipe en haut, ligue en or
+════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #to-screen { font-family: 'Aldrich', sans-serif; --tos-bg: #0d0e13; }
+[data-theme="rlcs2023"] #tos-bg { border-top: 10px solid var(--to-c); }
+[data-theme="rlcs2023"] #tos-league { color: #f0c040; font-weight: 400; letter-spacing: 6px; top: 64px; }
+[data-theme="rlcs2023"] #tos-word { font-weight: 400; font-size: 168px; letter-spacing: 12px; padding-left: 12px; }
+[data-theme="rlcs2023"] #tos-sub, [data-theme="rlcs2023"] #tos-back, [data-theme="rlcs2023"] #tos-name,
+[data-theme="rlcs2023"] #tos-timer, [data-theme="rlcs2023"] #tos-series, [data-theme="rlcs2023"] #tos-series b,
+[data-theme="rlcs2023"] #tos-logo { font-weight: 400; }
+[data-theme="rlcs2023"] #tos-team { background: #1d1e23; border-radius: 0; border-left: none; border-top: 4px solid var(--to-c); }
+[data-theme="rlcs2023"] #tos-logo { border-radius: 0; background: #13141a; }
+[data-theme="rlcs2023"] #tos-bar, [data-theme="rlcs2023"] #tos-bar i { border-radius: 0; }
+[data-theme="rlcs2023"] #tos-series em { color: #f0c040; }
+
+/* ══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — carte d'ouverture en Aldrich, filet or en haut, ligue en or (clips tels qu'enregistrés)
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2023"] #gc-reel { font-family: 'Aldrich', sans-serif; }
+[data-theme="rlcs2023"] #gcr-word, [data-theme="rlcs2023"] #gcr-sub, [data-theme="rlcs2023"] .gcr-fname, [data-theme="rlcs2023"] #gcr-fscore { font-weight: 400; }
+[data-theme="rlcs2023"] #gcr-intro { --gcr-bg: #0d0e13; border-top: 10px solid #f0c040; }
+[data-theme="rlcs2023"] #gcr-league { color: #f0c040; font-weight: 400; letter-spacing: 6px; }
+[data-theme="rlcs2023"] #gcr-word { font-size: 160px; letter-spacing: 12px; padding-left: 12px; }
+[data-theme="rlcs2023"] .gcr-flogo { border-radius: 0; background: #13141a; }

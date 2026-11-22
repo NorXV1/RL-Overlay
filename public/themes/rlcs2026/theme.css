@@ -764,3 +764,57 @@
 [data-theme="rlcs2026"] .end-mini-o { background: var(--orange); }
 [data-theme="rlcs2026"] #end-bars { display: none; }
 [data-theme="rlcs2026"] #end-media-banner { margin: 0; border-radius: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   TIMEOUTS — icône hexagonale aux deux bouts de la barre de ligue (sous le filet de 4px)
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] .to-pip { width: 24px; height: 20px; top: 7.5px; --to-bg: var(--rc-bar); filter: none; }
+[data-theme="rlcs2026"] .to-pip.blue   { left: 10px; }
+[data-theme="rlcs2026"] .to-pip.orange { right: 10px; }
+
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — fond sombre encadré du filet violet → citron, ligue dans sa barre,
+   logo sur son bloc teinté + nom sur la couleur d'équipe, chrono noir sur blanc comme le scoreboard
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #to-screen { font-family: var(--rc-font); font-style: italic; --tos-bg: #0d0d0f; }
+[data-theme="rlcs2026"] #tos-bg {
+  background:
+    var(--rc-brand) top / 100% 8px no-repeat,
+    var(--rc-brand) bottom / 100% 8px no-repeat,
+    radial-gradient(ellipse 60% 50% at 50% 42%, color-mix(in srgb, var(--to-c) 24%, transparent), transparent 72%),
+    #0d0d0f;
+}
+[data-theme="rlcs2026"] #tos-bg::after { opacity: .045; }
+[data-theme="rlcs2026"] #tos-league { left: 50%; right: auto; translate: -50% 0; top: 52px; padding: 6px 34px .25em; background: var(--rc-bar); color: #cfcfcf; font-weight: 900; font-size: 26px; letter-spacing: 4px; white-space: nowrap; }
+[data-theme="rlcs2026"] #tos-league:empty { display: none; }
+[data-theme="rlcs2026"] #tos-word { font-size: 214px; letter-spacing: 4px; padding: 0 0 .1em 4px; }
+[data-theme="rlcs2026"] #tos-sub { color: var(--to-c); }
+[data-theme="rlcs2026"] #tos-team { background: none; border: none; border-radius: 0; padding: 0; gap: 0; }
+[data-theme="rlcs2026"] #tos-logo { width: 112px; height: 112px; border-radius: 0; }
+[data-theme="rlcs2026"] #to-screen.blue   #tos-logo { background: var(--rc-logo-b); }
+[data-theme="rlcs2026"] #to-screen.orange #tos-logo { background: var(--rc-logo-o); }
+[data-theme="rlcs2026"] #tos-name { display: flex; align-items: center; height: 112px; padding: 0 46px .14em; background: var(--to-c); font-size: 62px; }
+[data-theme="rlcs2026"] #tos-timer { background: #fefefe; color: #0a0a0a; padding: 4px 52px .2em; letter-spacing: 1px; }
+[data-theme="rlcs2026"] #tos-bar { border-radius: 0; height: 10px; background: #50524f; }
+[data-theme="rlcs2026"] #tos-bar i { border-radius: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — carte d'ouverture encadrée du filet violet → citron, ligue dans sa barre, logos sur
+   leurs blocs teintés, score final noir sur blanc comme le scoreboard (les clips passent tels qu'enregistrés)
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2026"] #gc-reel { font-family: var(--rc-font); font-style: italic; }
+[data-theme="rlcs2026"] #gcr-intro {
+  background:
+    var(--rc-brand) top / 100% 8px no-repeat,
+    var(--rc-brand) bottom / 100% 8px no-repeat,
+    radial-gradient(ellipse 50% 45% at 30% 45%, color-mix(in srgb, var(--blue) 22%, transparent), transparent 72%),
+    radial-gradient(ellipse 50% 45% at 70% 45%, color-mix(in srgb, var(--orange) 22%, transparent), transparent 72%),
+    #0d0d0f;
+}
+[data-theme="rlcs2026"] #gcr-league { padding: 6px 34px .25em; background: var(--rc-bar); color: #cfcfcf; font-weight: 900; font-size: 26px; letter-spacing: 4px; }
+[data-theme="rlcs2026"] #gcr-word { font-size: 206px; letter-spacing: 4px; padding: 0 0 .1em 4px; }
+[data-theme="rlcs2026"] .gcr-flogo { border-radius: 0; }
+[data-theme="rlcs2026"] .gcr-fteam.bl .gcr-flogo { background: var(--rc-logo-b); }
+[data-theme="rlcs2026"] .gcr-fteam.or .gcr-flogo { background: var(--rc-logo-o); }
+[data-theme="rlcs2026"] #gcr-fscore { background: #fefefe; color: #0a0a0a; padding: 0 44px .14em; }
+[data-theme="rlcs2026"] #gcr-fscore i { color: rgba(0,0,0,.35); }

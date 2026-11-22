@@ -774,3 +774,44 @@
 [data-theme="enisorail"] .end-bl-lbl    { color: rgba(255,255,255,.28); letter-spacing: 3px; font-size: 9px; }
 [data-theme="enisorail"] .end-bv.r      { color: #3a78e8; font-size: 18px; font-weight: 900; min-width: 44px; }
 [data-theme="enisorail"] .end-bv.l      { color: #e07848; font-size: 18px; font-weight: 900; min-width: 44px; }
+
+/* ══════════════════════════════════════════════════════════
+   TIMEOUTS — icône hexagonale aux deux bouts de la bande du titre
+══════════════════════════════════════════════════════════ */
+[data-theme="enisorail"] .to-pip { width: 22px; height: 19px; top: 2px; --to-bg: #010810; }
+[data-theme="enisorail"] .to-pip.blue   { left: 10px; }
+[data-theme="enisorail"] .to-pip.orange { right: 10px; }
+
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — dégradés des panneaux d'équipe, logo ENS en filigrane, textes en italique
+══════════════════════════════════════════════════════════ */
+[data-theme="enisorail"] #to-screen { font-style: italic; }
+[data-theme="enisorail"] #to-screen.blue   #tos-bg { background: radial-gradient(ellipse 60% 50% at 50% 42%, rgba(58,120,232,.28), transparent 72%), linear-gradient(120deg, #011129 0%, #02274e 45%, #020818 100%); }
+[data-theme="enisorail"] #to-screen.orange #tos-bg { background: radial-gradient(ellipse 60% 50% at 50% 42%, rgba(224,120,72,.3), transparent 72%), linear-gradient(120deg, #aa2a0a 0%, #5e1806 42%, #110600 100%); }
+[data-theme="enisorail"] #tos-bg::after { clip-path: none; background: url('/themes/enisorail/logo_white.png') center / contain no-repeat; width: 980px; height: 980px; opacity: .07; }
+[data-theme="enisorail"] #tos-league { letter-spacing: 10px; color: rgba(255,255,255,.5); }
+[data-theme="enisorail"] #tos-word { letter-spacing: 14px; }
+[data-theme="enisorail"] #tos-sub { color: rgba(255,255,255,.75); }
+[data-theme="enisorail"] #tos-team { border-radius: 0; border-left: none; border-bottom: 3px solid var(--to-c); padding: 14px 48px 14px 14px; }
+[data-theme="enisorail"] #to-screen.blue   #tos-team { background: linear-gradient(90deg, #03244b 0%, #011129 100%); }
+[data-theme="enisorail"] #to-screen.orange #tos-team { background: linear-gradient(90deg, #cb522d 0%, #aa2a0a 100%); }
+[data-theme="enisorail"] #tos-logo { border-radius: 0; background: rgba(1,8,16,.7); }
+[data-theme="enisorail"] #tos-bar, [data-theme="enisorail"] #tos-bar i { border-radius: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — carte d'ouverture sur les dégradés des panneaux d'équipe, logo ENS en filigrane,
+   textes en italique (clips tels qu'enregistrés)
+══════════════════════════════════════════════════════════ */
+[data-theme="enisorail"] #gc-reel { font-style: italic; }
+[data-theme="enisorail"] #gcr-intro {
+  background:
+    radial-gradient(ellipse 50% 45% at 30% 45%, rgba(58,120,232,.28), transparent 72%),
+    radial-gradient(ellipse 50% 45% at 70% 45%, rgba(224,120,72,.3), transparent 72%),
+    linear-gradient(120deg, #011129 0%, #02274e 38%, #5e1806 72%, #110600 100%);
+}
+[data-theme="enisorail"] #gcr-intro::before {
+  content: ''; position: absolute; left: 50%; top: 46%; width: 900px; height: 900px; translate: -50% -50%;
+  background: url('/themes/enisorail/logo_white.png') center / contain no-repeat; opacity: .06;
+}
+[data-theme="enisorail"] #gcr-league { letter-spacing: 10px; color: rgba(255,255,255,.5); }
+[data-theme="enisorail"] .gcr-flogo { border-radius: 0; background: rgba(1,8,16,.7); }

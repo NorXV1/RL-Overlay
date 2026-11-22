@@ -244,6 +244,31 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .sl-logo img { width:100%; height:100%; object-fit:contain; display:none; }
 .sl-logo img.show { display:block; }
 .sl-name { font-size:22px; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:#fff; }
+/* bouton TO (timeout) de chaque équipe — visible quand les timeouts sont activés */
+.sl-to { display:none; align-items:center; gap:6px; padding:5px 10px 5px 7px; border-radius: var(--radius-xs); border:1px solid color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 16%, transparent); color:#fff; font-family:inherit; font-size:12px; font-weight:800; letter-spacing:1.5px; cursor:pointer; flex-shrink:0; transition: filter var(--dur) var(--ease), opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.sl-to.blue { --c: var(--blue); } .sl-to.orange { --c: var(--orange); }
+.sl-to svg { width:20px; height:17px; overflow:visible; }
+.sl-to .to-hex { fill: rgba(0,0,0,.35); stroke: var(--c); stroke-width:2; stroke-linejoin:round; }
+.sl-to .to-bars { fill: var(--c); }
+.sl-to:hover { filter: brightness(1.25); transform: translateY(-1px); }
+.sl-to:active { transform: scale(.95); }
+.sl-to.used { opacity:.4; background: transparent; border-style: dashed; }
+.sl-to.used span { text-decoration: line-through; }
+#scoreline.to-on .sl-to { display:inline-flex; }
+/* timeout en cours : compte à rebours sur le bouton (clic = terminer) */
+.sl-to.live { opacity:1; border-style:solid; background: color-mix(in srgb, var(--c) 38%, transparent); animation: slToLive 1.4s ease-in-out infinite; }
+.sl-to.live span { text-decoration:none !important; font-variant-numeric: tabular-nums; }
+@keyframes slToLive { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent); } }
+/* options de l'écran de timeout (carte Série) */
+#to-opts { margin-top:4px; padding-left:12px; border-left:2px solid var(--border); }
+.to-line { display:flex; align-items:center; gap:8px; margin:2px 0 10px; }
+.to-line label:not(.btn) { margin:0; white-space:nowrap; }
+.to-line select { flex:1; margin:0; }
+.to-line input[type=range] { flex:1; margin:0; }
+.to-music-name { flex:1; min-width:0; font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.to-music-name.has { color:var(--text); font-weight:700; }
+.to-vol-val { width:42px; text-align:right; font-size:12px; color:var(--muted); font-variant-numeric: tabular-nums; }
+#to-opts.no-screen #to-dur-line, #to-opts.no-music #to-music-line, #to-opts.no-music #to-vol-line { opacity:.45; }
 
 #sl-center { display:flex; align-items:stretch; background: var(--center-bg); flex-shrink:0; transition: background .4s var(--ease); }
 .sl-score { display:flex; align-items:center; justify-content:center; width:60px; font-size:38px; font-weight:900; color:#fff; transition: box-shadow .3s var(--ease); }
@@ -334,6 +359,86 @@ html[data-season="halloween"] #season-banner .sb-sub { color:#ff9c3a; }
 #version-badge { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); border-radius:var(--radius-xs); padding:2px 7px; }
 #donate-btn { font-size:10px; font-weight:700; letter-spacing:1px; text-decoration:none; color:#60a5fa; background:rgba(96,165,250,.1); border:1px solid rgba(96,165,250,.25); border-radius:var(--radius-xs); padding:2px 9px; transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease); white-space:nowrap; }
 #donate-btn:hover { background:rgba(96,165,250,.2); border-color:rgba(96,165,250,.5); transform:translateY(-1px); }
+/* sauvegarde des réglages */
+.bk-opt { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--text); margin:0 0 6px; cursor:pointer; }
+.bk-opt input { width:auto; margin:0; accent-color: var(--blue); }
+.bk-n { color:var(--muted); font-weight:500; }
+/* vote Twitch */
+.tw-status { display:flex; align-items:center; gap:8px; margin:10px 0 8px; font-size:12px; font-weight:700; color:var(--muted); }
+.tw-dot { width:9px; height:9px; border-radius:50%; background:#555; flex-shrink:0; }
+.tw-status.on  { color:#c4a6ff; } .tw-status.on .tw-dot { background:#9146ff; box-shadow:0 0 8px #9146ff; }
+.tw-status.err { color:#f87171; } .tw-status.err .tw-dot { background:#ef4444; }
+.tw-live { margin:10px 0 4px; padding:10px 12px; border-radius: var(--radius-sm); background:var(--subtle); border:1px solid var(--border); }
+.tw-live-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:800; letter-spacing:1px; }
+.tw-live-row #tw-l-b { color:#60a5fa; } .tw-live-row #tw-l-o { color:#fb923c; }
+#tw-l-time { color:var(--text); font-variant-numeric:tabular-nums; }
+.tw-live-bar { display:flex; height:9px; border-radius:5px; overflow:hidden; margin:6px 0; background:rgba(255,255,255,.08); }
+#tw-l-bar-b { background:var(--blue); transition:flex-grow .4s; } #tw-l-bar-o { background:var(--orange); transition:flex-grow .4s; }
+.tw-live-counts { font-size:11px; color:var(--muted); font-weight:700; }
+/* clips des buts (OBS) */
+.tw-status.ok   { color:#4ade80; } .tw-status.ok .tw-dot { background:#22c55e; box-shadow:0 0 8px #22c55e; }
+.tw-status.wait { color:#fbbf24; } .tw-status.wait .tw-dot { background:#f59e0b; animation: gcBlink 1s ease-in-out infinite; }
+@keyframes gcBlink { 50% { opacity:.3; } }
+.gc-help { font-size:11.5px; line-height:1.5; color:var(--text); background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.25); border-radius:var(--radius-xs); padding:8px 10px; margin:0 0 10px; }
+.gc-help:empty { display:none; }
+.gc-help.warn { background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.3); }
+.gc-conn { display:flex; flex-direction:column; gap:6px; margin:0 0 6px; }
+.gc-row { display:flex; align-items:center; gap:8px; min-width:0; }
+.gc-row label { margin:0; white-space:nowrap; }
+.gc-row input { margin:0; }
+.gc-row input[type=number] { width:96px; flex:none; }
+.gc-row input[type=password] { flex:1 1 0; width:0; min-width:0; }
+.gc-row .btn { flex-shrink:0; margin:0; width:auto; }
+#gc-opts select { width:100%; }
+.gc-list { display:flex; flex-direction:column; gap:3px; margin:4px 0 10px; }
+.gc-list:empty { display:none; }
+.gc-list div { display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted); }
+.gc-list div b { color:var(--text); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gc-list div .gc-t { margin-left:auto; flex-shrink:0; }
+.gc-list div.bl b { color:#60a5fa; } .gc-list div.or b { color:#fb923c; }
+.gc-list div.err .gc-t { color:#f87171; } .gc-list div.ok .gc-t { color:#4ade80; }
+.gc-btns { display:flex; flex-wrap:wrap; gap:8px; }
+.gc-btns .btn { flex:1 1 auto; margin:0; width:auto; }
+.gc-btns .btn:disabled { opacity:.4; cursor:default; }
+/* salle de contrôle à distance */
+.rm-log { display:flex; flex-direction:column; gap:3px; margin:2px 0 6px; }
+.rm-log div { font-size:11px; color:var(--muted); }
+.rm-log div b { color:var(--text); font-weight:700; }
+.rm-log div.err { color:#f87171; }
+.rm-code-row { flex-wrap:wrap; }
+.url-link span.rm-code { font-family: ui-monospace, Consolas, monospace; font-size:17px; font-weight:800; letter-spacing:4px; color:var(--text); white-space:nowrap; word-break:normal; }
+.rm-code-btns { flex:1 0 100%; display:flex; gap:6px; }
+.rm-code-btns .copy-btn { flex:1; }
+/* assistant de démarrage */
+.modal-box.wz-box { width:620px; padding:30px 32px 24px; background: linear-gradient(var(--card-2), var(--card-2)), var(--bg); }
+.tw-actions .btn:disabled { opacity:.4; cursor:default; transform:none; filter:none; box-shadow:none; }
+.wz-steps { display:flex; gap:6px; margin-bottom:22px; }
+.wz-steps i { flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,.1); transition:background .3s; }
+.wz-steps i.on { background:var(--blue); }
+.wz-step { display:none; min-height:300px; }
+.wz-step.on { display:block; animation: modalPop .25s var(--ease) both; }
+.wz-step h2 { font-size:24px; font-weight:800; margin-bottom:6px; letter-spacing:.3px; }
+.wz-step p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
+.wz-step ol { margin:4px 0 14px 18px; font-size:13px; line-height:1.9; color:var(--text); }
+.wz-step ol b { color:#93c5fd; }
+.wz-langs { display:flex; gap:12px; margin-top:18px; }
+.wz-langs button { flex:1; display:flex; align-items:center; justify-content:center; gap:10px; padding:16px; border-radius: var(--radius-sm); border:2px solid var(--border); background:var(--subtle); color:var(--text); font:inherit; font-size:15px; font-weight:800; cursor:pointer; }
+.wz-langs button .lang-flag { width:26px; height:18px; filter:none; }
+.wz-langs button.on { border-color:var(--blue); background:rgba(26,95,255,.14); }
+.wz-rl { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius: var(--radius-sm); background:var(--subtle); border:1px solid var(--border); font-size:14px; font-weight:800; letter-spacing:1px; }
+.wz-rl i { width:12px; height:12px; border-radius:50%; background:#f59e0b; box-shadow:0 0 10px #f59e0b; animation: blinkSoft 1.2s ease-in-out infinite; }
+.wz-rl.ok i { background:#22c55e; box-shadow:0 0 10px #22c55e; animation:none; }
+@keyframes blinkSoft { 50% { opacity:.35; } }
+.wz-themes { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:230px; overflow-y:auto; }
+.wz-themes button { padding:12px 8px; border-radius: var(--radius-sm); border:2px solid var(--border); background:var(--subtle); color:var(--text); font:inherit; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+.wz-themes button.on { border-color:var(--blue); background:rgba(26,95,255,.14); }
+.wz-tips { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.wz-tips div { padding:12px 14px; border-radius: var(--radius-sm); background:var(--subtle); border:1px solid var(--border); font-size:12px; color:var(--muted); line-height:1.5; }
+.wz-tips b { display:block; color:var(--text); font-size:13px; margin-bottom:3px; }
+.wz-foot { display:flex; align-items:center; gap:10px; margin-top:20px; }
+.wz-foot .btn { width:auto; margin:0; }
+.wz-skip { background:none; border:none; color:var(--muted); font:inherit; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; cursor:pointer; margin-right:auto; }
+.wz-skip:hover { color:var(--text); }
 /* langue de l'interface (FR / EN) */
 #lang-switch { display:flex; flex-shrink:0; border:1px solid rgba(255,255,255,.12); border-radius:var(--radius-xs); overflow:hidden; }
 #lang-switch button { display:flex; align-items:center; gap:5px; font:inherit; font-size:10px; font-weight:800; letter-spacing:1.5px; color:var(--muted); background:transparent; border:0; padding:5px 8px; cursor:pointer; transition:background var(--dur) var(--ease), color var(--dur) var(--ease); }
@@ -434,7 +539,7 @@ html[data-season="halloween"] #season-banner .sb-sub { color:#ff9c3a; }
 
 /* ─── FORM ───────────────────────────────────────── */
 label { display:block; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:5px; }
-input[type=text], input[type=number], select {
+input[type=text], input[type=number], input[type=password], select {
   width:100%; background:var(--input-bg); border:1px solid var(--input-bdr); border-radius: var(--radius-sm);
   color:var(--text); font-family:inherit; font-size:14px; font-weight:600; padding:8px 11px; margin-bottom:8px; outline:none;
   transition:border-color var(--dur) var(--ease), background .3s var(--ease), box-shadow var(--dur) var(--ease);
@@ -696,6 +801,7 @@ input:checked + .slider:before { transform:translateX(18px); }
         <img id="sl-img-blue" alt=""><span id="sl-ltr-blue">B</span>
       </div>
       <span class="sl-name" id="lp-blue" data-no-i18n>BLUE</span>
+      <button class="sl-to blue" id="sl-to-0" type="button" onclick="toClick(0)"><svg viewBox="0 0 27 23" aria-hidden="true"><polygon class="to-hex" points="7.5,1 19.5,1 26,11.5 19.5,22 7.5,22 1,11.5"/><rect class="to-bars" x="9.6" y="6.8" width="2.7" height="9.4" rx=".6"/><rect class="to-bars" x="14.7" y="6.8" width="2.7" height="9.4" rx=".6"/></svg><span>TO</span></button>
     </div>
     <div id="sl-center">
       <div class="sl-score blue" id="lp-sb">0</div>
@@ -714,6 +820,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="sl-score orange" id="lp-so">0</div>
     </div>
     <div class="sl-team orange">
+      <button class="sl-to orange" id="sl-to-1" type="button" onclick="toClick(1)"><svg viewBox="0 0 27 23" aria-hidden="true"><polygon class="to-hex" points="7.5,1 19.5,1 26,11.5 19.5,22 7.5,22 1,11.5"/><rect class="to-bars" x="9.6" y="6.8" width="2.7" height="9.4" rx=".6"/><rect class="to-bars" x="14.7" y="6.8" width="2.7" height="9.4" rx=".6"/></svg><span>TO</span></button>
       <span class="sl-name" id="lp-orange" data-no-i18n>ORANGE</span>
       <div class="sl-logo orange" id="sl-logo-orange">
         <img id="sl-img-orange" alt=""><span id="sl-ltr-orange">O</span>
@@ -867,6 +974,74 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
     </div>
 
+    <!-- Assistant de démarrage (première ouverture de l'app, relançable depuis « Actions ») -->
+    <div id="wizard-overlay" class="modal-overlay">
+      <div class="modal-box wz-box">
+        <div class="wz-steps" id="wz-steps"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="wz-step" data-step="1">
+          <h2>👋 Bienvenue sur RL Overlay</h2>
+          <p>En quelques étapes, ton overlay sera prêt pour ton premier stream. Commence par choisir la langue de l'application.</p>
+          <div class="wz-langs" data-no-i18n>
+            <button type="button" data-lang="fr" onclick="wzLang('fr')"><i class="lang-flag fr"></i>Français</button>
+            <button type="button" data-lang="en" onclick="wzLang('en')"><i class="lang-flag en"></i>English</button>
+          </div>
+        </div>
+        <div class="wz-step" data-step="2">
+          <h2>🎥 Ajoute l'overlay dans OBS</h2>
+          <ol>
+            <li>Dans OBS, sous <b>Sources</b>, clique <b>+</b> puis <b>Navigateur</b>.</li>
+            <li>Colle cette adresse dans le champ <b>URL</b> :</li>
+          </ol>
+          <div class="url-link"><span id="wz-url"></span><button class="copy-btn" onclick="copy('wz-url')">Copier</button></div>
+          <ol start="3">
+            <li>Mets <b>1920</b> en largeur et <b>1080</b> en hauteur, puis valide.</li>
+            <li>Place la source au-dessus de ta capture du jeu.</li>
+          </ol>
+          <p>Le fond est transparent : seul l'overlay s'affiche par-dessus le jeu.</p>
+        </div>
+        <div class="wz-step" data-step="3">
+          <h2>🚗 Connecte Rocket League</h2>
+          <p>Lance Rocket League et rejoins une partie (match privé, en spectateur ou en jeu). L'app reçoit les données du jeu toute seule : le voyant passe au vert.</p>
+          <div class="wz-rl" id="wz-rl"><i></i><span id="wz-rl-txt">En attente de Rocket League…</span></div>
+          <p style="margin-top:14px">L'overlay n'apparaît que pendant une partie : en dehors, il reste invisible dans OBS. Tu peux passer cette étape et y revenir plus tard.</p>
+        </div>
+        <div class="wz-step" data-step="4">
+          <h2>🛡️ Tes équipes</h2>
+          <p>Optionnel : laisse vide pour utiliser les noms détectés en jeu. Les logos s'ajoutent ensuite dans le menu <b>Équipes</b>.</p>
+          <label>Label ligue</label>
+          <input type="text" id="wz-league" maxlength="80" placeholder="SEMAINE 1 // LIGUE 1">
+          <div class="row">
+            <div><label>Équipe bleue</label><input type="text" id="wz-blue" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
+            <div><label>Équipe orange</label><input type="text" id="wz-orange" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
+          </div>
+          <label>Format de la série</label>
+          <select id="wz-bo"><option value="0">Aucun</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option></select>
+        </div>
+        <div class="wz-step" data-step="5">
+          <h2>🎨 Choisis un thème</h2>
+          <p>Tu peux en changer à tout moment, en installer depuis la bibliothèque du site ou créer le tien avec le Studio de thèmes.</p>
+          <div class="wz-themes" id="wz-themes"></div>
+        </div>
+        <div class="wz-step" data-step="6">
+          <h2>🎉 C'est prêt !</h2>
+          <p>Quelques fonctions à découvrir ensuite :</p>
+          <div class="wz-tips">
+            <div><b>🎨 Studio de thèmes</b>Crée ton propre overlay : placement, couleurs, calques, animations.</div>
+            <div><b>🖥️ HUD à l'écran</b>L'overlay par-dessus ton jeu pendant que tu commentes (Ctrl+Maj+H).</div>
+            <div><b>🟣 Vote Twitch</b>Fais voter ton chat pour l'équipe gagnante, en direct avec son propre lien OBS.</div>
+            <div><b>🎮 Salle de contrôle</b>Donne un lien à un ami : il gère les équipes et les logos à ta place.</div>
+            <div><b>📊 Page des scores</b>Une scène de fin OBS avec le score de la série, mise à jour toute seule.</div>
+            <div><b>💾 Sauvegarde</b>Exporte tes réglages pour les retrouver sur un autre PC.</div>
+          </div>
+        </div>
+        <div class="wz-foot">
+          <button class="wz-skip" id="wz-skip" onclick="closeWizard()">Passer l'assistant</button>
+          <button class="btn btn-gray" id="wz-prev" onclick="wzGo(-1)">← Précédent</button>
+          <button class="btn btn-blue" id="wz-next" onclick="wzGo(1)">Suivant →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Bibliothèque de thèmes (thèmes custom publics du site) -->
     <div id="store-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeThemeStore()">
       <div class="modal-box store-box">
@@ -928,13 +1103,100 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-anim"></div>
     </div>
 
+    <!-- Clips des buts : OBS enregistre chaque but (Replay Buffer), l'overlay les repasse à la fin du match -->
+    <div class="card" id="gc-card">
+      <div class="card-title green">Clips des buts</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Clips des buts</div><div class="toggle-sub">Comme aux RLCS : OBS enregistre chaque but. À la fin du match, les scores restent affichés, puis les buts repassent en plein écran (sans son), puis les scores reviennent.</div></div>
+        <label class="switch"><input type="checkbox" id="gc-toggle" onchange="gcSet({ enabled: this.checked }, this.checked ? '✓ Clips des buts activés' : '✓ Clips des buts désactivés')"><span class="slider"></span></label>
+      </div>
+      <div id="gc-opts" style="display:none">
+        <div class="tw-status" id="gc-status"><span class="tw-dot"></span><span id="gc-status-txt"></span></div>
+        <div class="gc-help" id="gc-help"></div>
+        <div class="gc-conn">
+          <div class="gc-row"><label for="gc-port">Port</label><input type="number" id="gc-port" min="1" max="65535" value="4455"></div>
+          <div class="gc-row">
+            <input type="password" id="gc-pass" placeholder="Mot de passe WebSocket" autocomplete="new-password" onkeydown="if(event.key==='Enter')gcSaveConn()">
+            <button class="btn btn-gray btn-sm" type="button" onclick="gcSaveConn()">Connecter</button>
+          </div>
+        </div>
+        <div class="toggle-sub" style="margin:0 0 10px">Dans OBS : <b>Outils → Paramètres du serveur WebSocket</b>, bouton <b>Afficher les infos de connexion</b>. OBS doit tourner sur ce PC.</div>
+        <label for="gc-scores">Scores avant les clips</label>
+        <select id="gc-scores" onchange="gcSet({ scoresSec: +this.value }, '✓ Durée enregistrée')">
+          <option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="20">20 s</option><option value="30">30 s</option>
+        </select>
+        <label for="gc-clip">Durée d'un clip</label>
+        <select id="gc-clip" onchange="gcSet({ clipSec: +this.value }, '✓ Durée enregistrée')">
+          <option value="5">5 s</option><option value="6">6 s</option><option value="8">8 s</option><option value="10">10 s</option><option value="12">12 s</option><option value="15">15 s</option>
+        </select>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Garder une copie</div><div class="toggle-sub">Les clips restent aussi dans le dossier d'enregistrement d'OBS. Sinon, ils sont effacés au match suivant.</div></div>
+          <label class="switch"><input type="checkbox" id="gc-keep" onchange="gcSet({ keep: this.checked }, this.checked ? '✓ Copie gardée dans le dossier d\'OBS' : '✓ Clips effacés au match suivant')"><span class="slider"></span></label>
+        </div>
+        <div class="toggle-sub" id="gc-count" style="margin:6px 0 4px"></div>
+        <div class="gc-list" id="gc-list"></div>
+        <div class="gc-btns">
+          <button class="btn btn-gray btn-sm" type="button" onclick="gcPreview()" title="Montre les clips dans l'aperçu du panneau (pas sur le stream)">👁 Aperçu</button>
+          <button class="btn btn-blue btn-sm" type="button" id="gc-play" onclick="gcPlay()" title="Passe les clips du match maintenant, sur le stream">▶ Passer les clips</button>
+        </div>
+      </div>
+      <div class="fb" id="fb-gc"></div>
+    </div>
+
     <div class="card">
       <div class="card-title white">URL OBS — 1920×1080 transparent</div>
       <div class="url-link"><span class="lbl">Overlay</span><span id="u-overlay"></span><button class="copy-btn" onclick="copy('u-overlay')">Copier</button></div>
+      <div class="url-link"><span class="lbl">Scores</span><span id="u-scores"></span><button class="copy-btn" onclick="copy('u-scores')">Copier</button></div>
+      <div class="url-link"><span class="lbl">Vote</span><span id="u-vote"></span><button class="copy-btn" onclick="copy('u-vote')">Copier</button></div>
+      <div class="toggle-sub">Scores : pour une scène de fin dans OBS — équipes, score de la série et chaque game, mis à jour tout seuls (ajoute <b>?transparent=1</b> pour l'avoir sans fond).</div>
+      <div class="toggle-sub">Vote : le vote du chat Twitch, en source à part (lancé depuis le menu <b>Vote Twitch</b>).</div>
+    </div>
+
+    <!-- Sauvegarde des réglages : tout dans un fichier, pour changer de PC ou réinstaller -->
+    <div class="card">
+      <div class="card-title white">Sauvegarde des réglages</div>
+      <div class="toggle-sub" style="margin-bottom:10px">Tous les réglages dans un seul fichier : pour changer de PC ou réinstaller sans tout refaire.</div>
+      <label class="bk-opt"><input type="checkbox" id="bk-logos" checked> Logos des équipes</label>
+      <label class="bk-opt"><input type="checkbox" id="bk-media" checked> Médias du bandeau <span class="bk-n" id="bk-media-n"></span></label>
+      <label class="bk-opt"><input type="checkbox" id="bk-themes" checked> Thèmes importés <span class="bk-n" id="bk-themes-n"></span></label>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn btn-blue" style="flex:1" onclick="exportBackup()">⬇ Exporter</button>
+        <button class="btn btn-gray" style="flex:1" onclick="document.getElementById('bk-file').click()">⬆ Importer</button>
+      </div>
+      <input type="file" id="bk-file" accept=".zip" style="display:none" onchange="importBackup(this)">
+      <div class="fb" id="fb-backup"></div>
+    </div>
+
+    <!-- Salle de contrôle à distance : un ami gère l'overlay depuis chez lui (relais par overlay.rscast.fr) -->
+    <div class="card" id="remote-card">
+      <div class="card-title white">Salle de contrôle à distance</div>
+      <div class="toggle-sub" style="margin-bottom:10px">Donne un lien à un ami : depuis chez lui, il change les noms, tags, logos, la série, inverse les équipes, gère l'affichage et le flux vidéo de ton overlay. Rien à ouvrir sur ta box, tu fermes la salle quand tu veux.</div>
+      <div id="rm-closed"><button class="btn btn-blue" onclick="remoteAction('open')">🎮 Ouvrir une salle</button></div>
+      <div id="rm-open" style="display:none">
+        <div class="url-link"><span id="rm-url"></span><button class="copy-btn" onclick="copy('rm-url')">Copier</button></div>
+        <div class="url-link rm-code-row">
+          <span class="lbl">Code</span>
+          <span id="rm-code" class="rm-code"></span>
+          <div class="rm-code-btns">
+            <button class="copy-btn" id="rm-code-eye" onclick="rmCodeToggle()">Afficher</button>
+            <button class="copy-btn" onclick="rmCodeCopy(this)">Copier</button>
+            <button class="copy-btn" onclick="remoteAction('code')" title="Ton ami devra entrer le nouveau code">Nouveau</button>
+          </div>
+        </div>
+        <div class="toggle-sub" style="margin:2px 0 0">Ton ami ouvre le lien, puis entre ce code de sécurité. Envoie-le à part (vocal, message privé) : sans le code, le lien ne donne accès à rien.</div>
+        <div class="tw-status" id="rm-status"><span class="tw-dot"></span><span id="rm-status-txt"></span></div>
+        <div id="rm-log" class="rm-log"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-gray" style="flex:1" onclick="remoteAction('rotate')" title="L'ancien lien ne marchera plus">🔄 Nouveau lien</button>
+          <button class="btn btn-danger" style="flex:1" onclick="remoteAction('close')">Fermer la salle</button>
+        </div>
+      </div>
+      <div class="fb" id="fb-remote"></div>
     </div>
 
     <div class="card">
       <div class="card-title white">Actions</div>
+      <button class="btn btn-gray" onclick="openWizard()">🧭 Relancer l'assistant de démarrage</button>
       <button class="btn btn-danger" onclick="resetAll()">Réinitialiser tout</button>
     </div>
 
@@ -1358,6 +1620,40 @@ input:checked + .slider:before { transform:translateX(18px); }
         <button class="btn btn-blue" style="flex:1;" onclick="applySeries()">Mettre à jour</button>
         <button class="btn btn-danger btn-sm" style="flex-shrink:0;" onclick="resetSeries()">Reset</button>
       </div>
+      <div class="toggle-row" style="margin-top:10px">
+        <div><div class="toggle-label">Timeouts</div><div class="toggle-sub">Une pause tactique par équipe et par série : icône sur le scoreboard tant qu'elle est dispo, boutons <b>TO</b> en haut du panneau quand une équipe la prend. Rendus quand la série repart à 0 - 0.</div></div>
+        <label class="switch"><input type="checkbox" id="to-toggle" onchange="setTimeoutsEnabled(this.checked)"><span class="slider"></span></label>
+      </div>
+      <!-- écran de timeout et musique (si les timeouts sont activés) -->
+      <div id="to-opts" style="display:none">
+        <div class="toggle-row">
+          <div><div class="toggle-label">Écran de timeout</div><div class="toggle-sub">Image plein écran aux couleurs du thème (équipe, compte à rebours) quand une équipe prend son timeout, par-dessus l'écran de fin. À la fin du compte à rebours, le match revient.</div></div>
+          <label class="switch"><input type="checkbox" id="to-screen-toggle" onchange="toSet({ screen: this.checked }, this.checked ? '✓ Écran de timeout activé' : '✓ Écran de timeout désactivé')"><span class="slider"></span></label>
+        </div>
+        <div class="to-line" id="to-dur-line">
+          <label for="to-duration">Durée</label>
+          <select id="to-duration" onchange="toSet({ duration: +this.value }, '✓ Durée enregistrée')">
+            <option value="30">30 s</option><option value="60">1 min</option><option value="90">1 min 30</option><option value="120">2 min</option>
+            <option value="150">2 min 30</option><option value="180">3 min</option><option value="240">4 min</option><option value="300">5 min</option>
+          </select>
+          <button class="btn btn-gray btn-sm" type="button" onclick="toPreview()" title="Montre l'écran 10 s dans l'aperçu du panneau (pas sur le stream)">👁 Aperçu</button>
+        </div>
+        <div class="toggle-row">
+          <div><div class="toggle-label">Musique</div><div class="toggle-sub">Jouée par l'overlay OBS pendant l'écran de timeout, avec un fondu à la fin. Dans OBS, coche <b>Contrôler l'audio via OBS</b> dans les propriétés de la source de l'overlay pour l'entendre dans ton stream.</div></div>
+          <label class="switch"><input type="checkbox" id="to-music-toggle" onchange="toSet({ music: this.checked }, this.checked ? '✓ Musique activée' : '✓ Musique désactivée')"><span class="slider"></span></label>
+        </div>
+        <div class="to-line" id="to-music-line">
+          <span class="to-music-name" id="to-music-name" data-no-i18n></span>
+          <label class="btn btn-gray btn-sm" title="mp3, ogg, wav, m4a, flac… (40 Mo max)">🎵 Choisir…<input type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac,.flac,.opus" hidden onchange="toUploadMusic(this)"></label>
+          <button class="btn btn-gray btn-sm" type="button" id="to-music-test" onclick="toTestMusic()" title="Écouter dans le panneau">▶</button>
+          <button class="btn btn-danger btn-sm" type="button" id="to-music-del" onclick="toRemoveMusic()" title="Retirer la musique">✕</button>
+        </div>
+        <div class="to-line" id="to-vol-line">
+          <label for="to-volume">Volume</label>
+          <input type="range" id="to-volume" min="0" max="100" step="5" oninput="toVolInput(this.value)" onchange="toSet({ volume: +this.value })">
+          <span class="to-vol-val" id="to-vol-val" data-no-i18n>70 %</span>
+        </div>
+      </div>
       <div class="fb" id="fb-series"></div>
     </div>
 
@@ -1441,6 +1737,48 @@ input:checked + .slider:before { transform:translateX(18px); }
       <select id="file-utils-group"><option value="">Aucun groupe</option></select>
       <button class="btn btn-gray" onclick="uploadUtilsFile()">Upload</button>
       <div class="fb" id="fb-utils"></div>
+    </div>
+      </div></div>
+    </section>
+
+    <!-- ══ Menu déroulant : Vote du chat Twitch (façon RLCS) ══ -->
+    <section class="acc span2" data-acc="twitch">
+      <button class="acc-head" type="button"><span class="acc-ico">🟣</span><span class="acc-title">Vote Twitch</span><span class="acc-sum" id="acc-sum-twitch"></span><span class="acc-chev">▾</span></button>
+      <div class="acc-body"><div class="acc-inner acc-grid">
+    <div class="card">
+      <div class="card-title white">Chaîne Twitch</div>
+      <label>Ta chaîne</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="tw-channel" placeholder="ta_chaine ou twitch.tv/ta_chaine" maxlength="80" style="flex:1;margin:0" oninput="twSyncBtn()" onkeydown="if(event.key==='Enter')twLinkBtn()">
+        <button class="btn btn-blue btn-sm" id="tw-link" onclick="twLinkBtn()">Connecter</button>
+      </div>
+      <div class="tw-status" id="tw-status"><span class="tw-dot"></span><span id="tw-status-txt">Aucune chaîne connectée</span></div>
+      <div class="toggle-sub">Le chat est lu sans connecter ton compte Twitch. Les spectateurs votent en écrivant le hashtag d'une équipe dans le chat : un seul vote par compte, impossible de changer ensuite.</div>
+      <label style="margin-top:14px">Lien OBS du vote</label>
+      <div class="url-link"><span id="u-vote-tw"></span><button class="copy-btn" onclick="copy('u-vote-tw')">Copier</button></div>
+      <div class="toggle-sub">Ajoute-le dans OBS comme source <b>Navigateur</b> 1920×1080 : le vote apparaît par-dessus ta scène pendant le vote, puis le résultat. Invisible le reste du temps.</div>
+    </div>
+    <div class="card">
+      <div class="card-title white">Vote</div>
+      <label>Question <span class="lbl-opt">· optionnel</span></label>
+      <input type="text" id="tw-title" maxlength="60" placeholder="QUI VA GAGNER ?">
+      <div class="row">
+        <div><label>Hashtag bleu</label><input type="text" id="tw-tag-b" maxlength="13" placeholder="#BLUE"></div>
+        <div><label>Hashtag orange</label><input type="text" id="tw-tag-o" maxlength="13" placeholder="#ORANGE"></div>
+        <div><label>Durée (s)</label><input type="number" id="tw-dur" min="10" max="900" value="60"></div>
+      </div>
+      <div class="tw-live" id="tw-live">
+        <div class="tw-live-row"><span id="tw-l-b">#BLUE</span><span id="tw-l-time"></span><span id="tw-l-o">#ORANGE</span></div>
+        <div class="tw-live-bar"><div id="tw-l-bar-b" style="flex-grow:1"></div><div id="tw-l-bar-o" style="flex-grow:1"></div></div>
+        <div class="tw-live-row tw-live-counts"><span id="tw-l-cb">0</span><span id="tw-l-total"></span><span id="tw-l-co">0</span></div>
+      </div>
+      <div class="tw-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-blue" id="tw-start" style="flex:1" onclick="twStart()">▶ Lancer le vote</button>
+        <button class="btn btn-danger btn-sm" id="tw-stop" onclick="twAction('stop')">■ Arrêter</button>
+        <button class="btn btn-gray btn-sm" id="tw-vis" onclick="twToggleVisible()">Masquer</button>
+        <button class="btn btn-gray btn-sm" onclick="twAction('reset')">Réinitialiser</button>
+      </div>
+      <div class="fb" id="fb-twitch"></div>
     </div>
       </div></div>
     </section>
@@ -1892,6 +2230,8 @@ const ws   = new WebSocket(`ws://${location.host}`);
 
 const el = document.getElementById('u-overlay');
 if (el) el.textContent = `${BASE}/global.html`;
+{ const sc = document.getElementById('u-scores'); if (sc) sc.textContent = `${BASE}/scores.html`; }
+['u-vote', 'u-vote-tw'].forEach(id => { const v = document.getElementById(id); if (v) v.textContent = `${BASE}/vote.html`; });
 
 ws.onopen  = () => { document.getElementById('dot').classList.add('on');    document.getElementById('conn-txt').textContent = 'CONNECTÉ';    };
 ws.onclose = () => { document.getElementById('dot').classList.remove('on'); document.getElementById('conn-txt').textContent = 'HORS LIGNE'; };
@@ -1912,9 +2252,481 @@ async function setUiLang(lang) {
 if (window.I18N) I18N.onChange(syncLangSwitch);
 syncLangSwitch();
 
+/* ══════════ ASSISTANT DE DÉMARRAGE ══════════
+   Affiché à la première ouverture de l'app (nouvelle installation), relançable depuis « Actions ».
+   Langue → OBS → Rocket League → équipes → thème → astuces. */
+const WZ_N = 6;
+let _wzStep = 1, _rlConnected = false;
+function openWizard() {
+  _wzStep = 1;
+  document.getElementById('wz-url').textContent = `${location.origin}/global.html`;
+  fetch('/api/settings').then(r => r.json()).then(s => {
+    document.getElementById('wz-league').value = s.league || '';
+    document.getElementById('wz-blue').value   = (s.blue && s.blue.name) || '';
+    document.getElementById('wz-orange').value = (s.orange && s.orange.name) || '';
+    document.getElementById('wz-bo').value     = String(s.bestOf ?? 5);
+  }).catch(() => {});
+  wzRenderThemes(); wzSyncLang(); wzRenderRl(); wzShow();
+  document.getElementById('wizard-overlay').style.display = 'flex';
+}
+function wzShow() {
+  document.querySelectorAll('#wizard-overlay .wz-step').forEach(s => s.classList.toggle('on', +s.dataset.step === _wzStep));
+  document.querySelectorAll('#wz-steps i').forEach((d, i) => d.classList.toggle('on', i < _wzStep));
+  document.getElementById('wz-prev').style.visibility = _wzStep > 1 ? 'visible' : 'hidden';
+  document.getElementById('wz-skip').style.visibility = _wzStep < WZ_N ? 'visible' : 'hidden';
+  document.getElementById('wz-next').textContent = _wzStep < WZ_N ? 'Suivant →' : 'Terminer ✓';
+}
+async function wzGo(d) {
+  if (d > 0 && _wzStep === 4) await wzSaveTeams();
+  if (d > 0 && _wzStep === WZ_N) return closeWizard();
+  _wzStep = Math.min(WZ_N, Math.max(1, _wzStep + d));
+  wzShow();
+}
+function wzLang(l) { setUiLang(l); setTimeout(wzSyncLang, 50); }
+function wzSyncLang() {
+  const l = window.I18N ? I18N.lang : 'fr';
+  document.querySelectorAll('.wz-langs button').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+}
+function wzRenderRl() {
+  const box = document.getElementById('wz-rl'); if (!box) return;
+  box.classList.toggle('ok', _rlConnected);
+  document.getElementById('wz-rl-txt').textContent = _rlConnected ? 'Rocket League est connecté !' : 'En attente de Rocket League…';
+}
+/* équipes : enregistrées comme depuis le menu Équipes (champs du panneau mis à jour) */
+async function wzSaveTeams() {
+  const league = document.getElementById('wz-league').value.trim();
+  const blue = document.getElementById('wz-blue').value.trim(), orange = document.getElementById('wz-orange').value.trim();
+  const bestOf = +document.getElementById('wz-bo').value;
+  await post('/api/settings', { league, blue: { name: blue }, orange: { name: orange }, bestOf }).catch(() => {});
+  document.getElementById('league-input').value = league;
+  document.getElementById('blue-name').value = blue;
+  document.getElementById('orange-name').value = orange;
+  document.getElementById('s-bo').value = String(bestOf);
+  try { renderSeriesDots(); } catch {}
+}
+/* thèmes : ceux de la carte Thèmes (intégrés et importés), avec leurs noms affichés */
+function wzRenderThemes() {
+  const wrap = document.getElementById('wz-themes');
+  const cards = [...document.querySelectorAll('.tc[data-t]')];
+  wrap.innerHTML = '';
+  cards.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = (c.querySelector('.tc-name') || c).textContent.trim();
+    b.classList.toggle('on', c.classList.contains('active'));
+    b.onclick = () => { setTheme(c.dataset.t); wrap.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+    wrap.appendChild(b);
+  });
+}
+function closeWizard() {
+  document.getElementById('wizard-overlay').style.display = 'none';
+  post('/api/onboarding', { done: true }).catch(() => {});
+}
+fetch('/api/settings').then(r => r.json()).then(s => { if (s.onboardingDone === false) setTimeout(openWizard, 400); }).catch(() => {});
+
+/* ══════════ SAUVEGARDE DES RÉGLAGES ══════════ */
+function loadBackupInfo() {
+  fetch('/api/backup/info').then(r => r.json()).then(i => {
+    const mo = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' Mo' : Math.ceil(b / 1024) + ' Ko';
+    document.getElementById('bk-media-n').textContent = i.media ? `(${i.media} · ${mo(i.mediaBytes)})` : '(aucun)';
+    document.getElementById('bk-themes-n').textContent = i.themes.length ? `(${i.themes.length})` : '(aucun)';
+  }).catch(() => {});
+}
+loadBackupInfo();
+function exportBackup() {
+  const q = ['logos', 'media', 'themes'].map(k => `${k}=${document.getElementById('bk-' + k).checked ? 1 : 0}`).join('&');
+  const a = document.createElement('a');
+  a.href = `/api/backup/export?${q}`; a.download = '';
+  document.body.appendChild(a); a.click(); a.remove();
+  fb('fb-backup', '✓ Sauvegarde créée');
+}
+async function importBackup(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!confirm('Restaurer cette sauvegarde ? Les réglages actuels (équipes, thème, bandeau, liens joueurs…) seront remplacés.')) return;
+  fb('fb-backup', 'Restauration…');
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const r = await fetch('/api/backup/import', { method: 'POST', body: fd }).then(r => r.json());
+    if (!r.ok) { fb('fb-backup', '⚠ ' + (r.error || 'Erreur'), true); return; }
+    fb('fb-backup', '✓ Sauvegarde restaurée — rechargement…');
+    setTimeout(() => location.reload(), 900);
+  } catch { fb('fb-backup', '✗ Erreur réseau', true); }
+}
+
+/* ══════════ VOTE DU CHAT TWITCH ══════════ */
+let _tw = null, _twEnd = 0, _twFilled = false;
+function twRender(p) {
+  if (p) _tw = p; p = _tw; if (!p) return;
+  const st = document.getElementById('tw-status');
+  st.classList.toggle('on', !!p.connected);
+  st.classList.toggle('err', !p.connected && !!p.error);
+  document.getElementById('tw-status-txt').textContent = p.connected ? `Connecté au chat de ${p.channel}` : p.error ? p.error : p.channel ? 'Connexion au chat…' : 'Aucune chaîne connectée';
+  const ch = document.getElementById('tw-channel');
+  if (document.activeElement !== ch && !ch.value) ch.value = p.channel || '';
+  if (!_twFilled && p.saved) {   // question et durée du dernier vote, remises au lancement
+    _twFilled = true;
+    document.getElementById('tw-title').value = p.saved.title;
+    document.getElementById('tw-dur').value = p.saved.duration;
+  }
+  document.getElementById('tw-tag-b').placeholder = p.tags[0];
+  document.getElementById('tw-tag-o').placeholder = p.tags[1];
+  const total = p.total || 0;
+  document.getElementById('tw-l-b').textContent = p.tags[0] + ' ' + (total ? Math.round(p.counts[0] * 100 / total) : 50) + '%';
+  document.getElementById('tw-l-o').textContent = (total ? 100 - Math.round(p.counts[0] * 100 / total) : 50) + '% ' + p.tags[1];
+  document.getElementById('tw-l-bar-b').style.flexGrow = total ? p.counts[0] : 1;
+  document.getElementById('tw-l-bar-o').style.flexGrow = total ? p.counts[1] : 1;
+  document.getElementById('tw-l-cb').textContent = p.counts[0];
+  document.getElementById('tw-l-co').textContent = p.counts[1];
+  document.getElementById('tw-l-total').textContent = `${total} vote${total > 1 ? 's' : ''}`;
+  document.getElementById('tw-start').disabled = !p.connected || p.active;
+  document.getElementById('tw-stop').disabled = !p.active;
+  document.getElementById('tw-vis').textContent = p.visible ? 'Masquer' : 'Afficher';
+  document.getElementById('tw-vis').disabled = !(p.active || p.ended);
+  _twEnd = p.active ? Date.now() + (p.remaining || 0) : 0;
+  twTick();
+  twSyncBtn();
+}
+/* même nettoyage que le serveur : « twitch.tv/x », « https://www.twitch.tv/x », « @x » → « x » */
+const twClean = c => String(c || '').trim().toLowerCase().replace(/^(https?:\/\/)?(www\.|m\.)?twitch\.tv\//, '').replace(/^[#@]/, '').split(/[/?#\s]/)[0];
+/* chaîne liée et champ inchangé → « Déconnecter » ; sinon → « Connecter » */
+function twLinked() { const ch = document.getElementById('tw-channel'); return !!(_tw && _tw.channel && twClean(ch.value) === _tw.channel); }
+function twSyncBtn() {
+  const b = document.getElementById('tw-link'), linked = twLinked();
+  b.textContent = linked ? 'Déconnecter' : 'Connecter';
+  b.classList.toggle('btn-blue', !linked);
+  b.classList.toggle('btn-danger', linked);
+}
+function twLinkBtn() { if (twLinked()) twUnlink(); else twConnect(); }
+async function twUnlink() {
+  if (_tw && _tw.active && !confirm('Un vote est en cours : déconnecter la chaîne l\'arrête. Continuer ?')) return;
+  document.getElementById('tw-channel').value = '';
+  const r = await post('/api/twitch-poll', { channel: '' });
+  if (r.poll) twRender(r.poll);
+  fb('fb-twitch', '✓ Chaîne déconnectée');
+}
+function twTick() {
+  const el = document.getElementById('tw-l-time');
+  if (!_tw) return;
+  let txt = '';
+  if (_twEnd) { const s = Math.max(0, Math.ceil((_twEnd - Date.now()) / 1000)); txt = `⏱ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+  else if (_tw.ended) txt = 'Terminé';
+  if (el.textContent !== txt) el.textContent = txt;
+  const sum = _tw.active ? `En cours · ${txt.replace('⏱ ', '')}` : _tw.ended ? 'Terminé' : _tw.connected ? _tw.channel : '';
+  const s = document.getElementById('acc-sum-twitch'); if (s && s.textContent !== sum) s.textContent = sum;
+}
+setInterval(twTick, 500);
+fetch('/api/twitch-poll').then(r => r.json()).then(twRender).catch(() => {});
+async function twConnect() {
+  const channel = document.getElementById('tw-channel').value.trim();
+  const r = await post('/api/twitch-poll', { channel });
+  if (r.poll) { if (r.poll.channel) document.getElementById('tw-channel').value = r.poll.channel; twRender(r.poll); }
+  fb('fb-twitch', channel ? '✓ Chaîne enregistrée' : '✓ Chaîne retirée');
+}
+async function twStart() {
+  const body = {
+    action: 'start',
+    title: document.getElementById('tw-title').value,
+    duration: +document.getElementById('tw-dur').value || 60,
+    tags: [document.getElementById('tw-tag-b').value, document.getElementById('tw-tag-o').value],
+  };
+  const r = await post('/api/twitch-poll', body);
+  if (r.poll) twRender(r.poll);
+  fb('fb-twitch', r.ok ? '✓ Vote lancé' : '⚠ ' + (r.error || 'Erreur'), !r.ok);
+}
+async function twAction(action) { const r = await post('/api/twitch-poll', { action }); if (r.poll) twRender(r.poll); }
+
+/* ══════════ TIMEOUTS ══════════
+   Réglage dans la carte Série ; boutons TO de chaque équipe en haut du panneau (prendre / annuler) */
+let _to = { enabled: false, used: [false, false] }, _toLive = { team: -1, end: 0 }, _toLiveIv = null;
+function toRender(t) {
+  if (!t) return;
+  _to = { ...t, enabled: !!t.enabled, used: [!!(t.used && t.used[0]), !!(t.used && t.used[1])] };
+  document.getElementById('scoreline').classList.toggle('to-on', _to.enabled);
+  const tg = document.getElementById('to-toggle');
+  if (tg) tg.checked = _to.enabled;
+  /* options de l'écran et de la musique */
+  const o = document.getElementById('to-opts');
+  o.style.display = _to.enabled ? '' : 'none';
+  o.classList.toggle('no-screen', !_to.screen);
+  o.classList.toggle('no-music', !_to.music);
+  document.getElementById('to-screen-toggle').checked = !!_to.screen;
+  document.getElementById('to-music-toggle').checked = !!_to.music;
+  document.getElementById('to-duration').value = String(_to.duration || 120);
+  if (document.activeElement !== document.getElementById('to-volume')) document.getElementById('to-volume').value = _to.volume ?? 70;
+  document.getElementById('to-vol-val').textContent = (_to.volume ?? 70) + ' %';
+  const nm = document.getElementById('to-music-name');
+  nm.textContent = _to.musicFile ? '🎵 ' + (_to.musicName || _to.musicFile) : tr('Aucune musique choisie');
+  nm.classList.toggle('has', !!_to.musicFile);
+  document.getElementById('to-music-test').style.display = _to.musicFile ? '' : 'none';
+  document.getElementById('to-music-del').style.display = _to.musicFile ? '' : 'none';
+  /* écran de timeout en cours : compte à rebours sur le bouton de l'équipe */
+  _toLive = t.live ? { team: t.live.team, end: Date.now() + t.live.remaining } : { team: -1, end: 0 };
+  clearInterval(_toLiveIv);
+  if (t.live) _toLiveIv = setInterval(toLiveTick, 250);
+  toLiveTick();
+}
+function toLiveTick() {
+  const rem = Math.max(0, _toLive.end - Date.now());
+  [0, 1].forEach(i => {
+    const b = document.getElementById('sl-to-' + i), live = i === _toLive.team && rem > 0;
+    const s = Math.ceil(rem / 1000), txt = live ? `TO ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : 'TO';
+    b.classList.toggle('used', _to.used[i]);
+    b.classList.toggle('live', live);
+    const sp = b.querySelector('span');
+    if (sp.textContent !== txt) sp.textContent = txt;
+    b.title = tr(live ? 'Timeout en cours : clique pour le terminer maintenant' : _to.used[i] ? 'Timeout déjà pris : clique pour l\'annuler' : 'Clique quand l\'équipe prend son timeout');
+  });
+  if (_toLive.team >= 0 && rem <= 0) clearInterval(_toLiveIv);
+}
+const tr = s => (window.I18N ? window.I18N.tr(s) : s);
+async function toSet(body, okMsg) {
+  const r = await post('/api/timeouts', body).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.timeouts) toRender(r.timeouts);
+  if (r.error) fb('fb-series', '⚠ ' + r.error, true);
+  else if (okMsg) fb('fb-series', okMsg);
+  return r;
+}
+function toVolInput(v) {
+  document.getElementById('to-vol-val').textContent = v + ' %';
+  if (_toTest) _toTest.volume = Math.max(0, Math.min(1, v / 100));
+}
+async function toUploadMusic(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  fb('fb-series', 'Envoi de la musique…');
+  const fd = new FormData(); fd.append('music', f);
+  const r = await fetch('/api/timeout-music', { method: 'POST', body: fd }).then(x => x.json()).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.timeouts) toRender(r.timeouts);
+  if (r.error) fb('fb-series', '⚠ ' + r.error, true); else fb('fb-series', '✓ Musique enregistrée');
+}
+async function toRemoveMusic() {
+  if (!confirm('Retirer la musique du timeout ?')) return;
+  toTestStop();
+  toSet({ removeMusic: true }, '✓ Musique retirée');
+}
+/* écoute dans le panneau (au volume réglé) */
+let _toTest = null;
+function toTestStop() { if (_toTest) { _toTest.pause(); _toTest = null; } document.getElementById('to-music-test').textContent = '▶'; }
+function toTestMusic() {
+  if (_toTest) return toTestStop();
+  if (!_to.musicFile) return;
+  _toTest = new Audio(`/timeout/${encodeURIComponent(_to.musicFile)}?v=${_to.musicVer || 0}`);
+  _toTest.volume = Math.max(0, Math.min(1, (+document.getElementById('to-volume').value || 0) / 100));
+  _toTest.onended = toTestStop;
+  _toTest.play().catch(() => toTestStop());
+  document.getElementById('to-music-test').textContent = '■';
+}
+/* aperçu de l'écran dans le panneau (10 s, sans musique, rien sur le stream) */
+function toPreview() {
+  if (!_previewVisible) togglePreview();
+  setTimeout(() => {
+    const frame = document.getElementById('preview-frame');
+    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'preview-tos', team: 0, duration: _to.duration || 120 }, '*');
+  }, _previewVisible ? 50 : 800);
+}
+async function setTimeoutsEnabled(on) {
+  const r = await post('/api/timeouts', { enabled: !!on }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.timeouts) toRender(r.timeouts);
+  if (r.error) fb('fb-series', '⚠ ' + r.error, true);
+  else fb('fb-series', on ? '✓ Timeouts activés' : '✓ Timeouts désactivés');
+}
+async function toClick(team) {
+  if (!_to.enabled) return;
+  /* écran de timeout en cours pour cette équipe : le terminer maintenant (le timeout reste pris) */
+  if (_toLive.team === team && _toLive.end > Date.now()) {
+    if (!confirm('Terminer le timeout maintenant ? L\'écran disparaît et le match revient.')) return;
+    const r = await toSet({ stop: true });
+    if (!r.error) hFb('✓ Timeout terminé');
+    return;
+  }
+  const take = !_to.used[team];
+  if (!take && !confirm('Annuler le timeout de cette équipe ? Son icône revient sur l\'overlay.')) return;
+  const r = await post('/api/timeouts', { team, used: take }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.timeouts) toRender(r.timeouts);
+  const name = document.getElementById(team ? 'lp-orange' : 'lp-blue').textContent;
+  if (r.error) hFb('⚠ ' + r.error);
+  else hFb(take ? `⏸ Timeout : ${name}` : '✓ Timeout annulé');
+}
+fetch('/api/timeouts').then(r => r.json()).then(toRender).catch(() => {});
+
+/* ══════════ CLIPS DES BUTS ══════════
+   Connexion au WebSocket d'OBS (Replay Buffer), réglages, clips du match en cours */
+let _gc = null;
+const GC_STATUS = {
+  connecting: ['wait', 'Connexion à OBS…'],
+  down:       ['err',  'OBS injoignable'],
+  auth:       ['err',  'Mot de passe incorrect'],
+  nobuffer:   ['wait', 'Replay Buffer désactivé dans OBS'],
+  ok:         ['ok',   'Connecté à OBS · Replay Buffer actif'],
+};
+const GC_HELP = {
+  down: 'Lance OBS, puis active son serveur WebSocket : <b>Outils → Paramètres du serveur WebSocket</b> → coche <b>Activer le serveur WebSocket</b>.',
+  auth: 'Copie le mot de passe affiché dans OBS (<b>Outils → Paramètres du serveur WebSocket</b> → <b>Afficher les infos de connexion</b>), colle-le ci-dessous, puis <b>Connecter</b>.',
+  nobuffer: 'Dans OBS : <b>Paramètres → Sortie</b> → coche <b>Activer le Replay Buffer</b> (tampon de relecture), 20 s suffisent, puis <b>Appliquer</b>. L\'app le lance ensuite toute seule.',
+};
+const gcClock = c => { const s = Math.max(0, Math.round(c.clock || 0)); return `${c.ot ? '+' : ''}${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function gcRender(d) {
+  if (!d) return;
+  _gc = d;
+  document.getElementById('gc-toggle').checked = !!d.enabled;
+  document.getElementById('gc-opts').style.display = d.enabled ? '' : 'none';
+  const st = GC_STATUS[d.obs && d.obs.status] || ['', ''];
+  const box = document.getElementById('gc-status');
+  box.className = 'tw-status ' + st[0];
+  let label = d.obs && d.obs.status === 'auth' && !d.hasPassword ? 'Mot de passe requis' : st[1];
+  document.getElementById('gc-status-txt').textContent = tr(label) + (d.obs && d.obs.status === 'ok' && d.obs.version ? ` (OBS ${d.obs.version})` : '');
+  /* aide : réglage à faire dans OBS, ou format de clip que le navigateur d'OBS ne lit pas */
+  const help = document.getElementById('gc-help');
+  const warnFmt = (d.clips || []).some(c => c.warn === 'format'), warnPlay = (d.clips || []).some(c => c.warn === 'unplayable');
+  let h = GC_HELP[d.obs && d.obs.status] || '';
+  if (!h && (warnFmt || warnPlay)) h = warnPlay
+    ? 'L\'overlay n\'a pas pu lire un clip. Dans OBS : <b>Paramètres → Sortie → Enregistrement</b> → format <b>MP4</b> ou <b>MP4 hybride</b>, encodeur <b>H.264</b>.'
+    : 'Clip enregistré dans un format que l\'overlay risque de ne pas lire (MKV, FLV…). Dans OBS : <b>Paramètres → Sortie → Enregistrement</b> → format <b>MP4</b> ou <b>MP4 hybride</b>.';
+  help.innerHTML = h ? tr(h) : '';
+  help.classList.toggle('warn', !GC_HELP[d.obs && d.obs.status] && !!h);
+  const port = document.getElementById('gc-port');
+  if (document.activeElement !== port) port.value = d.port || 4455;
+  const pass = document.getElementById('gc-pass');
+  pass.placeholder = tr(d.hasPassword ? 'Mot de passe enregistré (•••)' : 'Mot de passe WebSocket');
+  document.getElementById('gc-scores').value = String(d.scoresSec || 10);
+  document.getElementById('gc-clip').value = String(d.clipSec || 8);
+  document.getElementById('gc-keep').checked = !!d.keep;
+  /* clips du match en cours */
+  const clips = d.clips || [], ready = clips.filter(c => c.status === 'ready').length;
+  document.getElementById('gc-count').textContent = clips.length
+    ? tr(`${ready} clip(s) prêt(s) sur ${clips.length} but(s) ce match`)
+    : tr('Aucun but enregistré pour ce match pour le moment.');
+  const list = document.getElementById('gc-list');
+  list.innerHTML = '';
+  clips.slice(-8).forEach(c => {
+    const row = document.createElement('div');
+    row.className = (c.team === 1 ? 'or' : 'bl') + (c.status === 'error' ? ' err' : c.status === 'ready' ? ' ok' : '');
+    const who = document.createElement('b'); who.textContent = `${c.n}. ${c.scorer && c.scorer !== 'Manual' ? c.scorer : (document.getElementById(c.team === 1 ? 'lp-orange' : 'lp-blue').textContent || '')}`;
+    const tm = document.createElement('span'); tm.textContent = gcClock(c);
+    const s = document.createElement('span'); s.className = 'gc-t';
+    s.textContent = c.status === 'ready' ? '✓ ' + tr('prêt') : c.status === 'error' ? '⚠ ' + tr(c.error || 'Erreur') : '⏳ ' + tr('enregistrement…');
+    row.append(who, tm, s);
+    list.appendChild(row);
+  });
+  const play = document.getElementById('gc-play');
+  play.textContent = tr(d.reel ? '■ Arrêter les clips' : '▶ Passer les clips');
+  play.disabled = !d.reel && !ready;
+}
+async function gcSet(body, okMsg) {
+  const r = await post('/api/goal-clips', body).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.goalClips) gcRender(r.goalClips);
+  if (r.error) fb('fb-gc', '⚠ ' + tr(r.error), true);
+  else if (okMsg) fb('fb-gc', okMsg);
+  return r;
+}
+async function gcSaveConn() {
+  const port = +document.getElementById('gc-port').value, passEl = document.getElementById('gc-pass');
+  const body = { port, reconnect: true };
+  if (passEl.value) body.password = passEl.value;
+  const r = await gcSet(body, '✓ Connexion à OBS…');
+  if (!r.error) passEl.value = '';
+}
+async function gcPlay() {
+  if (_gc && _gc.reel) return gcSet({ stop: true }, '✓ Clips arrêtés');
+  gcSet({ play: true }, '▶ Clips lancés sur le stream');
+}
+/* aperçu dans le panneau (rien sur le stream) */
+function gcPreview() {
+  if (!_previewVisible) togglePreview();
+  setTimeout(() => {
+    const frame = document.getElementById('preview-frame');
+    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'preview-gcr' }, '*');
+  }, _previewVisible ? 50 : 800);
+}
+fetch('/api/goal-clips').then(r => r.json()).then(gcRender).catch(() => {});
+
+/* ══════════ SALLE DE CONTRÔLE À DISTANCE ══════════ */
+function remoteRender(r) {
+  if (!r) return;
+  document.getElementById('rm-closed').style.display = r.open ? 'none' : '';
+  document.getElementById('rm-open').style.display = r.open ? '' : 'none';
+  document.getElementById('rm-url').textContent = r.url || '';
+  const st = document.getElementById('rm-status');
+  st.classList.toggle('on', !!r.guestOnline);
+  st.classList.toggle('err', !!r.error);
+  document.getElementById('rm-status-txt').textContent = r.error || (r.guestOnline ? 'Ton ami est connecté à la salle' : 'En attente de ton ami (envoie-lui le lien et le code)');
+  _rmCode = r.code || ''; rmCodeDraw();
+  const hm = t => new Date(t).toLocaleTimeString(window.I18N && I18N.lang === 'en' ? 'en-GB' : 'fr-FR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('rm-log').innerHTML = (r.log || []).slice().reverse().map(l => l.type === 'badCode'
+    ? `<div class="err">${hm(l.at)} · <b>🔒</b> <span>${l.text}</span></div>`
+    : `<div class="${l.ok ? '' : 'err'}">${hm(l.at)} · <b>${l.ok ? '🎮' : '⚠'}</b> <span>Ton ami ${l.text}</span>${l.ok ? '' : ' — <span>' + String(l.error || '').replace(/[<>&]/g, '') + '</span>'}</div>`).join('');
+  if (!r.open && r.error) { const f = document.getElementById('fb-remote'); f.textContent = '⚠ ' + r.error; f.style.color = '#f87171'; f.style.opacity = '1'; }
+}
+/* code de sécurité : masqué par défaut (panneau visible en stream / partage d'écran), copiable sans l'afficher */
+let _rmCode = '', _rmCodeShown = false;
+function rmCodeDraw() {
+  document.getElementById('rm-code').textContent = !_rmCode ? '—' : _rmCodeShown ? _rmCode.slice(0, 3) + ' ' + _rmCode.slice(3) : '••• •••';
+  document.getElementById('rm-code-eye').textContent = _rmCodeShown ? 'Masquer' : 'Afficher';
+}
+function rmCodeToggle() { _rmCodeShown = !_rmCodeShown; rmCodeDraw(); }
+function rmCodeCopy(btn) {
+  if (!_rmCode) return;
+  navigator.clipboard.writeText(_rmCode).then(() => { const t = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = t, 1800); });
+}
+async function remoteAction(action) {
+  if (action === 'close' && !confirm('Fermer la salle ? Ton ami ne pourra plus contrôler l\'overlay.')) return;
+  if (action === 'rotate' && !confirm('Créer un nouveau lien et un nouveau code ? L\'ancien lien ne marchera plus.')) return;
+  if (action === 'code' && !confirm('Créer un nouveau code de sécurité ? Ton ami devra entrer le nouveau code pour continuer.')) return;
+  fb('fb-remote', action === 'close' ? 'Fermeture…' : action === 'code' ? 'Nouveau code…' : 'Ouverture de la salle…');
+  const r = await post('/api/remote', { action }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.remote) remoteRender(r.remote);
+  if (r.error) fb('fb-remote', '⚠ ' + r.error, true);
+  else fb('fb-remote', action === 'close' ? '✓ Salle fermée' : action === 'rotate' ? '✓ Nouveau lien et nouveau code créés'
+    : action === 'code' ? '✓ Nouveau code créé : donne-le à ton ami' : '✓ Salle ouverte : envoie le lien et le code à ton ami');
+}
+fetch('/api/remote').then(r => r.json()).then(remoteRender).catch(() => {});
+/* changement fait à distance : champs du panneau remis à jour */
+function refreshFromRemote(type) {
+  fetch('/api/settings').then(r => r.json()).then(s => {
+    if (type === 'teams' || type === 'swap') {
+      document.getElementById('league-input').value = s.league || '';
+      document.getElementById('blue-name').value    = (s.blue && s.blue.name) || '';
+      document.getElementById('orange-name').value  = (s.orange && s.orange.name) || '';
+      document.getElementById('blue-tag').value     = (s.blue && s.blue.tag) || '';
+      document.getElementById('orange-tag').value   = (s.orange && s.orange.tag) || '';
+    }
+    if (type === 'swap' && s.teams) ['bleu', 'orange'].forEach((side, i) => {
+      const img = document.querySelector(`#prev-${side} img`); if (img) img.dataset.url = '';
+      setLogoPreview(side, s.teams[i].logo_url);
+    });
+    if (type === 'video' || type === 'videoHideEmpty') {
+      document.getElementById('player-video-toggle').checked = !!s.playerVideoEnabled;
+      document.getElementById('player-video-hide-empty').checked = !!s.playerVideoHideEmpty;
+    }
+    if (type === 'theme' && s.theme) {
+      document.body.setAttribute('data-theme', s.theme === 'rlcs' ? '' : s.theme);
+      document.querySelectorAll('.tc').forEach(el => el.classList.toggle('active', el.dataset.t === s.theme));
+      try { localStorage.setItem('rl-theme', s.theme); } catch {}
+    }
+  }).catch(() => {});
+}
+function twToggleVisible() { twAction(_tw && _tw.visible ? 'hide' : 'show'); }
+
 ws.onmessage = e => {
   const { type, data } = JSON.parse(e.data);
   if (type === 'lang_change') { if (window.I18N && data && data.lang) I18N.setLang(data.lang); return; }
+  if (type === 'reload_all') { location.reload(); return; }
+  if (type === 'twitch_poll') { twRender(data); return; }
+  if (type === 'remote_room') { remoteRender(data); return; }
+  if (type === 'timeouts') { toRender(data); return; }
+  if (type === 'goal_clips') { gcRender(data); return; }
+  if (type === 'remote_change') {
+    if (data.ok) { hFb('🎮 ' + ({ teams: 'Équipes modifiées à distance', series: 'Série modifiée à distance', swap: 'Équipes inversées à distance', logo: 'Logo changé à distance', logoDelete: 'Logo retiré à distance', theme: 'Thème changé à distance', timeout: 'Timeout géré à distance' }[data.type] || 'Modifié à distance')); refreshFromRemote(data.type); }
+    return;
+  }
+  /* Rocket League connecté (Stats API) : voyant de l'assistant de démarrage */
+  if (type === 'sos_connected' || type === 'sos_disconnected' || ((type === 'init' || type === 'update_state') && data && 'connected' in data)) {
+    const c = type === 'sos_connected' ? true : type === 'sos_disconnected' ? false : !!data.connected;
+    if (c !== _rlConnected) { _rlConnected = c; wzRenderRl(); }
+  }
   if (type === 'init' || type === 'update_state') {
     document.getElementById('lp-sb').textContent     = data.game.teams[0].score;
     document.getElementById('lp-so').textContent     = data.game.teams[1].score;
@@ -2312,7 +3124,7 @@ async function applyTeams() {
 }
 async function applySeries() { await post('/api/series',{blue:parseInt(document.getElementById('s-blue').value),orange:parseInt(document.getElementById('s-orange').value),bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Série mise à jour'); }
 async function resetSeries() { document.getElementById('s-blue').value=document.getElementById('s-orange').value=0; renderSeriesDots(); await post('/api/series',{blue:0,orange:0,bestOf:parseInt(document.getElementById('s-bo').value)}); fb('fb-series','✓ Reset'); }
-function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling; btn.textContent='✓'; setTimeout(()=>btn.textContent='Copy',1800); }); }
+function copy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ const btn=document.querySelector(`#${id}`).nextElementSibling, old=btn.textContent; if (old==='✓') return; btn.textContent='✓'; setTimeout(()=>btn.textContent=old,1800); }); }
 async function trigGoal(team) { await post('/api/goal',{team}); hFb('⚽ But !'); }
 async function adjScore(team,delta) { const id=team===0?'lp-sb':'lp-so'; const val=Math.max(0,parseInt(document.getElementById(id).textContent)+delta); await post('/api/score',team===0?{blue:val}:{orange:val}); hFb('Score mis à jour'); }
 async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await post('/api/reset',{}); }
@@ -2450,7 +3262,7 @@ function closeChangelogModal() {
   if (!submitted) scheduleAutoReviewPopup();
 })();
 
-function fb(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
+function fb(id,msg,err) { const el=document.getElementById(id); el.textContent=msg; el.style.color=err?'#f87171':''; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2600); }
 function hFb(msg) { const el=document.getElementById('hdr-fb'); el.textContent=msg; el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',2200); }
 async function post(path,body) { return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()); }
 

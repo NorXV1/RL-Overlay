@@ -1067,3 +1067,52 @@
 [data-theme="fifa-world-cup"] .end-bar-track { background: rgba(255,255,255,.05); border-radius: 4px; }
 [data-theme="fifa-world-cup"] .end-bf.b { background: linear-gradient(90deg, #0a2483, #1e63dc); }
 [data-theme="fifa-world-cup"] .end-bf.o { background: linear-gradient(90deg, #f3702b, #ffaa3c); }
+
+/* ══════════════════════════════════════════════════════════
+   TIMEOUTS — icône hexagonale blanche de part et d'autre de la pilule
+   (le top-bar prend la largeur du scoreboard pour que les icônes suivent ses bords)
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #top-bar { width: max-content; }
+[data-theme="fifa-world-cup"] .to-pip { width: 32px; height: 27px; top: 14.5px; --to-bg: #ffffff; filter: drop-shadow(0 3px 8px rgba(0,0,0,.45)); }
+[data-theme="fifa-world-cup"] .to-pip.blue   { --to-c: #1e63dc; left: -42px; }
+[data-theme="fifa-world-cup"] .to-pip.orange { --to-c: #f3702b; right: -42px; }
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — fond bleu nuit du thème, pilule blanche de l'équipe, chrono dans la pilule or
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #to-screen { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; font-style: italic; --to-c: #1e63dc; --to-cl: #6f9cf0; }
+[data-theme="fifa-world-cup"] #to-screen.orange { --to-c: #f3702b; --to-cl: #ffaa3c; }
+[data-theme="fifa-world-cup"] #tos-bg { background: radial-gradient(ellipse 60% 50% at 50% 40%, color-mix(in srgb, var(--to-c) 32%, transparent), transparent 72%), linear-gradient(160deg, #04080e 0%, #0d1f60 50%, #04080e 100%); }
+[data-theme="fifa-world-cup"] #tos-bg::after { opacity: .05; }
+[data-theme="fifa-world-cup"] #tos-league { color: #fdb746; letter-spacing: 6px; }
+[data-theme="fifa-world-cup"] #tos-word { letter-spacing: 8px; padding: 0 0 .08em 8px; }
+[data-theme="fifa-world-cup"] #tos-sub { color: #fdb746; }
+[data-theme="fifa-world-cup"] #tos-team { background: #fff; border: none; border-radius: 70px; padding: 10px 54px 10px 10px; box-shadow: 0 10px 36px rgba(0,0,0,.5); }
+[data-theme="fifa-world-cup"] #tos-logo { border-radius: 50%; color: #fff; }
+[data-theme="fifa-world-cup"] #to-screen.blue   #tos-logo { background: linear-gradient(135deg, #0a2483, #1e63dc); }
+[data-theme="fifa-world-cup"] #to-screen.orange #tos-logo { background: linear-gradient(135deg, #f3702b, #ffaa3c); }
+[data-theme="fifa-world-cup"] #tos-name { color: #07091a; padding-bottom: .1em; }
+[data-theme="fifa-world-cup"] #tos-timer { background: #fdb746; color: #07091a; border-radius: 80px; padding: 6px 64px .2em; }
+[data-theme="fifa-world-cup"] #tos-bar { background: rgba(255,255,255,.16); }
+[data-theme="fifa-world-cup"] #tos-bar i { background: #fdb746; }
+
+/* ══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — carte d'ouverture sur le fond bleu nuit, logos ronds aux couleurs des équipes,
+   score final dans la pilule or, Bourgeois italique (clips tels qu'enregistrés)
+══════════════════════════════════════════════════════════ */
+[data-theme="fifa-world-cup"] #gc-reel { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; font-style: italic; --gc-c: #1e63dc; --gc-cl: #6f9cf0; }
+[data-theme="fifa-world-cup"] #gc-reel.orange { --gc-c: #f3702b; --gc-cl: #ffaa3c; }
+[data-theme="fifa-world-cup"] #gcr-intro {
+  background:
+    radial-gradient(ellipse 50% 45% at 30% 45%, rgba(30,99,220,.32), transparent 72%),
+    radial-gradient(ellipse 50% 45% at 70% 45%, rgba(243,112,43,.3), transparent 72%),
+    linear-gradient(160deg, #04080e 0%, #0d1f60 50%, #04080e 100%);
+}
+[data-theme="fifa-world-cup"] #gcr-league, [data-theme="fifa-world-cup"] #gcr-sub { color: #fdb746; }
+[data-theme="fifa-world-cup"] #gcr-word { letter-spacing: 8px; padding: 0 0 .08em 8px; }
+[data-theme="fifa-world-cup"] .gcr-flogo { border-radius: 50%; }
+[data-theme="fifa-world-cup"] .gcr-fteam.bl .gcr-flogo { background: linear-gradient(135deg, #0a2483, #1e63dc); }
+[data-theme="fifa-world-cup"] .gcr-fteam.or .gcr-flogo { background: linear-gradient(135deg, #f3702b, #ffaa3c); }
+[data-theme="fifa-world-cup"] .gcr-fteam.bl .gcr-fname { color: #6f9cf0; }
+[data-theme="fifa-world-cup"] .gcr-fteam.or .gcr-fname { color: #ffaa3c; }
+[data-theme="fifa-world-cup"] #gcr-fscore { background: #fdb746; color: #07091a; border-radius: 80px; padding: 0 50px .08em; }
+[data-theme="fifa-world-cup"] #gcr-fscore i { color: rgba(7,9,26,.4); }

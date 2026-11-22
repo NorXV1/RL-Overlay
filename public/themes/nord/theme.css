@@ -15,3 +15,19 @@
   --end-mid-bg:  #1e2430;
   --end-tbl-bg:  #1e2430;
 }
+
+/* ── Timeouts : icône hexagonale (orange de l'équipe, pas le jaune « light » de Nord) ── */
+[data-theme="nord"] .to-pip.orange { --to-c: var(--orange); }
+[data-theme="nord"] .to-pip { --to-bg: rgba(46,52,64,.85); filter: none; }
+/* ── Écran de timeout : fond ardoise, tons doux, sans halo ── */
+[data-theme="nord"] #to-screen { --tos-bg: #2e3440; color: #eceff4; }
+[data-theme="nord"] #to-screen.orange { --to-cl: var(--orange); }
+[data-theme="nord"] #tos-bg { background: radial-gradient(ellipse 65% 55% at 50% 40%, color-mix(in srgb, var(--to-c) 26%, transparent), transparent 72%), #2e3440; }
+[data-theme="nord"] #tos-bg::after { opacity: .05; }
+[data-theme="nord"] #tos-icon { filter: none; }
+[data-theme="nord"] #tos-team { background: rgba(236,239,244,.06); border-radius: 18px; }
+
+/* ══ CLIPS DES BUTS — carte d'ouverture aux couleurs Nord (clips tels qu'enregistrés) ══ */
+[data-theme="nord"] #gc-reel { color: #eceff4; }
+[data-theme="nord"] #gcr-intro { --gcr-bg: #2e3440; }
+[data-theme="nord"] .gcr-flogo { border-radius: 18px; background: rgba(236,239,244,.06); }

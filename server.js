@@ -127,6 +127,27 @@ function applySettings() {
 }
 
 const app = express();
+/* ── Requêtes venant d'un autre site : refusées ──
+   L'API locale et le flux en direct (WebSocket) ne servent qu'aux pages de l'app elle-même (panneau, overlay OBS,
+   Studio, pages de vote / scores — même adresse) et aux programmes du PC (pas d'en-tête Origin). Une page web
+   ouverte ailleurs (un site dans le navigateur, ou une page chargée dans l'overlay par un lien vidéo) ne peut ni
+   envoyer de fichier, ni modifier les réglages, ni écouter le flux (qui contient le lien et le code de la salle
+   de contrôle). L'adresse doit être locale ou du réseau privé : un nom de domaine public qui pointerait vers le
+   PC (« DNS rebinding ») est refusé. */
+const PRIVATE_HOST_RE = /^(localhost|127(?:\.\d{1,3}){3}|\[::1\]|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|[a-z0-9-]+(?:\.local)?)(?::\d+)?$/i;
+function sameOriginOk(origin, host) {
+  if (!origin) return true;                                  // programme du PC (pas une page web)
+  if (!host || !PRIVATE_HOST_RE.test(String(host))) return false;
+  try {
+    const o = new URL(origin);
+    return (o.protocol === 'http:' || o.protocol === 'https:') && o.host.toLowerCase() === String(host).toLowerCase();
+  } catch { return false; }                                  // « null » (iframe isolée, fichier local…) : refusé
+}
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  if (sameOriginOk(req.headers.origin, req.headers.host)) return next();
+  res.status(403).json({ error: 'Accès refusé : requête venant d\'un autre site' });
+});
 app.use(['/logos', '/utils'], (_req, res, next) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   next();
@@ -172,7 +193,8 @@ const upload = multer({
 });
 
 const server = http.createServer(app);
-const overlayWss = new WebSocket.Server({ server });
+/* flux en direct : seulement pour les pages de l'app (voir sameOriginOk) */
+const overlayWss = new WebSocket.Server({ server, verifyClient: info => sameOriginOk(info.origin, info.req.headers.host) });
 
 let statsApiClient       = null;
 let gameState            = createDefaultState();
@@ -210,6 +232,7 @@ function flushGoalBroadcast() {
   if (!pendingGoalBroadcast) return;
   broadcast('goal_scored', pendingGoalBroadcast);
   pendingGoalBroadcast = null;
+  gcGoalShown();   // clip du but : coupé avant l'animation REPLAY qui suit
 }
 
 function createDefaultState() {
@@ -339,6 +362,7 @@ function handleStatsApiMessage(msg) {
         ballSpeed: spd, teams: gameState.game.teams, ts: Date.now()
       };
       pendingGoalTimer = setTimeout(flushGoalBroadcast, 300);
+      gcOnGoal({ team: sc.TeamNum, scorer: sc.Name, assister: as.Name, speed: spd });   // clip du but (OBS)
       break;
     }
 
@@ -357,6 +381,7 @@ function handleStatsApiMessage(msg) {
         const player = Object.values(gameState.game.players).find(p => p.name === mt.Name);
         // Ne pas incrémenter ici — UpdateState de l'API fournit les vrais chiffres
         if (type === 'assist') {
+          gcAssist(mt.Name);
           if (pendingGoalBroadcast && Date.now() - pendingGoalBroadcast.ts < 4000) {
             clearTimeout(pendingGoalTimer);
             pendingGoalBroadcast.assister = mt.Name || '';
@@ -380,6 +405,7 @@ function handleStatsApiMessage(msg) {
       specOverride = null; roundGoalBroadcast = false;
       gameState.specMode = 'auto'; gameState.hasGame = true;
       gameState.game.players = {};
+      gcNewMatch();   // clips des buts du match précédent effacés
       /* nouveau match : on oublie les noms détectés du match précédent */
       gameTeamNames = ['', ''];
       refreshTeamName(0); refreshTeamName(1);
@@ -411,6 +437,8 @@ function handleStatsApiMessage(msg) {
       if (counts && winner === 1) { gameState.series.orange++;  settings.series = { ...(settings.series||{}), orange: gameState.series.orange }; saveSettings(); broadcast('series_update', gameState.series); }
       if (winner === 0 || winner === 1) {
         broadcast('game_end_stats', { winner, teams: gameState.game.teams, series: gameState.series, players: gameState.game.players });
+        recordGameResult(winner, counts);   // historique de la série (page des scores)
+        gcOnMatchEnd();                     // scores, puis clips des buts
       }
       broadcast('match_ended', { winner });
       break;
@@ -501,6 +529,10 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'boost_visible',   data: { visible: boostVisible } }));
   ws.send(JSON.stringify({ type: 'player_video_toggle', data: { enabled: settings.playerVideoEnabled, hideEmpty: settings.playerVideoHideEmpty } }));
   ws.send(JSON.stringify({ type: 'animations_settings', data: settings.animations }));
+  ws.send(JSON.stringify({ type: 'twitch_poll', data: pollPayload() }));
+  ws.send(JSON.stringify({ type: 'timeouts', data: timeoutsState() }));
+  ws.send(JSON.stringify({ type: 'goal_clips', data: gcState() }));
+  ws.send(JSON.stringify({ type: 'remote_room', data: remotePayload() }));
   ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
   ws.send(JSON.stringify({ type: 'season', data: { season: currentSeason } }));
   ws.on('close', () => console.log('[Overlay] Client déconnecté'));
@@ -536,6 +568,7 @@ app.get('/api/state', (req, res) => res.json(gameState));
 
 app.get('/api/settings', (req, res) => res.json({
   ...settings,
+  goalClips: settings.goalClips ? { ...settings.goalClips, password: undefined } : undefined,   // mot de passe d'OBS : jamais renvoyé
   // Injecter les logo_url depuis le gameState (non stockés dans settings.json)
   teams: [
     { name: gameState.game.teams[0].name, logo_url: gameState.game.teams[0].logo_url || '' },
@@ -553,8 +586,10 @@ app.post('/api/settings', (req, res) => {
   if (orange?.tag  !== undefined) settings.orange = { ...(settings.orange || {}), tag: cleanTeamTag(orange.tag) };
   if (bestOf !== undefined)     settings.bestOf = bestOf;
   if (series !== undefined)     settings.series = series;
+  if (series && !series.blue && !series.orange) { settings.seriesHistory = []; resetTimeouts(); }
   saveSettings();
   applySettings();
+  broadcast('scores_update', scoresPayload());
   res.json({ ok: true });
 });
 
@@ -564,15 +599,19 @@ app.post('/api/upload-logo/:side', upload.single('logo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'no file' });
   const ext = path.extname(req.file.originalname).toLowerCase();
   if (!IMG_EXTS.has(ext)) return res.status(400).json({ error: 'invalid type' });
+  res.json({ ok: true, url: setTeamLogo(side, req.file.buffer, ext) });
+});
+/* logo d'équipe remplacé (panneau, salle de contrôle à distance) */
+function setTeamLogo(side, buffer, ext) {
   const dir = path.join(LOGOS_DIR, side);
   try { fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f))); } catch {}
-  fs.writeFileSync(path.join(dir, `logo${ext}`), req.file.buffer);
+  fs.writeFileSync(path.join(dir, `logo${ext}`), buffer);
   const url = findLogo(side);
   gameState.game.teams[side === 'bleu' ? 0 : 1].logo_url = url;
   broadcast('update_state', gameState);
   broadcast('logo_updated', { side, url });
-  res.json({ ok: true, url });
-});
+  return url;
+}
 
 app.post('/api/delete-logo/:side', (req, res) => {
   const side = req.params.side;
@@ -651,6 +690,8 @@ app.post('/api/swap-teams', (req, res) => {
   settings.blue   = { ...(settings.blue   || {}), name: m1, tag: t1 };
   settings.orange = { ...(settings.orange || {}), name: m0, tag: t0 };
   refreshTeamName(0); refreshTeamName(1);
+  /* le timeout déjà pris suit son équipe */
+  { const to = toCfg(); if (to.used[0] !== to.used[1]) { if (toLive) toLive.team = 1 - toLive.team; settings.timeouts = { ...to, used: [to.used[1], to.used[0]] }; timeoutsBroadcast(); } }
 
   const bleuDir   = path.join(LOGOS_DIR, 'bleu');
   const orangeDir = path.join(LOGOS_DIR, 'orange');
@@ -941,10 +982,447 @@ app.post('/api/series', (req, res) => {
   if (blue   !== undefined) { gameState.series.blue   = blue;   settings.series = { ...(settings.series||{}), blue }; }
   if (orange !== undefined) { gameState.series.orange = orange; settings.series = { ...(settings.series||{}), orange }; }
   if (bestOf !== undefined) { gameState.series.bestOf = bestOf; settings.bestOf = bestOf; }
+  /* série remise à 0 - 0 : nouvel historique de games, timeouts rendus */
+  if (!gameState.series.blue && !gameState.series.orange) { settings.seriesHistory = []; resetTimeouts(); }
   saveSettings();
   broadcast('series_update', gameState.series);
+  broadcast('scores_update', scoresPayload());
   res.json({ ok: true });
 });
+
+/* ═══════════════════════════════════════════════════════════
+   TIMEOUTS — pause tactique, comme en RLCS
+   Un timeout par équipe et par série. Tant qu'il est disponible, l'overlay montre une icône pause côté
+   équipe ; quand l'équipe le prend (bouton TO du panneau ou salle de contrôle), l'icône clignote puis
+   disparaît. Désactivable (réglage « Timeouts »). Rendus quand la série repart à 0 - 0, inversés avec les équipes.
+   Écran de timeout (désactivable) : image plein écran aux couleurs du thème avec le compte à rebours
+   (durée réglable, 2 min par défaut) — le serveur tient le temps ; à 0, l'overlay revient au match.
+   Musique (désactivable) : fichier choisi dans le panneau (public/timeout/), jouée par l'overlay OBS
+   pendant l'écran, avec un fondu à la fin. Non livrée avec l'app : chacun met la sienne.
+═══════════════════════════════════════════════════════════ */
+const TIMEOUT_DIR = path.join(__dirname, 'public', 'timeout');
+fs.mkdirSync(TIMEOUT_DIR, { recursive: true });
+const AUDIO_EXTS = new Set(['.mp3', '.ogg', '.oga', '.wav', '.m4a', '.aac', '.flac', '.opus', '.webm']);
+const TO_DURATIONS = [30, 60, 90, 120, 150, 180, 240, 300];
+let toLive = null, toLiveT = null;   // écran en cours : { team, duration, endsAt }
+
+/* réglages enregistrés (settings.timeouts) */
+function toCfg() {
+  const t = settings.timeouts || {}, u = Array.isArray(t.used) ? t.used : [];
+  return {
+    enabled: !!t.enabled, used: [!!u[0], !!u[1]],
+    screen: t.screen !== false, duration: TO_DURATIONS.includes(+t.duration) ? +t.duration : 120,
+    music: t.music !== false, volume: Number.isFinite(+t.volume) && t.volume !== '' && t.volume != null ? Math.max(0, Math.min(100, Math.round(+t.volume))) : 70,
+    musicFile: typeof t.musicFile === 'string' ? path.basename(t.musicFile) : '', musicName: typeof t.musicName === 'string' ? t.musicName : '',
+  };
+}
+/* état envoyé au panneau, à l'overlay et à la salle : réglages + musique présente + écran en cours (temps restant) */
+function timeoutsState() {
+  const c = toCfg();
+  let musicVer = 0;
+  if (c.musicFile) { try { musicVer = Math.round(fs.statSync(path.join(TIMEOUT_DIR, c.musicFile)).mtimeMs); } catch { c.musicFile = ''; c.musicName = ''; } }
+  return { ...c, musicVer, live: toLive ? { team: toLive.team, duration: toLive.duration, remaining: Math.max(0, toLive.endsAt - Date.now()) } : null };
+}
+/* announce : équipe qui vient de prendre son timeout (son icône clignote) */
+function timeoutsBroadcast(announce) {
+  broadcast('timeouts', { ...timeoutsState(), ...(announce === 0 || announce === 1 ? { announce } : {}) });
+  remoteSchedulePush();   // page de la salle de contrôle à jour
+}
+function toStopScreen() { clearTimeout(toLiveT); toLiveT = null; const was = !!toLive; toLive = null; return was; }
+function toStartScreen(team) {
+  const c = toCfg();
+  toStopScreen();
+  if (!c.screen) return;
+  gcStopReel();   // clips des buts en cours : l'écran de timeout passe devant (les clips s'arrêtent)
+  toLive = { team, duration: c.duration, endsAt: Date.now() + c.duration * 1000 };
+  toLiveT = setTimeout(() => { toLive = null; toLiveT = null; timeoutsBroadcast(); }, c.duration * 1000);
+}
+function resetTimeouts() {
+  const t = toCfg();
+  if (!t.used[0] && !t.used[1] && !toLive) return;
+  toStopScreen();
+  settings.timeouts = { ...t, used: [false, false] };
+  timeoutsBroadcast();
+}
+app.get('/api/timeouts', (req, res) => res.json(timeoutsState()));
+/* { enabled } active / désactive · { team: 0|1, used: true|false } prend / rend le timeout d'une équipe · { reset: true } rend les deux
+   { screen, duration, music, volume } réglages de l'écran et de la musique · { stop: true } termine l'écran en cours
+   { removeMusic: true } retire la musique */
+app.post('/api/timeouts', (req, res) => {
+  const { enabled, team, used, reset, screen, duration, music, volume, stop, removeMusic } = req.body || {};
+  const t = toCfg();
+  let announce;
+  if (enabled !== undefined) { t.enabled = !!enabled; if (!t.enabled) toStopScreen(); }
+  if (screen !== undefined) { t.screen = !!screen; if (!t.screen) toStopScreen(); }
+  if (duration !== undefined) { if (!TO_DURATIONS.includes(+duration)) return res.status(400).json({ error: 'Durée invalide' }); t.duration = +duration; }
+  if (music !== undefined) t.music = !!music;
+  if (volume !== undefined && Number.isFinite(+volume)) t.volume = Math.max(0, Math.min(100, Math.round(+volume)));
+  if (removeMusic) { for (const f of fs.readdirSync(TIMEOUT_DIR)) try { fs.unlinkSync(path.join(TIMEOUT_DIR, f)); } catch {} t.musicFile = ''; t.musicName = ''; }
+  if (stop) toStopScreen();
+  if (reset) { t.used = [false, false]; toStopScreen(); }
+  if (team !== undefined) {
+    const i = Number(team);
+    if (i !== 0 && i !== 1) return res.status(400).json({ error: 'Équipe inconnue' });
+    if (!t.enabled) return res.status(400).json({ error: 'Les timeouts sont désactivés', timeouts: timeoutsState() });
+    const take = used !== false;
+    if (take && t.used[i]) return res.status(409).json({ error: 'Cette équipe a déjà pris son timeout', timeouts: timeoutsState() });
+    t.used[i] = take;
+    settings.timeouts = t;
+    if (take) { announce = i; toStartScreen(i); }
+    else if (toLive && toLive.team === i) toStopScreen();   // timeout annulé : son écran s'arrête
+  }
+  settings.timeouts = t; saveSettings();
+  timeoutsBroadcast(announce);
+  res.json({ ok: true, timeouts: timeoutsState() });
+});
+/* musique de l'écran de timeout : un seul fichier, remplacé à chaque envoi */
+const uploadAudio = multer({ storage: multer.memoryStorage(), limits: { fileSize: 40 * 1024 * 1024, files: 1 } });
+app.post('/api/timeout-music', (req, res) => uploadAudio.single('music')(req, res, err => {
+  if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Fichier trop lourd (40 Mo max)' : err.message });
+  const ext = path.extname((req.file && req.file.originalname) || '').toLowerCase();
+  if (!req.file || !AUDIO_EXTS.has(ext)) return res.status(400).json({ error: 'Fichier audio uniquement (mp3, ogg, wav, m4a, flac…)' });
+  for (const f of fs.readdirSync(TIMEOUT_DIR)) try { fs.unlinkSync(path.join(TIMEOUT_DIR, f)); } catch {}
+  const file = 'music' + ext;
+  fs.writeFileSync(path.join(TIMEOUT_DIR, file), req.file.buffer);
+  settings.timeouts = { ...toCfg(), musicFile: file, musicName: path.basename(req.file.originalname).slice(0, 120) };
+  saveSettings();
+  timeoutsBroadcast();
+  res.json({ ok: true, timeouts: timeoutsState() });
+}));
+
+/* ═══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — comme les RLCS
+   À chaque but, l'app demande à OBS d'enregistrer les dernières secondes (Replay Buffer, piloté par le
+   WebSocket d'OBS, intégré depuis OBS 28). À la fin du match : l'écran de fin (scores) reste 10 s, puis
+   l'overlay passe les clips des buts l'un après l'autre en plein écran (sans son, bandeau REPLAY aux
+   couleurs du thème), puis revient aux scores. Désactivable (réglage « Clips des buts »).
+   OBS doit tourner sur ce PC : l'app lit les fichiers enregistrés. Chaque clip est déplacé dans goal-clips/
+   et effacé au match suivant (« Garder une copie » : l'original reste aussi dans le dossier d'OBS).
+   Le serveur tient le temps (comme l'écran de timeout) : intro, puis chaque clip (transition + durée
+   réglable), puis sortie — découpage GC_REEL repris tel quel par l'overlay.
+═══════════════════════════════════════════════════════════ */
+const crypto = require('crypto');
+const GC_DIR = process.env.GOAL_CLIPS_DIR || path.join(__dirname, 'goal-clips');
+const GC_SCORES = [5, 10, 15, 20, 30];          // durée des scores avant les clips (s)
+const GC_CLIPS  = [5, 6, 8, 10, 12, 15];        // durée de chaque clip (s) — il s'arrête juste après le but
+/* Le clip est demandé à OBS 0,7 s après l'affichage du but par l'overlay : l'animation REPLAY de l'overlay
+   (et sa barre, ses caméras) démarre 1 s après cet affichage → elle n'apparaît jamais dans le clip (marge
+   d'environ 0,3 s, OBS n'enregistre que les images déjà capturées). Le début de l'explosion du but y est. */
+const GC_SAVE_AFTER_SHOWN = 700;
+const GC_SHOW_MAX_WAIT = 300;                   // l'affichage du but suit l'événement du jeu de 300 ms au plus (passe décisive attendue)
+const GC_REEL = { intro: 2200, trans: 700, outro: 900 };
+const GC_PLAYABLE = new Set(['.mp4', '.m4v', '.mov', '.webm']);   // lus par le navigateur d'OBS (MKV, FLV, TS : non)
+const GC_MAX = 30;                              // clips max par match
+const OBS_HOST = '127.0.0.1';
+try { fs.mkdirSync(GC_DIR, { recursive: true }); for (const f of fs.readdirSync(GC_DIR)) fs.rmSync(path.join(GC_DIR, f), { force: true }); } catch {}
+
+function gcCfg() {
+  const g = settings.goalClips || {};
+  return {
+    enabled: !!g.enabled,
+    port: Number.isInteger(+g.port) && +g.port > 0 && +g.port < 65536 ? +g.port : 4455,
+    password: typeof g.password === 'string' ? g.password : '',
+    scoresSec: GC_SCORES.includes(+g.scoresSec) ? +g.scoresSec : 10,
+    clipSec: GC_CLIPS.includes(+g.clipSec) ? +g.clipSec : 8,
+    keep: !!g.keep,
+  };
+}
+
+/* ── Client WebSocket d'OBS (protocole v5) ──
+   status : off · connecting · down (OBS fermé / WebSocket désactivé) · auth (mot de passe) ·
+   nobuffer (Replay Buffer désactivé dans les réglages d'OBS) · ok */
+const obs = { ws: null, ready: false, rb: false, startedRb: false, status: 'off', version: '', sig: '', seq: 0, reqs: new Map(), retryT: null, rbT: null, noPass: false };
+function obsStatus(status) { if (obs.status !== status) { obs.status = status; gcBroadcast(); } }
+function obsRetry(status, ms) {
+  obsStatus(status);
+  clearTimeout(obs.retryT);
+  if (gcCfg().enabled) obs.retryT = setTimeout(obsConnect, ms);
+}
+function obsDropReqs() { for (const r of obs.reqs.values()) { clearTimeout(r.t); r.ko(new Error('OBS déconnecté')); } obs.reqs.clear(); }
+function obsDisconnect() {
+  clearTimeout(obs.retryT); clearTimeout(obs.rbT);
+  const w = obs.ws;
+  obs.ws = null; obs.ready = false; obs.rb = false;
+  obsDropReqs();
+  if (w) try { w.terminate(); } catch {}
+}
+function obsConnect() {
+  const c = gcCfg();
+  clearTimeout(obs.retryT);
+  if (!c.enabled || obs.ws) return;
+  obs.sig = `${c.port}|${c.password}`;
+  let ws;
+  try { ws = new WebSocket(`ws://${OBS_HOST}:${c.port}`, { handshakeTimeout: 4000, maxPayload: 16 * 1024 * 1024 }); }
+  catch { return obsRetry('down', 5000); }
+  obs.ws = ws; obs.noPass = false;
+  if (obs.status !== 'ok') obsStatus('connecting');
+  ws.on('message', raw => {
+    if (obs.ws !== ws) return;
+    let m; try { m = JSON.parse(raw); } catch { return; }
+    const d = (m && m.d) || {};
+    if (m.op === 0) {                                   // Hello → Identify (+ mot de passe si demandé)
+      const id = { rpcVersion: 1, eventSubscriptions: 1 << 6 };   // événements « Outputs » (Replay Buffer)
+      const a = d.authentication;
+      if (a) {
+        if (!c.password) { obs.noPass = true; try { ws.close(); } catch {} return; }
+        const secret = crypto.createHash('sha256').update(c.password + a.salt).digest('base64');
+        id.authentication = crypto.createHash('sha256').update(secret + a.challenge).digest('base64');
+      }
+      ws.send(JSON.stringify({ op: 1, d: id }));
+    } else if (m.op === 2) { obs.ready = true; obsOnReady(); }
+    else if (m.op === 7) {
+      const r = obs.reqs.get(d.requestId);
+      if (!r) return;
+      obs.reqs.delete(d.requestId); clearTimeout(r.t);
+      const st = d.requestStatus || {};
+      if (st.result) r.ok(d.responseData || {}); else r.ko(Object.assign(new Error(st.comment || `OBS : erreur ${st.code}`), { code: st.code }));
+    } else if (m.op === 5) obsOnEvent(d.eventType, d.eventData || {});
+  });
+  ws.on('close', code => {
+    if (obs.ws !== ws) return;                          // ancienne connexion (réglages changés)
+    const wasReady = obs.ready;
+    obs.ws = null; obs.ready = false; obs.rb = false;
+    obsDropReqs(); clearTimeout(obs.rbT);
+    if (!gcCfg().enabled) return obsStatus('off');
+    if (code === 4009 || obs.noPass) return obsRetry('auth', 30000);   // mot de passe faux ou manquant
+    obsRetry('down', wasReady ? 2000 : 5000);
+  });
+  ws.on('error', () => {});                             // « close » suit toujours
+}
+function obsReq(requestType, requestData, ms = 5000) {
+  return new Promise((ok, ko) => {
+    if (!obs.ws || !obs.ready) return ko(new Error('OBS non connecté'));
+    const requestId = 'gc' + (++obs.seq);
+    const t = setTimeout(() => { obs.reqs.delete(requestId); ko(new Error('OBS ne répond pas')); }, ms);
+    obs.reqs.set(requestId, { ok, ko, t });
+    try { obs.ws.send(JSON.stringify({ op: 6, d: { requestType, requestId, requestData: requestData || {} } })); }
+    catch (e) { obs.reqs.delete(requestId); clearTimeout(t); ko(e); }
+  });
+}
+async function obsOnReady() {
+  try { obs.version = (await obsReq('GetVersion')).obsVersion || ''; } catch {}
+  obsEnsureRb();
+}
+/* Replay Buffer lancé par l'app s'il ne tourne pas ; désactivé dans les réglages d'OBS : on réessaie
+   toutes les 8 s (le temps que le streamer le coche dans OBS) */
+async function obsEnsureRb() {
+  clearTimeout(obs.rbT);
+  if (!obs.ready || !gcCfg().enabled) return;
+  try {
+    const s = await obsReq('GetReplayBufferStatus');
+    if (!s.outputActive) { await obsReq('StartReplayBuffer'); obs.startedRb = true; }
+    obs.rb = true; obsStatus('ok');
+  } catch (e) {
+    if (!obs.ready) return;
+    obs.rb = false; obsStatus('nobuffer');
+    obs.rbT = setTimeout(obsEnsureRb, 8000);
+  }
+}
+function obsOnEvent(type, d) {
+  if (type === 'ReplayBufferSaved') gcOnSaved(d.savedReplayPath);
+  else if (type === 'ReplayBufferStateChanged') {
+    if (d.outputState === 'OBS_WEBSOCKET_OUTPUT_STARTED') { obs.rb = true; obsStatus('ok'); }
+    else if (d.outputState === 'OBS_WEBSOCKET_OUTPUT_STOPPED') {
+      obs.rb = false;
+      /* arrêté dans OBS (ou réglages de sortie appliqués) : relancé tant que les clips sont activés */
+      if (gcCfg().enabled) { obsStatus('nobuffer'); clearTimeout(obs.rbT); obs.rbT = setTimeout(obsEnsureRb, 3000); }
+    }
+  }
+}
+
+/* ── Clips du match en cours ── */
+let gcClips = [];                  // dans l'ordre des buts
+const gcWaiting = [];              // clips demandés à OBS, en attente du fichier (dans l'ordre des demandes)
+let gcReel = null, gcReelT = null, gcEndT = null;
+const gcDrop = (arr, x) => { const i = arr.indexOf(x); if (i >= 0) arr.splice(i, 1); return i >= 0; };
+const gcPub = c => ({
+  id: c.id, n: c.n, team: c.team, scorer: c.scorer, assister: c.assister, speed: c.speed, clock: c.clock, ot: c.ot, score: c.score,
+  status: c.status, error: c.error || '', warn: c.warn || '', url: c.status === 'ready' ? `/goal-clips/${c.id}${c.ext}` : '',
+});
+const gcReelMs = (n, clipSec) => GC_REEL.intro + n * (GC_REEL.trans + clipSec * 1000) + GC_REEL.outro;
+function gcState() {
+  const c = gcCfg();
+  return {
+    enabled: c.enabled, port: c.port, hasPassword: !!c.password, scoresSec: c.scoresSec, clipSec: c.clipSec, keep: c.keep,
+    obs: { status: c.enabled ? obs.status : 'off', version: obs.version },
+    clips: gcClips.map(gcPub),
+    reel: gcReel ? { id: gcReel.id, startIn: gcReel.t0 - Date.now(), clipSec: gcReel.clipSec, clips: gcReel.clips, final: gcReel.final, ...GC_REEL } : null,
+  };
+}
+function gcBroadcast() { broadcast('goal_clips', gcState()); }
+function gcFail(clip, msg) { clip.status = 'error'; clip.error = msg; gcBroadcast(); }
+
+/* but marqué : le clip est demandé à OBS juste avant l'animation REPLAY de l'overlay.
+   g.shown = le but vient d'être affiché par l'overlay (sinon il le sera au plus tard 300 ms après) */
+function gcOnGoal(g) {
+  if (!gcCfg().enabled || gcClips.length >= GC_MAX) return;
+  const team = g.team === 0 || g.team === 1 ? g.team : -1;
+  const clip = {
+    id: crypto.randomBytes(8).toString('hex'), n: gcClips.length + 1, team,
+    scorer: String(g.scorer || '').slice(0, 40), assister: String(g.assister || '').slice(0, 40), speed: Math.max(0, Math.round(+g.speed || 0)),
+    clock: Math.max(0, Math.round(+gameState.game.time || 0)), ot: !!gameState.game.isOT, score: [0, 0],
+    status: 'pending', goalAt: Date.now(), before: gameState.game.teams.map(t => +t.score || 0),
+  };
+  gcClips.push(clip);
+  gcBroadcast();
+  clip.saveT = setTimeout(() => gcSave(clip), (g.shown ? 0 : GC_SHOW_MAX_WAIT) + GC_SAVE_AFTER_SHOWN);
+}
+/* but affiché par l'overlay (message goal_scored) : son animation REPLAY part 1 s plus tard → clip demandé à +0,7 s */
+function gcGoalShown() {
+  const c = gcClips[gcClips.length - 1];
+  if (!c || c.status !== 'pending' || c.reqAt || Date.now() - c.goalAt > 1500) return;
+  clearTimeout(c.saveT);
+  c.saveT = setTimeout(() => gcSave(c), GC_SAVE_AFTER_SHOWN);
+}
+/* passe décisive reçue juste après le but */
+function gcAssist(name) {
+  const c = gcClips[gcClips.length - 1];
+  if (c && !c.assister && name && name !== c.scorer && Date.now() - c.goalAt < 6000) { c.assister = String(name).slice(0, 40); gcBroadcast(); }
+}
+async function gcSave(clip) {
+  if (!gcClips.includes(clip) || clip.reqAt) return;         // nouveau match entre-temps / déjà demandé
+  clip.reqAt = Date.now();
+  const t = gameState.game.teams, cur = [+t[0].score || 0, +t[1].score || 0], b = clip.before;
+  /* équipe inconnue (envoi incomplet du jeu) : celle dont le score a bougé */
+  if (clip.team < 0) clip.team = cur[1] > b[1] ? 1 : 0;
+  /* score juste après CE but : celui du moment du but, +1 pour l'équipe s'il n'était pas encore compté
+     (un autre but marqué entre-temps ne fausse pas le clip), jamais en dessous du clip précédent */
+  const s = [b[0], b[1]];
+  if (cur[clip.team] > b[clip.team]) s[clip.team] = b[clip.team] + 1;
+  const prev = gcClips[gcClips.indexOf(clip) - 1];
+  if (prev && prev.score) { s[0] = Math.max(s[0], prev.score[0]); s[1] = Math.max(s[1], prev.score[1]); if (s[clip.team] <= prev.score[clip.team]) s[clip.team] = prev.score[clip.team] + 1; }
+  clip.score = s;
+  if (!obs.ready) return gcFail(clip, 'OBS non connecté');
+  if (!obs.rb) return gcFail(clip, 'Replay Buffer arrêté dans OBS');
+  gcWaiting.push(clip);
+  try { await obsReq('SaveReplayBuffer'); }
+  catch { gcDrop(gcWaiting, clip); return gcFail(clip, 'OBS n\'a pas pu enregistrer le clip'); }
+  /* pas de nouvelles d'OBS : on prend le dernier replay qu'il a enregistré */
+  clip.waitT = setTimeout(async () => {
+    if (!gcDrop(gcWaiting, clip)) return;
+    try {
+      const r = await obsReq('GetLastReplayBufferReplay');
+      if (r.savedReplayPath && !gcClips.some(x => x.src === r.savedReplayPath)) return gcAdopt(clip, r.savedReplayPath);
+    } catch {}
+    gcFail(clip, 'OBS n\'a pas renvoyé le clip');
+  }, 15000);
+}
+function gcOnSaved(src) {
+  const clip = gcWaiting.shift();
+  if (!clip) return;                                         // replay enregistré à la main dans OBS : pas pour nous
+  clearTimeout(clip.waitT);
+  gcAdopt(clip, src);
+}
+/* fichier d'OBS → goal-clips/ (déplacé, ou copié avec « Garder une copie ») */
+async function gcAdopt(clip, src) {
+  clip.src = src;
+  if (!gcClips.includes(clip)) return;
+  let ext = path.extname(String(src || '')).toLowerCase();
+  if (!/^\.[a-z0-9]{2,5}$/.test(ext)) ext = '.mp4';
+  const dest = path.join(GC_DIR, clip.id + ext);
+  try {
+    fs.mkdirSync(GC_DIR, { recursive: true });
+    if (gcCfg().keep) await fs.promises.copyFile(src, dest);
+    else {
+      try { await fs.promises.rename(src, dest); }
+      catch {                                                 // autre disque, ou fichier encore ouvert par OBS
+        await fs.promises.copyFile(src, dest);
+        const rm = n => fs.promises.unlink(src).catch(() => { if (n) setTimeout(() => rm(n - 1), 3000); });
+        rm(3);
+      }
+    }
+  } catch { return gcFail(clip, 'Fichier du clip introuvable'); }
+  if (!gcClips.includes(clip)) { fs.promises.unlink(dest).catch(() => {}); return; }
+  clip.file = dest; clip.ext = ext; clip.status = 'ready';
+  clip.warn = GC_PLAYABLE.has(ext) ? '' : 'format';
+  gcBroadcast();
+}
+
+/* ── Enchaînement de fin de match : scores → clips → scores ── */
+function gcOnMatchEnd() {
+  const c = gcCfg();
+  if (!c.enabled) return;
+  const ser = gameState.series, wins = Math.ceil((ser.bestOf || 0) / 2);
+  const seriesWon = !!ser.bestOf && (ser.blue >= wins || ser.orange >= wins);
+  clearTimeout(gcEndT);
+  /* l'overlay affiche l'écran de fin 1,2 s après la fin (5,5 s après l'écran de victoire de série) */
+  gcEndT = setTimeout(() => gcAutoStart(0), (seriesWon ? 5500 : 1200) + c.scoresSec * 1000);
+}
+function gcAutoStart(tries) {
+  gcEndT = null;
+  /* clip encore en cours d'enregistrement : on l'attend un peu · timeout en cours : clips après le timeout */
+  if ((gcClips.some(x => x.status === 'pending') && tries < 10) || (toLive && tries < 400)) { gcEndT = setTimeout(() => gcAutoStart(tries + 1), 1000); return; }
+  gcStartReel();
+}
+function gcStartReel() {
+  const ready = gcClips.filter(x => x.status === 'ready' && x.warn !== 'unplayable');   // clip que l'overlay n'a pas pu lire : sauté
+  if (!ready.length) return false;
+  const c = gcCfg(), t = gameState.game.teams;
+  clearTimeout(gcReelT);
+  gcReel = { id: crypto.randomBytes(4).toString('hex'), t0: Date.now(), clipSec: c.clipSec, clips: ready.map(gcPub), final: [+t[0].score || 0, +t[1].score || 0] };
+  gcReelT = setTimeout(() => { gcReel = null; gcReelT = null; gcBroadcast(); }, gcReelMs(ready.length, c.clipSec) + 300);
+  gcBroadcast();
+  return true;
+}
+function gcStopReel() {
+  clearTimeout(gcReelT); gcReelT = null;
+  if (!gcReel) return false;
+  gcReel = null; gcBroadcast();
+  return true;
+}
+/* nouveau match : clips du précédent effacés */
+function gcNewMatch() {
+  clearTimeout(gcEndT); gcEndT = null;
+  gcStopReel();
+  if (!gcClips.length) return;
+  for (const c of gcClips) { clearTimeout(c.waitT); clearTimeout(c.saveT); if (c.file) fs.promises.unlink(c.file).catch(() => {}); }
+  gcClips = []; gcWaiting.length = 0;
+  gcBroadcast();
+}
+/* réglages appliqués : connexion à OBS ouverte / refaite / fermée */
+async function gcApply() {
+  const c = gcCfg();
+  if (!c.enabled) {
+    clearTimeout(gcEndT); gcEndT = null; gcStopReel();
+    if (obs.ready && obs.startedRb) { try { await obsReq('StopReplayBuffer'); } catch {} }   // seulement s'il a été lancé par l'app
+    obs.startedRb = false;
+    obsDisconnect(); obsStatus('off');
+    return;
+  }
+  if (obs.ws && obs.sig !== `${c.port}|${c.password}`) obsDisconnect();   // port ou mot de passe changé
+  if (!obs.ws) obsConnect();
+}
+
+app.get('/api/goal-clips', (req, res) => res.json(gcState()));
+/* { enabled, port, password, scoresSec, clipSec, keep } réglages · { reconnect } nouvelle tentative de connexion à OBS
+   { play } passe les clips maintenant · { stop } arrête les clips · { clear } efface les clips du match
+   { playError: id } l'overlay n'arrive pas à lire ce clip (format) */
+app.post('/api/goal-clips', async (req, res) => {
+  const b = req.body || {}, g = gcCfg();
+  if (b.port !== undefined) { const p = Number(b.port); if (!Number.isInteger(p) || p < 1 || p > 65535) return res.status(400).json({ error: 'Port invalide', goalClips: gcState() }); g.port = p; }
+  if (b.password !== undefined) g.password = String(b.password ?? '').slice(0, 200);
+  if (b.scoresSec !== undefined) { if (!GC_SCORES.includes(+b.scoresSec)) return res.status(400).json({ error: 'Durée invalide', goalClips: gcState() }); g.scoresSec = +b.scoresSec; }
+  if (b.clipSec !== undefined) { if (!GC_CLIPS.includes(+b.clipSec)) return res.status(400).json({ error: 'Durée invalide', goalClips: gcState() }); g.clipSec = +b.clipSec; }
+  if (b.keep !== undefined) g.keep = !!b.keep;
+  if (b.enabled !== undefined) g.enabled = !!b.enabled;
+  settings.goalClips = g; saveSettings();
+  if (b.reconnect && g.enabled) { obsDisconnect(); obs.status = 'connecting'; }
+  await gcApply();
+  if (b.playError) { const c = gcClips.find(x => x.id === b.playError); if (c && c.warn !== 'unplayable') { c.warn = 'unplayable'; } }
+  if (b.stop) gcStopReel();
+  if (b.clear) gcNewMatch();
+  if (b.play && !gcStartReel()) { gcBroadcast(); return res.status(400).json({ error: 'Aucun clip prêt pour le moment', goalClips: gcState() }); }
+  gcBroadcast();
+  res.json({ ok: true, goalClips: gcState() });
+});
+/* fichier d'un clip (lecture par l'overlay, avec avance / retour rapide) */
+app.get('/goal-clips/:file', (req, res) => {
+  const m = /^([a-f0-9]{16})(\.[a-z0-9]{2,5})$/.exec(req.params.file || '');
+  const clip = m && gcClips.find(c => c.id === m[1] && c.ext === m[2] && c.status === 'ready');
+  if (!clip) return res.status(404).end();
+  res.sendFile(clip.file, { headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } }, err => { if (err && !res.headersSent) res.status(404).end(); });
+});
+gcApply();
 
 app.post('/api/time', (req, res) => {
   const { time, isOT } = req.body;
@@ -1245,8 +1723,9 @@ function makeZip(files) {
   for (const f of files) {
     const name = Buffer.from(f.name, 'utf8');
     const raw = f.data;
-    const comp = zlib.deflateRawSync(raw);
-    const useDeflate = comp.length < raw.length;
+    /* f.store : déjà compressé (vidéos, images) → rangé tel quel, sans recompresser pour rien */
+    const comp = f.store ? null : zlib.deflateRawSync(raw);
+    const useDeflate = !!comp && comp.length < raw.length;
     const data = useDeflate ? comp : raw;
     const crc = crc32(raw);
     const lh = Buffer.alloc(30);
@@ -1823,6 +2302,7 @@ app.post('/api/goal', (req, res) => {
     gameState.game.teams[team].score++;
     broadcast('goal_scored', { scorer: { team_num: team, name: 'Manual' }, teams: gameState.game.teams });
     broadcast('update_state', gameState);
+    gcOnGoal({ team, scorer: 'Manual', speed: gameState.game.ballSpeed, shown: true });   // test des clips sans match
   }
   res.json({ ok: true });
 });
@@ -1877,7 +2357,12 @@ app.post('/api/changelog/seen', (req, res) => {
 
 /* ── Session auth (set by Electron main) ── */
 let _session = null;
-exports.setSession = (s) => { _session = s; };
+exports.setSession = (s) => {
+  _session = s;
+  /* salle de contrôle ouverte au dernier lancement : rouverte (même lien pour l'ami) ; déconnexion : fermée */
+  if (s && s.license && settings.remoteOpen && !remote.open) remoteOpen(false).catch(e => { remote.error = e.message; remoteBroadcast(); });
+  if (!s && remote.open) remoteClose();
+};
 
 app.get('/api/session', (req, res) => {
   if (!_session) return res.json({ authenticated: false });
@@ -1967,6 +2452,606 @@ app.post('/api/update', async (req, res) => {
     if (_restartCallback) setTimeout(_restartCallback, 1500);
   } catch (e) {
     res.json({ ok: false, error: e.message });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   ASSISTANT DU PREMIER LANCEMENT
+   Affiché dans le panneau à la toute première ouverture (nouvelle installation), relançable ensuite.
+═══════════════════════════════════════════════════════════ */
+if (settings.onboardingDone === undefined) { settings.onboardingDone = !_isFreshInstall; saveSettings(); }
+app.post('/api/onboarding', (req, res) => {
+  settings.onboardingDone = !(req.body && req.body.done === false);
+  saveSettings();
+  res.json({ ok: true, done: settings.onboardingDone });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   SAUVEGARDE DES RÉGLAGES
+   Un .zip : backup.json (tous les réglages) + au choix logos, médias du bandeau, thèmes importés.
+   Restauration : réglages remplacés (sauf ceux propres à cette installation), fichiers remis en place,
+   puis l'overlay (OBS) et le panneau se rechargent.
+═══════════════════════════════════════════════════════════ */
+const BUILTIN_THEME_DIRS = new Set(['amber', 'enisorail', 'fifa-world-cup', 'neon', 'nord', 'onyx', 'rlcs2023', 'rlcs2025', 'rlcs2026']);
+const BACKUP_SKIP_KEYS = new Set(['lastSeenVersion', 'reviewSubmitted', 'onboardingDone']);
+const listDir = d => { try { return fs.readdirSync(d); } catch { return []; } };
+function walkFiles(dir, base = dir, out = []) {
+  for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, d.name);
+    if (d.isDirectory()) walkFiles(p, base, out); else out.push(path.relative(base, p).split(path.sep).join('/'));
+  }
+  return out;
+}
+const importedThemes = () => listThemes().filter(id => id !== 'rlcs' && !BUILTIN_THEME_DIRS.has(id));
+
+app.get('/api/backup/info', (req, res) => {
+  const size = files => files.reduce((s, f) => { try { return s + fs.statSync(f).size; } catch { return s; } }, 0);
+  res.json({
+    logos: ['bleu', 'orange'].reduce((n, s) => n + listDir(path.join(LOGOS_DIR, s)).length, 0),
+    media: listUtils().length,
+    mediaBytes: size(listUtils().map(u => path.join(UTILS_DIR, u.name))),
+    themes: importedThemes(),
+  });
+});
+
+app.get('/api/backup/export', (req, res) => {
+  const want = k => req.query[k] !== '0';
+  const s = {};
+  for (const [k, v] of Object.entries(settings)) if (!BACKUP_SKIP_KEYS.has(k)) s[k] = v;
+  if (s.goalClips) s.goalClips = { ...s.goalClips, password: undefined };   // mot de passe d'OBS : pas dans le fichier
+  const manifest = {
+    format: 'rl-overlay-backup', version: 1, app: getLocalVersion(), createdAt: new Date().toISOString(),
+    contents: { settings: true, logos: want('logos'), media: want('media'), themes: want('themes') }, settings: s,
+  };
+  const files = [{ name: 'backup.json', data: Buffer.from(JSON.stringify(manifest, null, 2)) }];
+  try {
+    if (want('logos')) for (const side of ['bleu', 'orange'])
+      for (const f of listDir(path.join(LOGOS_DIR, side))) files.push({ name: `logos/${side}/${f}`, data: fs.readFileSync(path.join(LOGOS_DIR, side, f)), store: true });
+    if (want('media')) for (const u of listUtils()) files.push({ name: `media/${u.name}`, data: fs.readFileSync(path.join(UTILS_DIR, u.name)), store: true });
+    /* musique de l'écran de timeout : avec les médias */
+    if (want('media')) for (const f of listDir(TIMEOUT_DIR)) if (AUDIO_EXTS.has(path.extname(f).toLowerCase())) files.push({ name: `timeout/${f}`, data: fs.readFileSync(path.join(TIMEOUT_DIR, f)), store: true });
+    if (want('themes')) for (const id of importedThemes()) {
+      const dir = path.join(THEMES_DIR, id);
+      for (const rel of walkFiles(dir)) files.push({ name: `themes/${id}/${rel}`, data: fs.readFileSync(path.join(dir, rel)), store: /\.(png|jpe?g|webp|gif|mp4|webm|mov|mkv|avi|ttf|otf|woff2?)$/i.test(rel) });
+    }
+  } catch (e) { return res.status(500).json({ error: e.message }); }
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.set('Content-Type', 'application/zip')
+    .set('Content-Disposition', `attachment; filename="RL-Overlay-sauvegarde-${stamp}.zip"`)
+    .send(makeZip(files));
+});
+
+/* Toutes les entrées d'un ZIP avec leur chemin (dossiers et fichiers système macOS ignorés) */
+function readZipAll(buffer) {
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
+      if (err) return reject(new Error("Ce fichier n'est pas un ZIP valide"));
+      const files = new Map();
+      zipfile.readEntry();
+      zipfile.on('entry', entry => {
+        const name = entry.fileName.replace(/\\/g, '/');
+        if (/\/$/.test(name) || /(^|\/)__MACOSX\//.test(name) || path.basename(name).startsWith('._')) { zipfile.readEntry(); return; }
+        zipfile.openReadStream(entry, (e, rs) => {
+          if (e) { zipfile.readEntry(); return; }
+          const chunks = [];
+          rs.on('data', c => chunks.push(c));
+          rs.on('end', () => { files.set(name, Buffer.concat(chunks)); zipfile.readEntry(); });
+          rs.on('error', () => zipfile.readEntry());
+        });
+      });
+      zipfile.on('end', () => resolve(files));
+      zipfile.on('error', () => reject(new Error('ZIP illisible')));
+    });
+  });
+}
+
+app.post('/api/backup/import', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu' });
+  let entries;
+  try { entries = await readZipAll(req.file.buffer); } catch (e) { return res.status(400).json({ error: e.message }); }
+  let man = null;
+  try { man = JSON.parse(entries.get('backup.json').toString('utf8')); } catch {}
+  if (!man || man.format !== 'rl-overlay-backup' || !man.settings || typeof man.settings !== 'object')
+    return res.status(400).json({ error: "Ce fichier n'est pas une sauvegarde RL Overlay" });
+
+  const done = { logos: 0, media: 0, themes: new Set() }, clearedSides = new Set();
+  for (const [name, buf] of entries) {
+    const parts = name.split('/');
+    if (parts.some(p => !p || p === '.' || p === '..')) continue;
+    const ext = path.extname(parts[parts.length - 1]).toLowerCase();
+    if (parts[0] === 'logos' && parts.length === 3 && ['bleu', 'orange'].includes(parts[1]) && IMG_EXTS.has(ext)) {
+      const dir = path.join(LOGOS_DIR, parts[1]);
+      if (!clearedSides.has(parts[1])) { clearedSides.add(parts[1]); for (const f of listDir(dir)) try { fs.unlinkSync(path.join(dir, f)); } catch {} }
+      fs.writeFileSync(path.join(dir, parts[2]), buf); done.logos++;
+    } else if (parts[0] === 'media' && parts.length === 2 && (IMG_EXTS.has(ext) || VIDEO_EXTS.has(ext))) {
+      fs.writeFileSync(path.join(UTILS_DIR, parts[1]), buf); done.media++;
+    } else if (parts[0] === 'timeout' && parts.length === 2 && AUDIO_EXTS.has(ext)) {
+      for (const f of listDir(TIMEOUT_DIR)) try { fs.unlinkSync(path.join(TIMEOUT_DIR, f)); } catch {}
+      fs.writeFileSync(path.join(TIMEOUT_DIR, parts[1]), buf); done.media++;
+    } else if (parts[0] === 'themes' && parts.length >= 3 && /^[\w.-]+$/.test(parts[1]) && parts[1] !== 'rlcs' && !BUILTIN_THEME_DIRS.has(parts[1])) {
+      const dest = path.join(THEMES_DIR, ...parts.slice(1));
+      if (!dest.startsWith(path.join(THEMES_DIR, parts[1]) + path.sep)) continue;
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, buf); done.themes.add(parts[1]);
+    }
+  }
+  /* réglages : remplacés, puis remis en forme comme au démarrage */
+  const obsPass = settings.goalClips && settings.goalClips.password;   // mot de passe d'OBS de ce PC (absent des sauvegardes)
+  for (const [k, v] of Object.entries(man.settings)) if (!BACKUP_SKIP_KEYS.has(k)) settings[k] = v;
+  if (settings.goalClips && typeof settings.goalClips === 'object') { if (!settings.goalClips.password && obsPass) settings.goalClips.password = obsPass; }
+  else delete settings.goalClips;
+  settings.mediaBanner = { enabled: false, interval: 60, group: null, ...(settings.mediaBanner || {}) };
+  settings.animations = { goal: true, replay: true, live: true, endScreen: true, ...(settings.animations || {}) };
+  settings.themeNames = settings.themeNames || {};
+  settings.mediaGroups = Array.isArray(settings.mediaGroups) ? settings.mediaGroups : [];
+  settings.playerLinks = settings.playerLinks || {};
+  settings.seriesHistory = Array.isArray(settings.seriesHistory) ? settings.seriesHistory : [];
+  if (!listThemes().includes(settings.theme)) settings.theme = 'rlcs';
+  currentTheme = settings.theme || 'rlcs';
+  saveSettings();
+  applySettings();
+  if (settings.twitch && settings.twitch.channel) twitchConnect(settings.twitch.channel);
+  gcApply();   // clips des buts : connexion à OBS selon les réglages restaurés
+  /* overlay (OBS) et panneau : rechargés avec les réglages restaurés */
+  setTimeout(() => broadcast('reload_all', {}), 300);
+  res.json({ ok: true, restored: { logos: done.logos, media: done.media, themes: [...done.themes] }, from: man.app || '' });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE DES SCORES (scène de fin OBS) : /scores.html
+   Équipes, score de la série et chaque game jouée, mis à jour tout seuls.
+═══════════════════════════════════════════════════════════ */
+settings.seriesHistory = Array.isArray(settings.seriesHistory) ? settings.seriesHistory : [];
+function scoresPayload() {
+  const t = gameState.game.teams;
+  return {
+    league: gameState.meta.league || '',
+    teams: [0, 1].map(i => ({ name: t[i].name, tag: t[i].tag || '', logo: t[i].logo_url || '' })),
+    series: gameState.series,
+    history: settings.seriesHistory,
+    lastGame: settings.lastGame || null,
+    theme: currentTheme,
+  };
+}
+/* fin d'une game : score, vainqueur, stats des joueurs (counts = la game compte dans la série) */
+function recordGameResult(winner, counts) {
+  const t = gameState.game.teams;
+  const game = {
+    n: counts ? settings.seriesHistory.length + 1 : 1,
+    winner, at: Date.now(),
+    scores: [t[0].score ?? 0, t[1].score ?? 0],
+    names: [t[0].name, t[1].name],
+    players: Object.values(gameState.game.players || {}).filter(p => p.id !== '__manual_spec__').map(p => ({
+      name: p.name, team: p.team, score: p.score ?? 0, goals: p.goals ?? 0, assists: p.assists ?? 0, saves: p.saves ?? 0, shots: p.shots ?? 0, demos: p.demos ?? 0,
+    })),
+  };
+  if (counts) settings.seriesHistory.push(game);
+  settings.lastGame = game;
+  saveSettings();
+  broadcast('scores_update', scoresPayload());
+}
+app.get('/api/scores', (req, res) => res.json(scoresPayload()));
+
+/* ═══════════════════════════════════════════════════════════
+   VOTE DU CHAT TWITCH (façon RLCS)
+   Lecture du chat en anonyme (aucun compte Twitch à connecter) : chaque spectateur vote en écrivant le
+   hashtag d'une équipe (#VIT / #KC…). Un seul vote par compte, définitif (pas de changement d'avis).
+   La page vote.html (source OBS à part) affiche les pourcentages et le temps restant, puis le résultat.
+═══════════════════════════════════════════════════════════ */
+settings.twitch = { channel: '', duration: 60, title: '', ...(settings.twitch || {}) };
+const poll = { connected: false, error: '', active: false, visible: false, ended: false, tags: ['', ''], title: '', duration: 60, endsAt: 0, votes: new Map(), counts: [0, 0] };
+let twitchWs = null, twitchChannel = '', twitchRetryT = null, pollEndT = null, pollHideT = null, pollBcastT = null, pollBcastLast = 0;
+
+const cleanChannel = c => String(c || '').trim().toLowerCase().replace(/^(https?:\/\/)?(www\.|m\.)?twitch\.tv\//, '').replace(/^[#@]/, '').split(/[/?#\s]/)[0];
+const cleanHashtag = t => { const s = String(t || '').toUpperCase().replace(/[^\p{L}\p{N}_]/gu, ''); return s ? '#' + s.slice(0, 12) : ''; };
+function defaultPollTags() {
+  const tag = i => { const t = gameState.game.teams[i]; return cleanHashtag(t.tag || [...String(t.name || '').replace(/\s+/g, '')].slice(0, 4).join('')); };
+  let a = tag(0) || '#BLUE', b = tag(1) || '#ORANGE';
+  if (a === b) { a += '1'; b += '2'; }
+  return [a, b];
+}
+function pollPayload() {
+  const total = poll.counts[0] + poll.counts[1];
+  return {
+    channel: settings.twitch.channel, connected: poll.connected, error: poll.error,
+    active: poll.active, visible: poll.visible, ended: poll.ended,
+    tags: poll.active || poll.ended ? poll.tags : defaultPollTags(), title: poll.title, duration: poll.duration,
+    endsAt: poll.endsAt, remaining: poll.active ? Math.max(0, poll.endsAt - Date.now()) : 0,
+    counts: poll.counts, total,
+    saved: { title: settings.twitch.title || '', duration: settings.twitch.duration || 60 },   // champs du panneau
+  };
+}
+/* au plus ~4 envois par seconde pendant un vote (le chat peut aller très vite) */
+function pollBroadcast(now) {
+  clearTimeout(pollBcastT);
+  const wait = now ? 0 : Math.max(0, 250 - (Date.now() - pollBcastLast));
+  pollBcastT = setTimeout(() => { pollBcastLast = Date.now(); broadcast('twitch_poll', pollPayload()); }, wait);
+}
+function twitchDisconnect() {
+  clearTimeout(twitchRetryT);
+  const ws = twitchWs; twitchWs = null;
+  if (ws) { try { ws.close(); } catch {} }
+  poll.connected = false;
+}
+function twitchConnect(channel) {
+  channel = cleanChannel(channel);
+  if (!/^[a-z0-9_]{2,25}$/.test(channel)) {
+    twitchDisconnect(); twitchChannel = ''; poll.error = channel ? 'Nom de chaîne Twitch invalide' : '';
+    pollBroadcast(true); return;
+  }
+  if (twitchWs && twitchChannel === channel) return;
+  twitchDisconnect();
+  twitchChannel = channel; poll.error = '';
+  const ws = new WebSocket(process.env.TWITCH_IRC_URL || 'wss://irc-ws.chat.twitch.tv:443');   // TWITCH_IRC_URL : tests
+  twitchWs = ws;
+  ws.on('open', () => {
+    ws.send('CAP REQ :twitch.tv/tags');
+    ws.send('PASS SCHMOOPIIE');
+    ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 89999));
+    ws.send('JOIN #' + channel);
+  });
+  ws.on('message', buf => {
+    for (const line of String(buf).split('\r\n')) {
+      if (!line) continue;
+      if (line.startsWith('PING')) { try { ws.send(line.replace('PING', 'PONG')); } catch {} continue; }
+      handleTwitchLine(line);
+    }
+  });
+  ws.on('close', () => {
+    if (twitchWs !== ws) return;
+    poll.connected = false; pollBroadcast(true);
+    twitchRetryT = setTimeout(() => { twitchWs = null; twitchConnect(channel); }, 5000);   // reconnexion automatique
+  });
+  ws.on('error', e => { poll.error = 'Twitch injoignable'; console.warn('[Twitch]', e.message); });
+}
+function handleTwitchLine(line) {
+  if (/ JOIN #/.test(line) || / 366 /.test(line)) { if (!poll.connected) { poll.connected = true; poll.error = ''; pollBroadcast(true); } return; }
+  const m = /^(?:@(\S+) )?:([^!\s]+)!\S+ PRIVMSG #\S+ :(.*)$/.exec(line);
+  if (!m || !poll.active) return;
+  const tags = {};
+  if (m[1]) for (const kv of m[1].split(';')) { const i = kv.indexOf('='); tags[kv.slice(0, i)] = kv.slice(i + 1); }
+  const voter = tags['user-id'] || m[2];
+  const words = (m[3].match(/#[\p{L}\p{N}_]+/gu) || []).map(w => w.toUpperCase());
+  const forA = words.includes(poll.tags[0]), forB = words.includes(poll.tags[1]);
+  if (forA === forB) return;                      // aucun hashtag, ou les deux : ignoré
+  if (poll.votes.has(voter)) return;              // un seul vote par compte, définitif : pas de changement d'avis
+  const side = forA ? 0 : 1;
+  poll.votes.set(voter, side); poll.counts[side]++;
+  pollBroadcast();
+}
+function endPoll() {
+  clearTimeout(pollEndT);
+  if (!poll.active) return;
+  poll.active = false; poll.ended = true;
+  pollBroadcast(true);
+  /* résultat affiché 20 s puis masqué */
+  clearTimeout(pollHideT);
+  pollHideT = setTimeout(() => { poll.visible = false; pollBroadcast(true); }, 20000);
+}
+app.get('/api/twitch-poll', (req, res) => res.json(pollPayload()));
+app.post('/api/twitch-poll', (req, res) => {
+  const { action, channel, duration, tags, title } = req.body || {};
+  if (channel !== undefined) {
+    settings.twitch.channel = cleanChannel(channel); twitchConnect(settings.twitch.channel);
+    if (!settings.twitch.channel && poll.active) endPoll();   // chaîne déliée pendant un vote : vote arrêté (résultat affiché)
+  }
+  if (duration !== undefined) { const d = Math.round(Number(duration)); if (Number.isFinite(d)) settings.twitch.duration = Math.min(900, Math.max(10, d)); }
+  if (title !== undefined) settings.twitch.title = String(title || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  saveSettings();
+  if (action === 'start') {
+    if (!poll.connected) return res.status(400).json({ error: 'Chaîne Twitch non connectée', poll: pollPayload() });
+    const tg = Array.isArray(tags) ? tags.map(cleanHashtag) : [];
+    poll.tags = tg[0] && tg[1] && tg[0] !== tg[1] ? tg : defaultPollTags();
+    poll.votes.clear(); poll.counts = [0, 0];
+    poll.title = settings.twitch.title; poll.duration = settings.twitch.duration;
+    poll.active = true; poll.ended = false; poll.visible = true;
+    poll.endsAt = Date.now() + poll.duration * 1000;
+    clearTimeout(pollEndT); clearTimeout(pollHideT);
+    pollEndT = setTimeout(endPoll, poll.duration * 1000);
+  } else if (action === 'stop') endPoll();
+  else if (action === 'show') { poll.visible = true; clearTimeout(pollHideT); }
+  else if (action === 'hide') { poll.visible = false; clearTimeout(pollHideT); }
+  else if (action === 'reset') {
+    clearTimeout(pollEndT); clearTimeout(pollHideT);
+    poll.active = false; poll.ended = false; poll.visible = false; poll.votes.clear(); poll.counts = [0, 0];
+  }
+  pollBroadcast(true);
+  res.json({ ok: true, poll: pollPayload() });
+});
+if (settings.twitch.channel) twitchConnect(settings.twitch.channel);
+
+/* ═══════════════════════════════════════════════════════════
+   SALLE DE CONTRÔLE À DISTANCE (côté app)
+   Le panneau ouvre une salle sur overlay.rscast.fr (licence du compte connecté) et affiche le lien à donner
+   à un ami. L'app vient chercher ses commandes (requête en attente : réponse dès qu'il agit), les applique
+   comme si elles venaient du panneau, puis publie l'état de l'overlay pour sa page. Aucun port à ouvrir.
+   La salle se rouvre toute seule au prochain lancement si elle était ouverte (même lien).
+   Le lien ne suffit pas : l'ami doit aussi entrer le code de sécurité (6 chiffres tirés au hasard par le
+   site) affiché dans le panneau. Chaque code faux saisi sur la page de la salle est signalé dans le panneau.
+═══════════════════════════════════════════════════════════ */
+const ROOM_SITE = process.env.ROOM_SITE || 'https://overlay.rscast.fr';   // ROOM_SITE : tests
+const remote = { open: false, id: '', ownerKey: '', url: '', code: '', bad: 0, guestOnline: false, error: '', after: 0, log: [] };
+let remoteAbort = null, remotePushT = null, remoteTick = null, remoteLastState = '', remoteResults = [], remoteLogoSig = {}, remoteLooping = false;
+const LOGO_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif' };
+const REMOTE_LABELS = {
+  teams: 'a modifié les équipes', series: 'a modifié la série', swap: 'a inversé les équipes', logo: 'a changé un logo',
+  logoDelete: 'a retiré un logo', overlay: "a changé l'affichage de l'overlay", boost: 'a changé le boost meter',
+  video: 'a changé le flux vidéo joueur', videoHideEmpty: 'a changé le flux vidéo joueur', playerLink: 'a modifié un lien vidéo', theme: 'a changé le thème',
+  timeout: 'a lancé un timeout', timeoutCancel: 'a annulé un timeout',
+};
+const remotePayload = () => ({ open: remote.open, url: remote.url, code: remote.code, guestOnline: remote.guestOnline, error: remote.error, log: remote.log.slice(-6) });
+function remoteLog(entry) { remote.log.push({ at: Date.now(), ...entry }); if (remote.log.length > 20) remote.log.shift(); }
+const remoteBroadcast = () => broadcast('remote_room', remotePayload());
+function remoteSetGuest(on) { on = !!on; if (on !== remote.guestOnline) { remote.guestOnline = on; remoteBroadcast(); } }
+async function remoteFetch(p, opts = {}) {
+  const r = await fetch(ROOM_SITE + p, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || 'HTTP ' + r.status); e.closed = !!j.closed || r.status === 404 || r.status === 403; throw e; }
+  return j;
+}
+/* commandes appliquées par l'API locale, exactement comme depuis le panneau */
+async function localCall(p, body) {
+  const r = await fetch(`http://127.0.0.1:${PORT}${p}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+  return j;
+}
+function remoteState() {
+  const t = gameState.game.teams, names = themeDisplayNames();
+  return {
+    app: getLocalVersion(),
+    league: settings.league ?? gameState.meta.league ?? '',
+    teams: [0, 1].map(i => ({ name: manualTeamName(i), tag: manualTeamTag(i), display: t[i].name })),
+    series: { blue: gameState.series.blue, orange: gameState.series.orange, bestOf: gameState.series.bestOf },
+    overlayVisible, boostVisible,
+    playerVideo: { enabled: !!settings.playerVideoEnabled, hideEmpty: !!settings.playerVideoHideEmpty },
+    players: Object.values(gameState.game.players || {}).filter(p => p.id !== '__manual_spec__').map(p => ({ name: p.name, team: p.team })),
+    links: settings.playerLinks || {},
+    theme: currentTheme,
+    themes: listThemes().map(id => ({ id, name: names[id] || (id === 'rlcs' ? 'Default' : id) })),
+    timeouts: timeoutsState(),
+    game: { connected: !!gameState.connected, hasGame: !!gameState.hasGame },
+  };
+}
+/* état publié s'il a changé (+ résultats des commandes), logos envoyés quand ils changent */
+async function remotePush(force) {
+  if (!remote.open) return;
+  const st = remoteState(), json = JSON.stringify(st), results = remoteResults.splice(0);
+  try {
+    if (force || json !== remoteLastState || results.length) {
+      const j = await remoteFetch(`/api/room/${remote.id}/state`, { method: 'POST', body: JSON.stringify({ ownerKey: remote.ownerKey, state: st, results }) });
+      remoteLastState = json; remoteSetGuest(j.guestOnline);
+    }
+    for (const side of ['bleu', 'orange']) {
+      const url = findLogo(side), file = url ? path.join(LOGOS_DIR, side, path.basename(url)) : '';
+      let sig = '';
+      if (file) { try { const s = fs.statSync(file); sig = `${url}|${s.size}|${s.mtimeMs}`; } catch {} }
+      if (!force && remoteLogoSig[side] === sig) continue;
+      const buf = sig ? fs.readFileSync(file) : Buffer.alloc(0);
+      await fetch(`${ROOM_SITE}/api/room/${remote.id}/asset/logo-${side}?ownerKey=${encodeURIComponent(remote.ownerKey)}`, {
+        method: 'POST', headers: { 'Content-Type': LOGO_MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' }, body: buf,
+      });
+      remoteLogoSig[side] = sig;
+    }
+  } catch (e) { remoteResults.unshift(...results); if (e.closed) remoteLost(); }
+}
+function remoteSchedulePush(ms = 400) { clearTimeout(remotePushT); remotePushT = setTimeout(() => remotePush(), ms); }
+
+/* ── Logos reçus de la salle de contrôle ──
+   Le fichier vient d'un tiers : il n'est jamais écrit tel quel dans les logos (lus par OBS et le panneau).
+   1. type réel lu sur ses premiers octets (pas sur son nom) : PNG, JPEG, WebP ou GIF — SVG refusé (peut contenir du code) ;
+   2. poids (3 Mo) et dimensions lues dans l'en-tête (4096 px) bornés AVANT tout décodage (pas d'image « bombe ») ;
+   3. décodé dans une fenêtre cachée isolée (bac à sable Chromium, ni Node ni accès au PC), réduit à 1024 px max
+      et ré-encodé en PNG : code caché, données ajoutées après l'image, métadonnées… tout disparaît. */
+const REMOTE_LOGO_MAX = 3 * 1024 * 1024, REMOTE_LOGO_DIM = 4096;
+function sniffImage(buf) {
+  if (!buf || buf.length < 16) return null;
+  if (buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return 'png';
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'jpeg';
+  if (buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'webp';
+  const g = buf.toString('latin1', 0, 6);
+  if (g === 'GIF87a' || g === 'GIF89a') return 'gif';
+  return null;
+}
+/* largeur × hauteur lues dans l'en-tête, sans décoder l'image (null = en-tête illisible) */
+function imageDims(buf, type) {
+  try {
+    if (type === 'png') return buf.toString('latin1', 12, 16) === 'IHDR' ? { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) } : null;
+    if (type === 'gif') return { w: buf.readUInt16LE(6), h: buf.readUInt16LE(8) };
+    if (type === 'webp') {
+      const c = buf.toString('latin1', 12, 16);
+      if (c === 'VP8 ') return { w: buf.readUInt16LE(26) & 0x3FFF, h: buf.readUInt16LE(28) & 0x3FFF };
+      if (c === 'VP8L') { const b = buf.readUInt32LE(21); return { w: (b & 0x3FFF) + 1, h: ((b >>> 14) & 0x3FFF) + 1 }; }
+      if (c === 'VP8X') return { w: buf.readUIntLE(24, 3) + 1, h: buf.readUIntLE(27, 3) + 1 };
+      return null;
+    }
+    if (type === 'jpeg') {
+      for (let i = 2; i + 9 < buf.length;) {
+        if (buf[i] !== 0xFF) { i++; continue; }
+        const m = buf[i + 1];
+        if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) return { w: buf.readUInt16BE(i + 7), h: buf.readUInt16BE(i + 5) };
+        if (m === 0xD8 || m === 0x01 || (m >= 0xD0 && m <= 0xD7) || m === 0xFF) { i += m === 0xFF ? 1 : 2; continue; }
+        i += 2 + buf.readUInt16BE(i + 2);
+      }
+    }
+  } catch {}
+  return null;
+}
+/* décodage + ré-encodage PNG dans une fenêtre cachée en bac à sable (réutilisée, recréée si elle a planté) */
+let _logoWin = null;
+async function reencodeInSandbox(buf, type) {
+  const { BrowserWindow } = require('electron');
+  if (!_logoWin || _logoWin.isDestroyed() || _logoWin.webContents.isCrashed()) {
+    if (_logoWin && !_logoWin.isDestroyed()) _logoWin.destroy();
+    _logoWin = new BrowserWindow({ show: false, width: 64, height: 64, webPreferences: { offscreen: true, sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true } });
+    await _logoWin.loadURL('about:blank');
+  }
+  const mime = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[type];
+  let timer;
+  const out = await Promise.race([
+    _logoWin.webContents.executeJavaScript(`(async () => {
+      const bytes = Uint8Array.from(atob(${JSON.stringify(buf.toString('base64'))}), ch => ch.charCodeAt(0));
+      const bmp = await createImageBitmap(new Blob([bytes], { type: ${JSON.stringify(mime)} }));
+      const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      bmp.close();
+      return c.toDataURL('image/png');
+    })()`),
+    new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('délai dépassé')), 10000); }),
+  ]).finally(() => clearTimeout(timer));
+  const png = Buffer.from(String(out).split(',')[1] || '', 'base64');
+  if (sniffImage(png) !== 'png') throw new Error('ré-encodage impossible');
+  return png;
+}
+async function safeRemoteLogo(buf) {
+  if (!buf || !buf.length) throw new Error('Logo introuvable');
+  if (buf.length > REMOTE_LOGO_MAX) throw new Error('Image trop lourde (3 Mo max)');
+  const type = sniffImage(buf);
+  if (!type) throw new Error('Fichier refusé : ce n\'est pas une image PNG, JPG, WebP ou GIF');
+  const d = imageDims(buf, type);
+  if (!d || d.w < 1 || d.h < 1 || d.w > REMOTE_LOGO_DIM || d.h > REMOTE_LOGO_DIM) throw new Error('Image refusée : dimensions illisibles ou trop grandes (4096 × 4096 px max)');
+  /* app lancée hors Electron (node server.js) : pas de bac à sable pour décoder → PNG / JPEG vérifiés seulement */
+  if (!process.versions.electron) {
+    if (type === 'png' || type === 'jpeg') return { buf, ext: type === 'png' ? '.png' : '.jpg' };
+    throw new Error('Format accepté ici : PNG ou JPG');
+  }
+  try { return { buf: await reencodeInSandbox(buf, type), ext: '.png' }; }
+  catch { throw new Error('Image illisible ou endommagée : logo refusé'); }
+}
+
+async function runRemoteCmd(c) {
+  const a = c.args || {};
+  const side = a.side === 'orange' ? 'orange' : 'bleu';
+  switch (c.type) {
+    case 'teams': {
+      const body = {};
+      if (a.league !== undefined) body.league = String(a.league ?? '').slice(0, 80);
+      for (const k of ['blue', 'orange']) if (a[k] && typeof a[k] === 'object') body[k] = { name: String(a[k].name ?? '').slice(0, 40), tag: String(a[k].tag ?? '').slice(0, 8) };
+      return localCall('/api/settings', body);
+    }
+    case 'series': {
+      const n = v => Math.max(0, Math.min(7, Math.round(Number(v)) || 0));
+      const body = { blue: n(a.blue), orange: n(a.orange) };
+      if ([0, 1, 3, 5, 7].includes(Number(a.bestOf))) body.bestOf = Number(a.bestOf);
+      return localCall('/api/series', body);
+    }
+    case 'swap': return localCall('/api/swap-teams', {});
+    case 'logo': {
+      /* jamais écrit tel quel : vérifié puis ré-encodé en PNG (voir safeRemoteLogo) — l'extension annoncée est ignorée */
+      const r = await fetch(`${ROOM_SITE}/api/room/${remote.id}/file/${encodeURIComponent(String(a.file || ''))}?ownerKey=${encodeURIComponent(remote.ownerKey)}`);
+      if (!r.ok) throw new Error('Logo introuvable');
+      const len = Number(r.headers.get('content-length')) || 0;
+      if (len > REMOTE_LOGO_MAX) throw new Error('Image trop lourde (3 Mo max)');
+      const safe = await safeRemoteLogo(Buffer.from(await r.arrayBuffer()));
+      setTeamLogo(side, safe.buf, safe.ext);
+      return;
+    }
+    case 'logoDelete': return localCall(`/api/delete-logo/${side}`, {});
+    case 'overlay': return localCall('/api/overlay-visible', { visible: !!a.visible });
+    case 'boost': return localCall('/api/boost-visible', { visible: !!a.visible });
+    case 'video': return localCall('/api/player-video-toggle', { enabled: !!a.enabled });
+    case 'videoHideEmpty': return localCall('/api/player-video-hide-empty', { enabled: !!a.enabled });
+    case 'playerLink': {
+      const name = String(a.name || '').trim().slice(0, 40), url = String(a.url || '').trim().slice(0, 500);
+      if (!name) throw new Error('Pseudo requis');
+      if (url && !/^https?:\/\//i.test(url)) throw new Error('Le lien doit commencer par https://');
+      return localCall('/api/player-link', { name, url });
+    }
+    case 'theme': {
+      if (!listThemes().includes(a.theme)) throw new Error('Thème introuvable');
+      return localCall('/api/theme', { theme: a.theme });
+    }
+    case 'timeout': return localCall('/api/timeouts', { team: a.team === 1 ? 1 : 0, used: a.used !== false });
+    default: throw new Error('Action inconnue');
+  }
+}
+async function remoteLoop() {
+  if (remoteLooping) return;
+  remoteLooping = true;
+  while (remote.open) {
+    const ctrl = new AbortController(); remoteAbort = ctrl;
+    const timeout = setTimeout(() => ctrl.abort(), 40000);
+    try {
+      const j = await remoteFetch(`/api/room/${remote.id}/poll?ownerKey=${encodeURIComponent(remote.ownerKey)}&after=${remote.after}`, { signal: ctrl.signal });
+      clearTimeout(timeout);
+      remoteSetGuest(j.guestOnline);
+      if (remote.error) { remote.error = ''; remoteBroadcast(); }
+      /* code de sécurité faux saisi sur la page de la salle (l'ami qui se trompe… ou quelqu'un d'autre) */
+      if (Number(j.bad) > remote.bad) {
+        remote.bad = Number(j.bad);
+        remoteLog({ type: 'badCode', ok: false, text: j.locked ? '5 codes incorrects : accès bloqué 15 min. Si ce n\'est pas ton ami, crée un nouveau lien.' : 'Code de sécurité incorrect saisi sur la page de la salle' });
+        remoteBroadcast();
+      }
+      for (const c of j.cmds || []) {
+        if (c.seq <= remote.after) continue;
+        remote.after = c.seq;
+        let ok = true, error = '';
+        try { await runRemoteCmd(c); } catch (e) { ok = false; error = e.message; }
+        remoteResults.push({ seq: c.seq, type: c.type, ok, error });
+        const label = c.type === 'timeout' && c.args && c.args.used === false ? REMOTE_LABELS.timeoutCancel : REMOTE_LABELS[c.type];
+        remoteLog({ type: c.type, ok, text: label || c.type, error });
+        broadcast('remote_change', { type: c.type, ok, error });
+        remoteBroadcast();
+      }
+      if ((j.cmds || []).length) remoteSchedulePush(150);
+    } catch (e) {
+      clearTimeout(timeout);
+      if (!remote.open) break;
+      if (e.closed) { remoteLost(); break; }
+      if (e.name !== 'AbortError') { remote.error = 'Site injoignable, nouvel essai…'; remoteBroadcast(); await new Promise(r => setTimeout(r, 4000)); }
+    }
+  }
+  remoteLooping = false;
+}
+function remoteStop() { remote.open = false; remote.code = ''; clearInterval(remoteTick); clearTimeout(remotePushT); if (remoteAbort) try { remoteAbort.abort(); } catch {} }
+function remoteLost() { remoteStop(); remote.error = 'La salle a expiré : ouvre-en une nouvelle'; settings.remoteOpen = false; saveSettings(); remoteBroadcast(); }
+async function remoteOpen(rotate) {
+  if (!_session || !_session.license) throw new Error("Connecte-toi à ton compte RL Overlay dans l'app");
+  const j = await remoteFetch('/api/room/open', { method: 'POST', body: JSON.stringify({ key: _session.license, rotate: !!rotate }) });
+  const same = remote.open && remote.id === j.id;
+  Object.assign(remote, { open: true, id: j.id, ownerKey: j.ownerKey, url: j.url, code: String(j.code || ''), error: '' });
+  if (!same) { remote.after = Number(j.seq) || 0; remote.log = []; }
+  remote.bad = Number(j.bad) || 0;   // codes faux d'avant : pas re-signalés
+  remoteSetGuest(j.guestOnline);
+  remoteLastState = ''; remoteLogoSig = {};
+  settings.remoteOpen = true; saveSettings();
+  await remotePush(true);
+  remoteLoop();
+  /* état republié s'il change (joueurs qui arrivent, noms détectés en jeu…) */
+  clearInterval(remoteTick); remoteTick = setInterval(() => remotePush(), 2500);
+  remoteBroadcast();
+}
+/* nouveau code de sécurité : l'ami connecté doit entrer le nouveau (le lien reste le même) */
+async function remoteNewCode() {
+  if (!remote.open) throw new Error('La salle est fermée');
+  try {
+    const j = await remoteFetch(`/api/room/${remote.id}/code`, { method: 'POST', body: JSON.stringify({ ownerKey: remote.ownerKey }) });
+    remote.code = String(j.code || ''); remote.bad = Math.max(remote.bad, Number(j.bad) || 0); remote.guestOnline = !!j.guestOnline;
+    remoteBroadcast();
+  } catch (e) { if (e.closed) remoteLost(); throw e; }
+}
+async function remoteClose() {
+  const { id, ownerKey, open } = remote;
+  remoteStop(); remote.error = ''; remote.guestOnline = false;
+  settings.remoteOpen = false; saveSettings();
+  remoteBroadcast();
+  if (open) { try { await remoteFetch(`/api/room/${id}/close`, { method: 'POST', body: JSON.stringify({ ownerKey }) }); } catch {} }
+}
+app.get('/api/remote', (req, res) => res.json(remotePayload()));
+app.post('/api/remote', async (req, res) => {
+  const action = req.body && req.body.action;
+  try {
+    if (action === 'open') await remoteOpen(false);
+    else if (action === 'rotate') await remoteOpen(true);
+    else if (action === 'code') await remoteNewCode();
+    else if (action === 'close') await remoteClose();
+    else return res.status(400).json({ error: 'Action inconnue' });
+    res.json({ ok: true, remote: remotePayload() });
+  } catch (e) {
+    remote.error = e.message; remoteBroadcast();
+    res.status(400).json({ error: e.message, remote: remotePayload() });
   }
 });
 

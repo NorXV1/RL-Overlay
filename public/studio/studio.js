@@ -87,6 +87,7 @@ const ICONS = {
   bL: '<rect x="4" y="4" width="16" height="16" rx="1" stroke-opacity=".3"/><path d="M4 4v16" stroke-width="3.2"/>',
   pips: '<rect x="2.5" y="8" width="5" height="8" rx="1"/><rect x="9.5" y="8" width="5" height="8" rx="1"/><rect x="16.5" y="8" width="5" height="8" rx="1" fill="currentColor"/>',
   distV: '<path d="M3 4h18M3 20h18"/><rect x="7" y="9" width="10" height="6" rx="1"/>',
+  timeout: '<path d="M7.5 4.5h9L21 12l-4.5 7.5h-9L3 12z"/><path d="M10.2 9v6M13.8 9v6"/>',
 };
 const icon = n => `<i data-i="${n}"><svg viewBox="0 0 24 24">${ICONS[n] || ''}</svg></i>`;
 function hydrateIcons(root = document) {
@@ -102,6 +103,9 @@ const ELEMENTS = [
   { key: 'league-label',     label: 'Nom de la ligue',       scene: 'game',   icon: 'text' },
   { key: 'logo-blue',        label: 'Logo équipe bleue',     scene: 'game',   icon: 'shield', sel: '.team-logo-outer.blue' },
   { key: 'logo-orange',      label: 'Logo équipe orange',    scene: 'game',   icon: 'shield', sel: '.team-logo-outer.orange' },
+  /* icônes de timeout (affichées tant que l'équipe n'a pas pris le sien — toujours visibles dans le Studio) */
+  { key: 'to-pip-blue',      label: 'Timeout équipe bleue',  scene: 'game',   icon: 'timeout' },
+  { key: 'to-pip-orange',    label: 'Timeout équipe orange', scene: 'game',   icon: 'timeout' },
   { key: 'sidebar-blue',     label: 'Sidebar bleue',         scene: 'game',   icon: 'list' },
   { key: 'sidebar-orange',   label: 'Sidebar orange',        scene: 'game',   icon: 'list' },
   { key: 'stat-bar',         label: 'Stat bar',              scene: 'game',   icon: 'bar' },

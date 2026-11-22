@@ -15,3 +15,16 @@
   --end-mid-bg:  #080400;
   --end-tbl-bg:  #0a0500;
 }
+
+/* ── Timeouts : icône hexagonale sur fond ambre sombre ── */
+[data-theme="amber"] .to-pip { --to-bg: rgba(16,8,0,.85); }
+/* ── Écran de timeout : fond ambre sombre, carte crème translucide ── */
+[data-theme="amber"] #to-screen { --tos-bg: #0c0600; }
+[data-theme="amber"] #tos-team { background: rgba(240,234,218,.07); }
+[data-theme="amber"] #tos-league, [data-theme="amber"] #tos-back { color: rgba(251,232,200,.6); }
+
+/* ══ CLIPS DES BUTS — carte d'ouverture aux bruns chauds du thème (clips tels qu'enregistrés) ══ */
+[data-theme="amber"] #gcr-intro { --gcr-bg: #0c0600; }
+[data-theme="amber"] #gcr-league { color: rgba(251,232,200,.6); }
+[data-theme="amber"] #gcr-sub { color: rgba(251,232,200,.75); }
+[data-theme="amber"] .gcr-flogo { background: rgba(240,234,218,.07); }

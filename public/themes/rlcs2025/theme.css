@@ -777,3 +777,49 @@
 [data-theme="rlcs2025"] .end-bl-lbl { color: rgba(255,255,255,.35); letter-spacing: 3px; font-size: 9px; }
 [data-theme="rlcs2025"] .end-bv.r   { color: #23a8d4; font-size: 20px; font-weight: 900; }
 [data-theme="rlcs2025"] .end-bv.l   { color: #ef6307; font-size: 20px; font-weight: 900; }
+
+/* ══════════════════════════════════════════════════════════
+   TIMEOUTS — icône hexagonale aux deux bouts du titre (qui s'arrête à 96px des bords)
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2025"] .to-pip { width: 27px; height: 23px; top: 7px; --to-bg: #1b191c; filter: none; }
+[data-theme="rlcs2025"] .to-pip.blue   { left: 108px; }
+[data-theme="rlcs2025"] .to-pip.orange { right: 108px; }
+
+/* ══════════════════════════════════════════════════════════
+   ÉCRAN DE TIMEOUT — Bourgeois italique, bande oblique couleur d'équipe, équipe en bloc plein,
+   chrono dans un bloc blanc comme celui du scoreboard
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2025"] #to-screen { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; font-style: italic; --tos-bg: #06060e; }
+[data-theme="rlcs2025"] #tos-bg {
+  background:
+    linear-gradient(104deg, transparent 0 31%, color-mix(in srgb, var(--to-c) 20%, transparent) 31% 69%, transparent 69%),
+    radial-gradient(ellipse 60% 50% at 50% 40%, color-mix(in srgb, var(--to-c) 26%, transparent), transparent 72%),
+    #06060e;
+}
+[data-theme="rlcs2025"] #tos-bg::after { opacity: .05; }
+[data-theme="rlcs2025"] #tos-league { font-weight: 900; color: rgba(255,255,255,.7); letter-spacing: 5px; }
+[data-theme="rlcs2025"] #tos-word { font-size: 200px; letter-spacing: 6px; padding: 0 0 .08em 6px; }
+[data-theme="rlcs2025"] #tos-team { background: var(--to-c); border: none; border-radius: 0; padding: 0 52px 0 0; gap: 32px; }
+[data-theme="rlcs2025"] #tos-logo { width: 120px; height: 112px; border-radius: 0; background: #000; }
+[data-theme="rlcs2025"] #tos-name { padding-bottom: .12em; letter-spacing: 3px; }
+[data-theme="rlcs2025"] #tos-timer { background: #fff; color: #0a0a0a; padding: 6px 50px .2em; letter-spacing: 2px; }
+[data-theme="rlcs2025"] #tos-bar { border-radius: 0; height: 10px; }
+[data-theme="rlcs2025"] #tos-bar i { border-radius: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   CLIPS DES BUTS — carte d'ouverture en Bourgeois italique : bande oblique, logos sur blocs noirs,
+   score final dans un bloc blanc comme le scoreboard (les clips passent tels qu'enregistrés)
+══════════════════════════════════════════════════════════ */
+[data-theme="rlcs2025"] #gc-reel { font-family: 'Bourgeois', 'Barlow Condensed', sans-serif; font-style: italic; }
+[data-theme="rlcs2025"] #gcr-intro {
+  background:
+    linear-gradient(104deg, transparent 0 31%, rgba(255,255,255,.035) 31% 69%, transparent 69%),
+    radial-gradient(ellipse 50% 45% at 30% 45%, color-mix(in srgb, var(--blue) 26%, transparent), transparent 72%),
+    radial-gradient(ellipse 50% 45% at 70% 45%, color-mix(in srgb, var(--orange) 26%, transparent), transparent 72%),
+    #06060e;
+}
+[data-theme="rlcs2025"] #gcr-league { font-weight: 900; color: rgba(255,255,255,.7); letter-spacing: 5px; }
+[data-theme="rlcs2025"] #gcr-word { font-size: 196px; letter-spacing: 6px; padding: 0 0 .08em 6px; }
+[data-theme="rlcs2025"] .gcr-flogo { border-radius: 0; background: #000; }
+[data-theme="rlcs2025"] #gcr-fscore { background: #fff; color: #0a0a0a; padding: 0 40px .1em; }
+[data-theme="rlcs2025"] #gcr-fscore i { color: rgba(0,0,0,.35); }

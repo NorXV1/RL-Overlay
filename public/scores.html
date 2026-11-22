@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<script>window.__I18N_STATIC = true;</script>
+<script src="/i18n/boot.js"></script>
+<title>RL Overlay — Scores</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<!-- thème actif : ses couleurs d'équipe (--blue, --orange…) et sa police s'appliquent aussi à cette page -->
+<link id="theme-stylesheet" rel="stylesheet" href="">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   PAGE DES SCORES — source navigateur OBS 1920×1080 pour une scène de fin
+   Équipes, score de la série, chaque game jouée et les stats de la dernière game, mis à jour tout seuls.
+   ?transparent=1 : sans fond (pour la poser sur ta propre image ou vidéo de fond).
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --blue: #1a5fff; --blue-light: #60a0ff; --orange: #d96000; --orange-light: #ff9c33;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; }
+body {
+  font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; color: #fff;
+  background: linear-gradient(180deg, #0a0d18 0%, #05070d 100%);
+  display: flex; flex-direction: column; align-items: center; padding: 70px 110px 60px; position: relative;
+}
+/* lueurs aux couleurs des équipes (du thème actif) */
+body::before, body::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1; opacity: .26; }
+body::before { background: radial-gradient(ellipse 55% 65% at 15% 28%, var(--blue), transparent 70%); }
+body::after  { background: radial-gradient(ellipse 55% 65% at 85% 28%, var(--orange), transparent 70%); }
+body.transparent { background: transparent; }
+body.transparent::before, body.transparent::after { display: none; }
+
+#league { font-size: 26px; font-weight: 700; letter-spacing: 8px; text-transform: uppercase; color: rgba(255,255,255,.6); min-height: 32px; }
+
+/* ── Score de la série ── */
+#hero { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 50px; width: 100%; margin-top: 30px; }
+.team { display: flex; align-items: center; gap: 30px; min-width: 0; }
+.team.orange { flex-direction: row-reverse; }
+.logo {
+  width: 170px; height: 170px; flex-shrink: 0; border-radius: 26px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.05); border: 3px solid var(--c); box-shadow: 0 0 60px -18px var(--c);
+}
+.team.blue { --c: var(--blue); --cl: var(--blue-light); }
+.team.orange { --c: var(--orange); --cl: var(--orange-light); }
+.logo img { width: 130px; height: 130px; object-fit: contain; }
+.logo span { font-size: 80px; font-weight: 900; color: var(--cl); }
+.tname { min-width: 0; }
+.team.orange .tname { text-align: right; }
+.tname b { display: block; font-size: 72px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tname small { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; letter-spacing: 4px; color: var(--cl); text-transform: uppercase; min-height: 26px; }
+.team.winner .tname small::before { content: '★ '; }
+
+#series { text-align: center; }
+#series-score { display: flex; align-items: center; gap: 24px; font-size: 150px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+#series-score .b { color: var(--blue-light); }
+#series-score .o { color: var(--orange-light); }
+#series-score .sep { font-size: 80px; color: rgba(255,255,255,.3); }
+#series-sub { margin-top: 10px; font-size: 24px; font-weight: 800; letter-spacing: 6px; color: rgba(255,255,255,.55); text-transform: uppercase; }
+#series-sub.done { color: #ffd700; }
+
+/* ── Games de la série et dernière game ── */
+#bottom { display: grid; grid-template-columns: 640px 1fr; gap: 40px; width: 100%; margin-top: 56px; flex: 1; min-height: 0; }
+.panel { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 22px 28px; min-height: 0; }
+.panel h2 { font-size: 20px; font-weight: 800; letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 16px; }
+.empty { font-size: 24px; font-weight: 600; color: rgba(255,255,255,.35); padding: 20px 0; }
+
+#games { display: flex; flex-direction: column; gap: 10px; }
+.game { display: grid; grid-template-columns: 110px 1fr auto 1fr; align-items: center; gap: 14px; padding: 10px 16px; border-radius: 12px; background: rgba(255,255,255,.04); }
+.game .gn { font-size: 20px; font-weight: 800; letter-spacing: 3px; color: rgba(255,255,255,.45); }
+.game .gt { font-size: 24px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255,255,255,.55); }
+.game .gt.o { text-align: right; }
+.game .gt.win { color: #fff; }
+.game .gt.b.win::before { content: '▸ '; color: var(--blue-light); }
+.game .gt.o.win::after  { content: ' ◂'; color: var(--orange-light); }
+.game .gs { font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; display: flex; gap: 10px; }
+.game .gs .b { color: var(--blue-light); }
+.game .gs .o { color: var(--orange-light); }
+.game .gs i { color: rgba(255,255,255,.25); font-style: normal; }
+
+#last table { width: 100%; border-collapse: collapse; font-size: 24px; }
+#last th { font-size: 16px; font-weight: 800; letter-spacing: 3px; color: rgba(255,255,255,.4); text-transform: uppercase; padding: 0 8px 10px; text-align: center; }
+#last th:first-child { text-align: left; }
+#last td { padding: 9px 8px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; border-top: 1px solid rgba(255,255,255,.05); }
+#last td:first-child { text-align: left; font-weight: 800; text-transform: uppercase; white-space: nowrap; max-width: 330px; overflow: hidden; text-overflow: ellipsis; }
+#last tr.b td:first-child { border-left: 5px solid var(--blue); padding-left: 14px; }
+#last tr.o td:first-child { border-left: 5px solid var(--orange); padding-left: 14px; }
+#last tr.mvp td:first-child::after { content: 'MVP'; margin-left: 10px; font-size: 14px; padding: 2px 6px; border-radius: 4px; background: #ffd700; color: #111; vertical-align: middle; }
+#last-res { font-size: 22px; font-weight: 800; letter-spacing: 2px; margin: -6px 0 12px; color: rgba(255,255,255,.75); text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div id="league"></div>
+  <div id="hero">
+    <div class="team blue" id="team-b"><div class="logo" id="logo-b"></div><div class="tname"><b id="name-b">BLUE</b><small id="tag-b"></small></div></div>
+    <div id="series">
+      <div id="series-score"><span class="b" id="ser-b">0</span><span class="sep">–</span><span class="o" id="ser-o">0</span></div>
+      <div id="series-sub"></div>
+    </div>
+    <div class="team orange" id="team-o"><div class="logo" id="logo-o"></div><div class="tname"><b id="name-o">ORANGE</b><small id="tag-o"></small></div></div>
+  </div>
+  <div id="bottom">
+    <div class="panel"><h2 data-i18n>Games de la série</h2><div id="games"></div></div>
+    <div class="panel" id="last"><h2 data-i18n>Dernière game</h2><div id="last-res"></div><div id="last-body"></div></div>
+  </div>
+
+<script>
+const q = new URLSearchParams(location.search);
+if (q.has('transparent')) document.body.classList.add('transparent');
+const tr = s => (window.I18N ? window.I18N.tr(s) : s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let data = null;
+
+function applyTheme(t) {
+  const link = document.getElementById('theme-stylesheet');
+  document.body.dataset.theme = !t || t === 'rlcs' ? '' : t;
+  link.href = !t || t === 'rlcs' ? '' : `/themes/${t}/theme.css?v=${Date.now()}`;
+}
+/* un logo remplacé garde la même adresse : numéro de version pour forcer le rechargement de l'image */
+const logoVer = {};
+function logo(el, url, letter) {
+  const src = url ? url + (logoVer[url] ? '?t=' + logoVer[url] : '') : '';
+  if (el.dataset.src === src && el.firstChild) return;
+  el.dataset.src = src;
+  el.innerHTML = src ? `<img src="${esc(src)}" alt="">` : `<span>${esc(letter)}</span>`;
+}
+function render() {
+  if (!data) return;
+  const t = data.teams, s = data.series || {}, bo = s.bestOf || 0, need = Math.ceil(bo / 2);
+  document.getElementById('league').textContent = data.league || '';
+  document.getElementById('name-b').textContent = t[0].name;
+  document.getElementById('name-o').textContent = t[1].name;
+  document.getElementById('tag-b').textContent = t[0].tag || '';
+  document.getElementById('tag-o').textContent = t[1].tag || '';
+  logo(document.getElementById('logo-b'), t[0].logo, (t[0].name || 'B')[0]);
+  logo(document.getElementById('logo-o'), t[1].logo, (t[1].name || 'O')[0]);
+  document.getElementById('ser-b').textContent = s.blue || 0;
+  document.getElementById('ser-o').textContent = s.orange || 0;
+  const doneB = bo && s.blue >= need, doneO = bo && s.orange >= need;
+  document.getElementById('team-b').classList.toggle('winner', !!doneB);
+  document.getElementById('team-o').classList.toggle('winner', !!doneO);
+  const sub = document.getElementById('series-sub');
+  sub.classList.toggle('done', !!(doneB || doneO));
+  sub.textContent = !bo ? '' : doneB || doneO ? tr(`${(doneB ? t[0] : t[1]).name} remporte la série`) : `BEST OF ${bo}`;
+
+  /* games de la série */
+  const games = data.history || [];
+  document.getElementById('games').innerHTML = games.length ? games.map(g => `
+    <div class="game">
+      <span class="gn">GAME ${g.n}</span>
+      <span class="gt b${g.winner === 0 ? ' win' : ''}">${esc(g.names[0])}</span>
+      <span class="gs"><span class="b">${g.scores[0]}</span><i>–</i><span class="o">${g.scores[1]}</span></span>
+      <span class="gt o${g.winner === 1 ? ' win' : ''}">${esc(g.names[1])}</span>
+    </div>`).join('') : `<div class="empty">${esc(tr('Aucune game jouée pour le moment'))}</div>`;
+
+  /* stats de la dernière game */
+  const lg = data.lastGame, body = document.getElementById('last-body');
+  document.getElementById('last-res').textContent = lg ? `${lg.names[0]}  ${lg.scores[0]} – ${lg.scores[1]}  ${lg.names[1]}` : '';
+  if (!lg || !lg.players || !lg.players.length) { body.innerHTML = `<div class="empty">${esc(tr('Les stats apparaîtront à la fin de la première game'))}</div>`; fitAll(); return; }
+  const winners = lg.players.filter(p => p.team === lg.winner);
+  const mvp = winners.slice().sort((a, b) => b.score - a.score)[0];
+  const rows = [0, 1].flatMap(team => lg.players.filter(p => p.team === team).sort((a, b) => b.score - a.score)).map(p => `
+    <tr class="${p.team === 0 ? 'b' : 'o'}${p === mvp ? ' mvp' : ''}"><td>${esc(p.name)}</td><td>${p.score}</td><td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td><td>${p.shots}</td><td>${p.demos}</td></tr>`).join('');
+  body.innerHTML = `<table><tr><th></th><th>SCORE</th><th>GOALS</th><th>ASSISTS</th><th>SAVES</th><th>SHOTS</th><th>DEMOS</th></tr>${rows}</table>`;
+  fitAll();
+}
+/* les noms longs rétrécissent au lieu d'être coupés (jusqu'à une taille minimale) */
+function fit(el, min) {
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  let shrunk = false;
+  while (el.scrollWidth > el.clientWidth && size > min) { size -= 1; shrunk = true; el.style.fontSize = size + 'px'; }
+  /* 1 px de marge : la largeur mesurée est arrondie, et l'ellipse apparaît au moindre dépassement */
+  if (shrunk && size > min) el.style.fontSize = (size - 1) + 'px';
+}
+function fitAll() {
+  ['name-b', 'name-o'].forEach(id => fit(document.getElementById(id), 40));
+  document.querySelectorAll('.game .gt').forEach(el => fit(el, 16));
+}
+if (document.fonts) document.fonts.ready.then(() => data && fitAll());
+let fetchT = null;
+function refresh() {
+  clearTimeout(fetchT);
+  fetchT = setTimeout(() => fetch('/api/scores', { cache: 'no-store' }).then(r => r.json()).then(d => {
+    const themeChanged = !data || data.theme !== d.theme;
+    data = d; if (themeChanged) applyTheme(d.theme); render();
+  }).catch(() => {}), 150);
+}
+if (window.I18N) window.I18N.onChange(render);
+
+/* mises à jour en direct (fin de game, série, équipes, logos, thème) */
+let ws, lastNames = '';
+function connect() {
+  ws = new WebSocket(`ws://${location.host}`);
+  ws.onmessage = e => {
+    const { type, data: d } = JSON.parse(e.data);
+    if (type === 'scores_update') { const themeChanged = !data || data.theme !== d.theme; data = d; if (themeChanged) applyTheme(d.theme); render(); }
+    else if (type === 'theme_change') { if (data) data.theme = d.theme; applyTheme(d.theme); }
+    else if (type === 'lang_change') { if (window.I18N && d && d.lang) window.I18N.setLang(d.lang); }
+    else if (type === 'reload_all') location.reload();
+    else if (type === 'logo_updated') { if (d && d.url) logoVer[d.url] = Date.now(); refresh(); }
+    else if (type === 'teams_swapped') { (d && d.teams || []).forEach(t => { if (t.logo_url) logoVer[t.logo_url] = Date.now(); }); refresh(); }
+    else if (['series_update', 'init'].includes(type)) refresh();
+    else if (type === 'update_state' && d && d.game) {
+      /* noms ou logos changés dans le panneau (sans relire toute la page à chaque image du jeu) */
+      const k = d.game.teams.map(t => [t.name, t.tag, t.logo_url].join('|')).join('/') + '/' + (d.meta && d.meta.league);
+      if (k !== lastNames) { lastNames = k; refresh(); }
+    }
+  };
+  ws.onclose = () => setTimeout(connect, 2000);
+}
+connect();
+refresh();
+</script>
+</body>
+</html>

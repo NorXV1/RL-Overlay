@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<script>window.__I18N_STATIC = true;</script>
+<script src="/i18n/boot.js"></script>
+<title>RL Overlay — Vote Twitch</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<!-- thème actif : ses couleurs d'équipe (--blue, --orange…) s'appliquent aussi au vote -->
+<link id="theme-stylesheet" rel="stylesheet" href="">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   VOTE DU CHAT TWITCH — source navigateur OBS à part (1920×1080, fond transparent)
+   Invisible tant qu'aucun vote n'est lancé depuis le panneau ; affiche le vote en direct puis le résultat.
+   Options : ?pos=top (défaut) | center | bottom   ·   ?scale=1.5 (taille du bloc)
+   ════════════════════════════════════════════════════════════════════ */
+:root { --blue: #1a5fff; --blue-light: #60a0ff; --orange: #d96000; --orange-light: #ff9c33; --tp-scale: 1; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+body {
+  font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  display: flex; justify-content: center; align-items: flex-start; padding: 40px;
+}
+body.pos-center { align-items: center; }
+body.pos-bottom { align-items: flex-end; }
+body::before, body::after { display: none !important; }
+
+#twitch-poll {
+  width: 660px; zoom: var(--tp-scale);
+  transform: translateY(-16px); opacity: 0;
+  transition: opacity .35s ease, transform .45s cubic-bezier(.2,.9,.3,1.15);
+}
+body.pos-bottom #twitch-poll { transform: translateY(16px); }
+#twitch-poll.show { opacity: 1; transform: none; }
+#tp-box {
+  background: rgba(8,8,16,.92); border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  padding: 12px 18px 12px; box-shadow: 0 12px 34px rgba(0,0,0,.5);
+}
+#tp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+#tp-badge {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  background: #9146ff; color: #fff; border-radius: 6px; padding: 3px 10px 3px 8px;
+  font-size: 13px; font-weight: 900; letter-spacing: 2px;
+}
+#tp-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: tpPulse 1s ease-in-out infinite; }
+#twitch-poll.ended #tp-badge { background: #ffd700; color: #111; }
+#twitch-poll.ended #tp-badge::before { display: none; }
+#tp-title {
+  flex: 1; min-width: 0; text-align: center; color: #fff; font-size: 20px; font-weight: 900; letter-spacing: 2px;
+  text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#tp-timer {
+  flex-shrink: 0; min-width: 62px; text-align: right; color: #fff; font-size: 22px; font-weight: 900;
+  font-variant-numeric: tabular-nums; letter-spacing: 1px;
+}
+#tp-timer.warn { color: #ff5555; animation: tpBlink .8s infinite; }
+#tp-sides { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.tp-side { display: flex; align-items: baseline; gap: 10px; font-weight: 900; transition: opacity .3s; }
+.tp-side.orange { flex-direction: row-reverse; }
+.tp-tag { font-size: 22px; letter-spacing: 1px; }
+.tp-side.blue   .tp-tag { color: var(--blue-light); }
+.tp-side.orange .tp-tag { color: var(--orange-light); }
+.tp-pct { font-size: 30px; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+#twitch-poll.ended .tp-side.lose { opacity: .45; }
+#twitch-poll.ended .tp-side.win .tp-pct { color: #ffd700; }
+#tp-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: rgba(255,255,255,.08); }
+#tp-bar-b, #tp-bar-o { height: 100%; transition: flex-grow .5s cubic-bezier(.3,1,.4,1); }
+#tp-bar-b { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+#tp-bar-o { background: linear-gradient(90deg, var(--orange-light), var(--orange)); }
+#tp-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: rgba(255,255,255,.55); text-transform: uppercase; }
+@keyframes tpPulse { 50% { opacity: .3; } }
+@keyframes tpBlink { 50% { opacity: .35; } }
+</style>
+</head>
+<body>
+<div id="twitch-poll">
+  <div id="tp-box">
+    <div id="tp-head"><div id="tp-badge">VOTE</div><div id="tp-title"></div><div id="tp-timer"></div></div>
+    <div id="tp-sides">
+      <div class="tp-side blue"><span class="tp-tag" id="tp-tag-b"></span><span class="tp-pct" id="tp-pct-b">50%</span></div>
+      <div class="tp-side orange"><span class="tp-tag" id="tp-tag-o"></span><span class="tp-pct" id="tp-pct-o">50%</span></div>
+    </div>
+    <div id="tp-bar"><div id="tp-bar-b" style="flex-grow:1"></div><div id="tp-bar-o" style="flex-grow:1"></div></div>
+    <div id="tp-foot"><span id="tp-how"></span><span id="tp-total"></span></div>
+  </div>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+if (/^(center|bottom)$/.test(q.get('pos'))) document.body.classList.add('pos-' + q.get('pos'));
+{ const sc = parseFloat(q.get('scale')); if (sc > 0.2 && sc <= 4) document.documentElement.style.setProperty('--tp-scale', sc); }
+const tr = s => (window.I18N ? window.I18N.tr(s) : s);
+const $ = id => document.getElementById(id);
+const setText = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+
+function applyTheme(t) {
+  document.body.dataset.theme = !t || t === 'rlcs' ? '' : t;
+  $('theme-stylesheet').href = !t || t === 'rlcs' ? '' : `/themes/${t}/theme.css?v=${Date.now()}`;
+}
+
+let last = null, endAt = 0, tickT = null;
+function render(p) {
+  if (p) last = p;
+  p = last;
+  if (!p) return;
+  const box = $('twitch-poll');
+  box.classList.toggle('show', !!p.visible && (p.active || p.ended));
+  box.classList.toggle('ended', !!p.ended && !p.active);
+  const total = p.total || 0;
+  const pb = total ? Math.round(p.counts[0] * 100 / total) : 50, po = total ? 100 - pb : 50;
+  setText($('tp-badge'), tr(p.active ? 'VOTE' : 'RÉSULTAT'));
+  setText($('tp-title'), p.title || tr('QUI VA GAGNER ?'));
+  setText($('tp-tag-b'), p.tags[0]);
+  setText($('tp-tag-o'), p.tags[1]);
+  setText($('tp-pct-b'), pb + '%');
+  setText($('tp-pct-o'), po + '%');
+  $('tp-bar-b').style.flexGrow = total ? p.counts[0] : 1;
+  $('tp-bar-o').style.flexGrow = total ? p.counts[1] : 1;
+  const sides = document.querySelectorAll('.tp-side');
+  sides[0].classList.toggle('win', p.counts[0] > p.counts[1]); sides[0].classList.toggle('lose', p.counts[0] < p.counts[1]);
+  sides[1].classList.toggle('win', p.counts[1] > p.counts[0]); sides[1].classList.toggle('lose', p.counts[1] < p.counts[0]);
+  setText($('tp-how'), p.active ? tr(`Votez dans le chat : ${p.tags[0]} ou ${p.tags[1]}`) : '');
+  setText($('tp-total'), tr(`${total} vote${total > 1 ? 's' : ''}`));
+  /* temps restant : décompté ici à partir de la valeur envoyée par le serveur */
+  endAt = p.active ? performance.now() + (p.remaining || 0) : 0;
+  clearInterval(tickT);
+  const tick = () => {
+    const el = $('tp-timer');
+    if (!endAt) { setText(el, last && last.ended ? tr('FIN') : ''); el.classList.remove('warn'); return; }
+    const s = Math.max(0, Math.ceil((endAt - performance.now()) / 1000));
+    setText(el, `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+    el.classList.toggle('warn', s <= 5);
+  };
+  tick();
+  if (endAt) tickT = setInterval(tick, 250);
+}
+if (window.I18N) window.I18N.onChange(() => render());
+
+function load() {
+  fetch('/api/twitch-poll', { cache: 'no-store' }).then(r => r.json()).then(render).catch(() => {});
+  fetch('/api/scores', { cache: 'no-store' }).then(r => r.json()).then(d => applyTheme(d.theme)).catch(() => {});
+}
+function connect() {
+  const ws = new WebSocket(`ws://${location.host}`);
+  ws.onopen = load;
+  ws.onmessage = e => {
+    const { type, data: d } = JSON.parse(e.data);
+    if (type === 'twitch_poll') render(d);
+    else if (type === 'theme_change') applyTheme(d && d.theme);
+    else if (type === 'lang_change') { if (window.I18N && d && d.lang) window.I18N.setLang(d.lang); }
+    else if (type === 'reload_all') location.reload();
+  };
+  ws.onclose = () => setTimeout(connect, 2000);
+}
+connect();
+</script>
+</body>
+</html>
