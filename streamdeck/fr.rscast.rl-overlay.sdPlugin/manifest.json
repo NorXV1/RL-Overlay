@@ -1,0 +1,145 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"UUID": "fr.rscast.rl-overlay",
+	"Name": "RL Overlay",
+	"Version": "1.0.0.0",
+	"Author": "RS Cast",
+	"Description": "Control your RL Overlay Rocket League overlay from your Stream Deck: score, series, timeouts, overlay visibility, on-screen HUD, team swap and themes, with the live state on your keys.",
+	"URL": "https://overlay.rscast.fr",
+	"Category": "RL Overlay",
+	"CategoryIcon": "imgs/plugin/category",
+	"Icon": "imgs/plugin/icon",
+	"CodePath": "bin/plugin.js",
+	"PropertyInspectorPath": "ui/settings.html",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		},
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		}
+	],
+	"Nodejs": {
+		"Version": "24"
+	},
+	"Actions": [
+		{
+			"Name": "Score",
+			"UUID": "fr.rscast.rl-overlay.score",
+			"Icon": "imgs/actions/score/icon",
+			"Tooltip": "Adds or removes a goal for a team. The key shows the live score.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/score/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Series",
+			"UUID": "fr.rscast.rl-overlay.series",
+			"Icon": "imgs/actions/series/icon",
+			"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (hold). The key shows the series.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/series/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Timeout",
+			"UUID": "fr.rscast.rl-overlay.timeout",
+			"Icon": "imgs/actions/timeout/icon",
+			"Tooltip": "Press: take the team's timeout (press again to end the timeout screen). Hold: give it back. Live countdown on the key.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/timeout/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Overlay visible",
+			"UUID": "fr.rscast.rl-overlay.overlay",
+			"Icon": "imgs/actions/overlay/icon",
+			"Tooltip": "Shows or hides the whole overlay on stream.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/overlay/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "On-screen HUD",
+			"UUID": "fr.rscast.rl-overlay.hud",
+			"Icon": "imgs/actions/hud/icon",
+			"Tooltip": "Shows or hides the overlay on top of your game, on your screen (like \"Show the HUD on screen\" in the panel).",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/hud/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Swap teams",
+			"UUID": "fr.rscast.rl-overlay.swap",
+			"Icon": "imgs/actions/swap/icon",
+			"Tooltip": "Swaps the two teams: names, tags, logos and timeouts.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/swap/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Theme",
+			"UUID": "fr.rscast.rl-overlay.theme",
+			"Icon": "imgs/actions/theme/icon",
+			"Tooltip": "Applies a theme (the key lights up when it is active), or switches to the next theme.",
+			"Controllers": [
+				"Keypad"
+			],
+			"UserTitleEnabled": false,
+			"States": [
+				{
+					"Image": "imgs/actions/theme/key",
+					"ShowTitle": false
+				}
+			]
+		}
+	]
+}

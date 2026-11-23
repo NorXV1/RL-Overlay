@@ -1,0 +1,33 @@
+{
+	"Name": "RL Overlay",
+	"Description": "Control your RL Overlay Rocket League overlay from your Stream Deck: score, series, timeouts, overlay visibility, on-screen HUD, team swap and themes, with the live state on your keys.",
+	"fr.rscast.rl-overlay.score": {
+		"Name": "Score",
+		"Tooltip": "Adds or removes a goal for a team. The key shows the live score."
+	},
+	"fr.rscast.rl-overlay.series": {
+		"Name": "Series",
+		"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (hold). The key shows the series."
+	},
+	"fr.rscast.rl-overlay.timeout": {
+		"Name": "Timeout",
+		"Tooltip": "Press: take the team's timeout (press again to end the timeout screen). Hold: give it back. Live countdown on the key."
+	},
+	"fr.rscast.rl-overlay.overlay": {
+		"Name": "Overlay visible",
+		"Tooltip": "Shows or hides the whole overlay on stream."
+	},
+	"fr.rscast.rl-overlay.hud": {
+		"Name": "On-screen HUD",
+		"Tooltip": "Shows or hides the overlay on top of your game, on your screen (like \"Show the HUD on screen\" in the panel)."
+	},
+	"fr.rscast.rl-overlay.swap": {
+		"Name": "Swap teams",
+		"Tooltip": "Swaps the two teams: names, tags, logos and timeouts."
+	},
+	"fr.rscast.rl-overlay.theme": {
+		"Name": "Theme",
+		"Tooltip": "Applies a theme (the key lights up when it is active), or switches to the next theme."
+	},
+	"Localization": {}
+}

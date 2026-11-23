@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>RL Overlay</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 4px 12px 14px 0; background: #2d2d2d; color: #d8d8d8; font: 9pt "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif; -webkit-user-select: none; user-select: none; }
+  .row { display: flex; align-items: center; min-height: 32px; margin: 2px 0; }
+  .row > label:first-child { flex: 0 0 106px; text-align: right; padding-right: 12px; color: #969696; }
+  .row > .ctl { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; align-items: center; }
+  select, input[type=text] { width: 100%; height: 26px; background: #3d3d3d; color: #d8d8d8; border: 1px solid transparent; border-radius: 3px; padding: 0 8px; font: inherit; outline: none; }
+  select:focus, input[type=text]:focus { border-color: #4a90d9; }
+  select:disabled { opacity: .5; }
+  .seg { display: flex; width: 100%; background: #3d3d3d; border-radius: 3px; padding: 2px; gap: 2px; }
+  .seg button { flex: 1 1 0; min-width: 0; height: 22px; padding: 0 6px; border: 0; border-radius: 2px; background: transparent; color: #b8b8b8; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg button.on { background: #5a5a5a; color: #fff; }
+  .seg button[data-v=reset] { flex-grow: 1.8; }
+  .seg button.blue.on { background: #1f5fd6; } .seg button.orange.on { background: #d96a00; }
+  .help { margin: 4px 0 6px 106px; color: #8c8c8c; line-height: 1.45; }
+  .help b { color: #c8c8c8; font-weight: 600; }
+  hr { border: 0; border-top: 1px solid #3d3d3d; margin: 10px 0 8px 0; }
+  .status { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #e0525e; flex: 0 0 auto; }
+  .dot.ok { background: #2fd37f; }
+  .retry { background: #3d3d3d; color: #d8d8d8; border: 0; border-radius: 3px; height: 22px; padding: 0 10px; font: inherit; cursor: pointer; margin-left: auto; }
+  .retry:hover { background: #4a4a4a; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="sec-team" class="row" hidden>
+    <label data-t="team"></label>
+    <div class="ctl"><div class="seg" id="team"><button class="blue" data-v="blue"></button><button class="orange" data-v="orange"></button></div></div>
+  </div>
+  <div id="sec-step" class="row" hidden>
+    <label data-t="press"></label>
+    <div class="ctl"><div class="seg" id="step"><button data-v="1">+1</button><button data-v="-1">−1</button><button data-v="reset" data-t="reset"></button></div></div>
+  </div>
+  <div id="sec-overlay" class="row" hidden>
+    <label data-t="press"></label>
+    <div class="ctl"><select id="ovmode"><option value="toggle" data-t="toggle"></option><option value="show" data-t="show"></option><option value="hide" data-t="hide"></option></select></div>
+  </div>
+  <div id="sec-thmode" class="row" hidden>
+    <label data-t="press"></label>
+    <div class="ctl"><div class="seg" id="thmode"><button data-v="set" data-t="apply"></button><button data-v="next" data-t="next"></button></div></div>
+  </div>
+  <div id="sec-theme" class="row" hidden>
+    <label data-t="theme"></label>
+    <div class="ctl"><select id="theme"></select></div>
+  </div>
+  <div class="help" id="help"></div>
+
+  <hr />
+  <div class="row">
+    <label data-t="app"></label>
+    <div class="ctl status"><span class="dot" id="dot"></span><span id="stxt"></span><button class="retry" id="retry" data-t="retry" hidden></button></div>
+  </div>
+  <div class="row">
+    <label data-t="address"></label>
+    <div class="ctl"><input type="text" id="host" placeholder="localhost:3000" spellcheck="false" /></div>
+  </div>
+  <div class="help" data-t="addressHelp"></div>
+
+<script>
+/* Réglages d'une touche RL Overlay (protocole de la fenêtre de réglages Stream Deck, sans bibliothèque). */
+const TXT = {
+  fr: {
+    team: 'Équipe', press: 'Appui', theme: 'Thème', blue: 'Bleue', orange: 'Orange', toggle: 'Afficher / cacher', show: 'Toujours afficher', hide: 'Toujours cacher',
+    apply: 'Appliquer', next: 'Thème suivant', app: 'Appli', address: 'Adresse', retry: 'Réessayer', reset: 'Remettre à 0',
+    connected: 'Connecté à RL Overlay', offline: 'RL Overlay introuvable — lance l’appli', pickTheme: '— Choisis un thème —', noThemes: 'Lance l’appli pour voir tes thèmes',
+    addressHelp: 'Laisse vide si l’appli tourne sur ce PC. Sinon, mets l’adresse du PC de stream, par ex. <b>192.168.1.20:3000</b>.',
+    'help.score': 'La touche affiche le score de l’équipe en direct.',
+    'help.series': 'Un match gagné (ou retiré) dans la série. La touche affiche les pastilles et le score de la série.',
+    'help.timeout': '<b>Appui</b> : prend le timeout de l’équipe. <b>Réappui</b> pendant l’écran : le termine. <b>Appui long</b> : rend le timeout. À activer dans le panneau (Timeouts).',
+    'help.seriesReset': '<b>Maintiens</b> la touche pour remettre la série à 0 - 0 (les timeouts sont rendus), comme le bouton Reset du panneau. Un appui court ne fait rien : pas de remise à 0 par erreur.',
+    'help.hud': 'Affiche ou masque l’overlay par-dessus ton jeu, sur ton écran — comme « Afficher le HUD sur l’écran » dans le panneau (ou <b>Ctrl+Maj+H</b>).',
+    'help.overlay': 'Affiche ou cache tout l’overlay sur le stream.',
+    'help.swap': 'Inverse les deux équipes : noms, tags, logos et timeouts.',
+    'help.theme': 'La touche s’allume en vert quand ce thème est actif.',
+    'help.themeNext': 'Passe au thème suivant de ta liste ; la touche affiche le thème actuel.',
+  },
+  en: {
+    team: 'Team', press: 'Press', theme: 'Theme', blue: 'Blue', orange: 'Orange', toggle: 'Show / hide', show: 'Always show', hide: 'Always hide',
+    apply: 'Apply', next: 'Next theme', app: 'App', address: 'Address', retry: 'Retry', reset: 'Reset',
+    connected: 'Connected to RL Overlay', offline: 'RL Overlay not found — start the app', pickTheme: '— Pick a theme —', noThemes: 'Start the app to see your themes',
+    addressHelp: 'Leave empty if the app runs on this PC. Otherwise, enter the streaming PC address, e.g. <b>192.168.1.20:3000</b>.',
+    'help.score': 'The key shows the team score live.',
+    'help.series': 'A won game (or removed) in the series. The key shows the series pips and score.',
+    'help.timeout': '<b>Press</b>: take the team timeout. <b>Press again</b> during the screen: end it. <b>Hold</b>: give the timeout back. Enable it in the panel (Timeouts).',
+    'help.seriesReset': '<b>Hold</b> the key to reset the series to 0 - 0 (timeouts are given back), like the panel Reset button. A short press does nothing: no accidental reset.',
+    'help.hud': 'Shows or hides the overlay on top of your game, on your screen — like “Show the HUD on screen” in the panel (or <b>Ctrl+Shift+H</b>).',
+    'help.overlay': 'Shows or hides the whole overlay on stream.',
+    'help.swap': 'Swaps the two teams: names, tags, logos and timeouts.',
+    'help.theme': 'The key lights up green when this theme is active.',
+    'help.themeNext': 'Switches to the next theme in your list; the key shows the current theme.',
+  },
+};
+let ws, ctx, action, kind = '', lang = 'en', settings = {}, globals = {}, state = null;
+const $ = id => document.getElementById(id);
+const tr = k => (TXT[lang] && TXT[lang][k]) || TXT.en[k] || k;
+const send = m => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+const save = () => send({ event: 'setSettings', context: ctx, payload: settings });
+
+function seg(id, value, onPick) {
+  const el = $(id);
+  el.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', b.dataset.v === String(value));
+    b.onclick = () => onPick(b.dataset.v);
+  });
+}
+
+function render() {
+  document.querySelectorAll('[data-t]').forEach(el => { el.innerHTML = tr(el.dataset.t); });
+  const teamNames = (state && state.teams) || [];
+  $('team').querySelector('[data-v=blue]').textContent = tr('blue') + (teamNames[0] ? ' · ' + teamNames[0] : '');
+  $('team').querySelector('[data-v=orange]').textContent = tr('orange') + (teamNames[1] ? ' · ' + teamNames[1] : '');
+  const show = (id, on) => { $(id).hidden = !on; };
+  const reset = kind === 'series' && settings.step === 'reset';
+  show('sec-team', ['score', 'series', 'timeout'].includes(kind) && !reset);
+  show('sec-step', ['score', 'series'].includes(kind));
+  $('step').querySelector('[data-v=reset]').hidden = kind !== 'series';
+  show('sec-overlay', kind === 'overlay' || kind === 'hud');
+  show('sec-thmode', kind === 'theme');
+  show('sec-theme', kind === 'theme' && settings.mode !== 'next');
+
+  const team = settings.team === 'orange' ? 'orange' : 'blue';
+  seg('team', team, v => { settings.team = v; save(); render(); });
+  seg('step', reset ? 'reset' : Number(settings.step) < 0 ? -1 : 1, v => { settings.step = v === 'reset' ? 'reset' : Number(v); save(); render(); });
+  seg('thmode', settings.mode === 'next' ? 'next' : 'set', v => { settings.mode = v; save(); render(); });
+  $('ovmode').value = ['show', 'hide'].includes(settings.mode) ? settings.mode : 'toggle';
+  $('ovmode').onchange = e => { settings.mode = e.target.value; save(); };
+
+  /* liste des thèmes de l'appli */
+  const sel = $('theme'), themes = (state && state.themes) || [];
+  sel.innerHTML = '';
+  if (!themes.length) {
+    sel.add(new Option(settings.theme ? settings.theme : tr('noThemes'), settings.theme || ''));
+    sel.disabled = true;
+  } else {
+    sel.disabled = false;
+    if (!settings.theme) sel.add(new Option(tr('pickTheme'), ''));
+    for (const t of themes) sel.add(new Option(t.name, t.id));
+    if (settings.theme && !themes.some(t => t.id === settings.theme)) sel.add(new Option(settings.theme, settings.theme));
+    sel.value = settings.theme || '';
+  }
+  sel.onchange = e => { settings.theme = e.target.value; save(); render(); };
+
+  $('help').innerHTML = tr('help.' + (kind === 'theme' && settings.mode === 'next' ? 'themeNext' : reset ? 'seriesReset' : kind));
+  const ok = !!(state && state.connected);
+  $('dot').classList.toggle('ok', ok);
+  $('stxt').textContent = state ? tr(ok ? 'connected' : 'offline') : '…';
+  $('retry').hidden = ok || !state;
+  const h = $('host');
+  if (document.activeElement !== h) h.value = globals.host || '';
+}
+
+$('host').addEventListener('change', e => {
+  const v = e.target.value.trim();
+  globals = { ...globals, host: v };
+  send({ event: 'setGlobalSettings', context: ctx, payload: globals });
+});
+$('retry').addEventListener('click', () => send({ event: 'sendToPlugin', action, context: ctx, payload: { type: 'reconnect' } }));
+
+/* appelée par Stream Deck à l'ouverture de la fenêtre */
+window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, info, actionInfo) => {
+  ctx = uuid;
+  try { lang = String(JSON.parse(info).application.language || '').toLowerCase().startsWith('fr') ? 'fr' : 'en'; } catch (e) {}
+  try {
+    const a = JSON.parse(actionInfo);
+    action = a.action;
+    kind = String(action || '').split('.').pop();
+    settings = (a.payload && a.payload.settings) || {};
+  } catch (e) {}
+  render();
+  ws = new WebSocket('ws://127.0.0.1:' + port);
+  ws.onopen = () => {
+    send({ event: registerEvent, uuid });
+    send({ event: 'getGlobalSettings', context: uuid });
+    send({ event: 'sendToPlugin', action, context: uuid, payload: { type: 'getState' } });
+  };
+  ws.onmessage = e => {
+    let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+    if (m.event === 'didReceiveGlobalSettings') { globals = (m.payload && m.payload.settings) || {}; render(); }
+    else if (m.event === 'didReceiveSettings') { settings = (m.payload && m.payload.settings) || {}; render(); }
+    else if (m.event === 'sendToPropertyInspector' && m.payload && m.payload.type === 'state') { state = m.payload; render(); }
+  };
+};
+</script>
+</body>
+</html>

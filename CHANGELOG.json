@@ -314,5 +314,16 @@
       "Fix: a long team name no longer shifts the scoreboard — the name shrinks to fit its panel (Default, Amber, Neon, Nord, Onyx, Arcade and the themes based on their layout). In RLCS 2025 and Enisorail, it is no longer cut off",
       "Fix (Studio): a layer with the \"Overtime\" box unticked is now hidden during overtime play (it used to stay on screen). Themes already installed do not change; when an older project is opened, the box is ticked wherever the layer was already showing in overtime"
     ]
+  },
+  "1.10.0": {
+    "date": "2026-11-23",
+    "notes": [
+      "Nouveau panneau de contrôle, plus moderne et plus lisible : un menu à gauche avec une page par sujet (Direct, Équipes, Thèmes, Bandeau médias, Vote Twitch, Diffusion, Compte), la page Direct regroupe l'aperçu OBS et les réglages du match. Quatre affichages au choix dans Compte → Affichage du panneau (ou le bouton « Affichage » en haut) : menu latéral, onglets en haut, une seule page, ou Classique (le panneau d'avant, à l'identique). Les décorations de saison restent sur l'en-tête",
+      "Nouveau : plugin Stream Deck — score (+1 / −1), série (+1 / −1, ou remise à 0 par un appui long), timeouts (appui : prendre, réappui : terminer l'écran, appui long : rendre), overlay visible ou caché, HUD à l'écran, inversion des équipes et thèmes, directement depuis tes touches, avec l'état en direct sur chaque touche (score, pastilles de la série, compte à rebours du timeout, thème actif). Installe-le depuis le panneau, carte Stream Deck : un témoin indique quand il est connecté. Stream Deck 7.1 ou plus récent"
+    ],
+    "notes_en": [
+      "New control panel, more modern and easier to read: a menu on the left with one page per topic (Live, Teams, Themes, Media banner, Twitch vote, Broadcast, Account); the Live page gathers the OBS preview and the match settings. Four layouts to choose from in Account → Panel layout (or the \"Display\" button at the top): side menu, top tabs, single page, or Classic (the previous panel, unchanged). Seasonal decorations stay on the header",
+      "New: Stream Deck plugin — score (+1 / −1), series (+1 / −1, or reset with a long press), timeouts (press: take, press again: end the screen, hold: give back), overlay shown or hidden, on-screen HUD, team swap and themes, right from your keys, with the live state on each key (score, series pips, timeout countdown, active theme). Install it from the panel, Stream Deck card: an indicator shows when it is connected. Stream Deck 7.1 or later"
+    ]
   }
 }

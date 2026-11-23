@@ -363,7 +363,8 @@ if (!gotLock) { app.exit(0); } else {
   }
 
   /* ── HUD à l'écran pour le caster (overlay par-dessus le jeu, voir hud.js) ── */
-  const hud = require('./hud')({ getMainWindow: () => mainWindow, port: 3000 });
+  const hud = require('./hud')({ getMainWindow: () => mainWindow, port: 3000, onChange: () => { if (srv && srv.hudChanged) srv.hudChanged(); } });
+  if (srv && srv.setHud) srv.setHud(hud);   // pilotable par l'API (touche « HUD à l'écran » du plugin Stream Deck)
 
   /* ── IPC : fichiers de projet du Studio (.rlstudio) ──────────────
      Ctrl+S réécrit le fichier déjà ouvert (sans redemander où l'enregistrer) ;

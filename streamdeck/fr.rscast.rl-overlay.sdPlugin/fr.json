@@ -1,0 +1,33 @@
+{
+	"Name": "RL Overlay",
+	"Description": "Pilote ton overlay Rocket League RL Overlay depuis ton Stream Deck : score, série, timeouts, affichage de l'overlay, HUD à l'écran, inversion des équipes et thèmes, avec l'état en direct sur tes touches.",
+	"fr.rscast.rl-overlay.score": {
+		"Name": "Score",
+		"Tooltip": "Ajoute ou retire un but à une équipe. La touche affiche le score en direct."
+	},
+	"fr.rscast.rl-overlay.series": {
+		"Name": "Série",
+		"Tooltip": "Ajoute ou retire un match gagné dans la série (BO), ou remet la série à 0 - 0 (appui long). La touche affiche la série."
+	},
+	"fr.rscast.rl-overlay.timeout": {
+		"Name": "Timeout",
+		"Tooltip": "Appui : prend le timeout de l'équipe (réappui : termine l'écran de timeout). Appui long : le rend. Compte à rebours en direct sur la touche."
+	},
+	"fr.rscast.rl-overlay.overlay": {
+		"Name": "Overlay visible",
+		"Tooltip": "Affiche ou cache tout l'overlay sur le stream."
+	},
+	"fr.rscast.rl-overlay.hud": {
+		"Name": "HUD à l'écran",
+		"Tooltip": "Affiche ou masque l'overlay par-dessus ton jeu, sur ton écran (comme « Afficher le HUD sur l'écran » du panneau)."
+	},
+	"fr.rscast.rl-overlay.swap": {
+		"Name": "Inverser les équipes",
+		"Tooltip": "Inverse les deux équipes : noms, tags, logos et timeouts."
+	},
+	"fr.rscast.rl-overlay.theme": {
+		"Name": "Thème",
+		"Tooltip": "Applique un thème (la touche s'allume quand il est actif), ou passe au thème suivant."
+	},
+	"Localization": {}
+}

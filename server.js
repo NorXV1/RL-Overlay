@@ -519,7 +519,14 @@ function handleStatsApiUpdate(data) {
 
 
 /* ─────────────────── OVERLAY CLIENTS ─────────────────── */
-overlayWss.on('connection', ws => {
+overlayWss.on('connection', (ws, req) => {
+  /* plugin Stream Deck (ws://…/?client=streamdeck) : compté pour le témoin du panneau */
+  if (/[?&]client=streamdeck\b/.test(req?.url || '')) {
+    ws._streamDeck = true;
+    console.log('[Stream Deck] Plugin connecté');
+    ws.on('close', () => { console.log('[Stream Deck] Plugin déconnecté'); broadcast('streamdeck', streamDeckPayload()); });
+    setImmediate(() => broadcast('streamdeck', streamDeckPayload()));
+  }
   console.log('[Overlay] Client connecté');
   ws.send(JSON.stringify({ type: 'init', data: gameState }));
   ws.send(JSON.stringify({ type: 'theme_change', data: { theme: currentTheme } }));
@@ -535,7 +542,48 @@ overlayWss.on('connection', ws => {
   ws.send(JSON.stringify({ type: 'remote_room', data: remotePayload() }));
   ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
   ws.send(JSON.stringify({ type: 'season', data: { season: currentSeason } }));
+  ws.send(JSON.stringify({ type: 'streamdeck', data: streamDeckPayload() }));
+  ws.send(JSON.stringify({ type: 'hud', data: hudPayload() }));
   ws.on('close', () => console.log('[Overlay] Client déconnecté'));
+});
+
+/* ─────────────────── PLUGIN STREAM DECK ───────────────────
+   Livré avec l'app (public/streamdeck/, construit depuis streamdeck/ par « npm run pack » dans ce dossier) :
+   le bouton du panneau l'ouvre, Stream Deck propose alors de l'installer. Le plugin pilote l'overlay par
+   l'API et suit l'état par ce WebSocket, comme le panneau. */
+const STREAMDECK_FILE = path.join(__dirname, 'public', 'streamdeck', 'RL-Overlay.streamDeckPlugin');
+function streamDeckPayload() {
+  let connected = 0;
+  overlayWss.clients.forEach(c => { if (c._streamDeck && c.readyState === WebSocket.OPEN) connected++; });
+  return { connected, available: fs.existsSync(STREAMDECK_FILE) };
+}
+app.post('/api/streamdeck/install', async (req, res) => {
+  if (!fs.existsSync(STREAMDECK_FILE)) return res.status(404).json({ error: 'Plugin introuvable' });
+  let electron = null;
+  try { electron = require('electron'); } catch {}
+  if (!electron || typeof electron !== 'object' || !electron.shell) {
+    return res.json({ ok: false, download: '/streamdeck/RL-Overlay.streamDeckPlugin' });
+  }
+  const err = await electron.shell.openPath(STREAMDECK_FILE);
+  if (err) return res.status(500).json({ error: err, download: '/streamdeck/RL-Overlay.streamDeckPlugin' });
+  res.json({ ok: true });
+});
+
+/* HUD à l'écran (fenêtre d'Electron, voir electron/hud.js) : branché par main.js, pilotable par l'API
+   pour la touche « HUD à l'écran » du plugin ; chaque changement (panneau, Ctrl+Maj+H, plugin) est diffusé. */
+let hudCtrl = null;
+const hudPayload = () => ({ available: !!hudCtrl, shown: !!(hudCtrl && hudCtrl.shown()) });
+exports.setHud = ctrl => { hudCtrl = ctrl; broadcast('hud', hudPayload()); };
+exports.hudChanged = () => broadcast('hud', hudPayload());
+app.get('/api/hud', (req, res) => res.json(hudPayload()));
+/* { shown: true|false } ou { toggle: true } */
+app.post('/api/hud', (req, res) => {
+  if (!hudCtrl) return res.status(501).json({ error: "Le HUD à l'écran n'est disponible que dans l'application", ...hudPayload() });
+  const { shown, toggle } = req.body || {};
+  if (toggle) hudCtrl.toggle();
+  else if (shown === true) hudCtrl.show();
+  else if (shown === false) hudCtrl.hide();
+  res.json({ ok: true, ...hudPayload() });
 });
 
 /* ─────────────────── THÈME SAISONNIER ───────────────────

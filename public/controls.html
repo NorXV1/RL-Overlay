@@ -3,9 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <script src="/i18n/boot.js"></script>
+<script>
+/* affichage du panneau choisi (voir « DISPOSITION DU PANNEAU ») : appliqué tout de suite, sans changement de style au chargement */
+(function () {
+  let l = 'sidebar';
+  try { l = localStorage.getItem('rlo-layout') || 'sidebar'; } catch (e) {}
+  if (!['sidebar', 'tabs', 'single', 'classic'].includes(l)) l = 'sidebar';
+  document.documentElement.dataset.layout = l;
+  document.documentElement.dataset.ui = l === 'classic' ? 'classic' : 'modern';
+})();
+</script>
 <link rel="stylesheet" href="/i18n/flags.css">
 <title>RL Overlay — Contrôles</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -28,6 +38,7 @@
   --btnbg:     rgba(255,255,255,.07);
   --card-glow: none;
   --text-dim:  var(--muted); /* alias historique utilisé dans la section import de thème */
+  --text-2:    var(--muted); /* texte secondaire (plus lisible dans les affichages modernes, voir DISPOSITION DU PANNEAU) */
 
   /* Échelle géométrique + mouvement — communs à tous les thèmes */
   --radius:    16px;
@@ -309,13 +320,14 @@ html[data-season] .card { position:relative; }
 
 /* — Noël — */
 html[data-season="christmas"] body { background: radial-gradient(ellipse 900px 500px at 10% -10%, rgba(226,58,74,.11), transparent 60%), radial-gradient(ellipse 900px 500px at 100% 115%, rgba(31,174,91,.09), transparent 60%), var(--bg); }
+/* neige : sur l'en-tête, et sur chaque carte seulement dans l'affichage classique (ailleurs, l'en-tête suffit) */
 html[data-season="christmas"] #header::after,
-html[data-season="christmas"] .card::before {
+html[data-season="christmas"][data-layout="classic"] .card::before {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 18'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23d3e2f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M0 7C8 7 14 2 24 2C36 2 40 7 52 7C62 7 68 1 80 1C94 1 100 7 110 7C114 7 118 7 120 7V11H104C103 11 102.5 12 102.5 13.5C102.5 15.5 101.5 16.5 100.5 16.5C99.5 16.5 98.5 15.5 98.5 13.5C98.5 12 98 11 97 11H62C61 11 60.6 12 60.6 13C60.6 14.5 59.8 15 59 15C58.2 15 57.4 14.5 57.4 13C57.4 12 57 11 56 11H22C21 11 20.6 12 20.6 14C20.6 16.6 19.6 17.6 18.5 17.6C17.4 17.6 16.4 16.6 16.4 14C16.4 12 16 11 15 11H0Z'/%3E%3C/svg%3E") 0 0 / 120px 18px repeat-x;
   filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
 }
 html[data-season="christmas"] #header::after { height:18px; bottom:-9px; opacity:1; }
-html[data-season="christmas"] .card::before {
+html[data-season="christmas"][data-layout="classic"] .card::before {
   content:''; position:absolute; left:8px; right:8px; top:-8px; height:18px; pointer-events:none;
   -webkit-mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
           mask: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
@@ -339,7 +351,7 @@ html[data-season="halloween"] #header::after {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 20'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ffb347'/%3E%3Cstop offset='1' stop-color='%23ff6a00'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%232a0f3a' stroke-width='1.2' d='M-1 -1H141V5H112C110.5 5 110 6 110 8V14A5 5 0 0 1 100 14V8C100 6 99.5 5 98 5H66V11A3 3 0 0 1 60 11V5H27V13A4.5 4.5 0 0 1 18 13V5H-1Z'/%3E%3C/svg%3E") 0 0 / 140px 20px repeat-x;
   filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
 }
-html[data-season="halloween"] .card::before {
+html[data-season="halloween"][data-layout="classic"] .card::before {
   content:''; position:absolute; right:0; top:0; width:58px; height:58px; pointer-events:none; opacity:.28;
   clip-path: inset(0 round 0 var(--radius) 0 0);
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60' fill='none' stroke='%23efe7ff' stroke-width='.8'%3E%3Cpath d='M60 0L0 8M60 0L12 34M60 0L34 56M60 0L54 60'/%3E%3Cpath d='M48 2Q48 8 51 11Q55 12 58 12M36 3Q37 14 42 20Q50 24 58 24M24 5Q26 20 33 30Q46 37 57 37M12 6Q16 26 24 40Q42 50 56 49'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
@@ -775,6 +787,139 @@ input:checked + .slider:before { transform:translateX(18px); }
 .st-prog > div { height:100%; width:0; background:var(--blue); transition:width .2s var(--ease); }
 .st-card.busy .st-prog { display:block; }
 
+/* ══════════ DISPOSITION DU PANNEAU ══════════════════
+   #layout est construit par le script selon l'affichage choisi (html[data-layout]) :
+   sidebar (menu latéral + pages), tabs (onglets + pages), single (page unique en deux colonnes),
+   classic (le panneau d'avant, styles d'origine). html[data-ui="modern"] = les trois nouveaux affichages. */
+#layout { flex:1; display:flex; min-width:0; min-height:0; overflow:hidden; }
+#card-store { display:none; }
+
+/* bouton « Affichage » de l'en-tête */
+#hdr-left { display:flex; align-items:center; gap:12px; min-width:0; }
+#layout-btn { display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:10.5px; font-weight:700; letter-spacing:.5px; color:var(--text); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:var(--radius-xs); padding:3px 10px; cursor:pointer; white-space:nowrap; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+#layout-btn:hover { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.25); }
+#layout-btn svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; }
+
+/* carte « Affichage du panneau » : les 4 dispositions */
+.lay-choices { display:grid; grid-template-columns:repeat(auto-fill, minmax(215px,1fr)); gap:8px; }
+#left .lay-choices { grid-template-columns:1fr; }
+.lay-choice { display:flex; align-items:center; gap:11px; min-width:0; padding:9px 11px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--subtle); color:var(--text); font:inherit; text-align:left; cursor:pointer; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.lay-choice:hover { border-color:color-mix(in srgb, var(--blue) 55%, transparent); transform:translateY(-1px); }
+.lay-choice.on { border-color:var(--blue); background:color-mix(in srgb, var(--blue) 15%, transparent); }
+.lay-mini { width:58px; height:36px; flex-shrink:0; }
+.lay-mini .m-fr { fill:rgba(0,0,0,.35); stroke:rgba(255,255,255,.2); }
+.lay-mini .m-hd { fill:rgba(255,255,255,.25); }
+.lay-mini .m-nv { fill:color-mix(in srgb, var(--blue) 75%, transparent); }
+.lay-mini .m-bx { fill:rgba(255,255,255,.13); }
+.lay-choice.on .m-bx { fill:rgba(255,255,255,.22); }
+.lay-txt { display:flex; flex-direction:column; min-width:0; }
+.lay-txt b { font-size:13px; font-weight:700; letter-spacing:.2px; }
+.lay-txt small { font-size:11px; line-height:1.3; color:var(--muted); margin-top:2px; }
+.card.flash { animation: cardFlash 1.3s var(--ease); }
+@keyframes cardFlash { 0%,60% { box-shadow: 0 0 0 2px var(--blue), 0 0 30px -4px var(--blue); } }
+
+/* ── menu latéral / onglets + pages ── */
+.lay-pages { flex:1; display:flex; min-width:0; min-height:0; }
+.lay-pages.tabs { flex-direction:column; }
+.lay-nav { display:flex; gap:4px; flex-shrink:0; }
+.lay-pages.side .lay-nav { flex-direction:column; width:236px; padding:16px 12px; border-right:1px solid var(--border); background:rgba(0,0,0,.16); overflow-y:auto; }
+.lay-pages.tabs .lay-nav { flex-direction:row; align-items:flex-end; padding:10px 24px 0; border-bottom:1px solid var(--border); background:rgba(0,0,0,.14); overflow-x:auto; }
+.nav-item { position:relative; display:flex; align-items:center; gap:12px; width:100%; min-width:0; padding:10px 12px; border:0; border-radius:12px; background:transparent; color:var(--text-2); font:inherit; text-align:left; cursor:pointer; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+.nav-item svg { width:20px; height:20px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.nav-item:hover { background:rgba(255,255,255,.05); color:var(--text); }
+.nav-item.on { background:color-mix(in srgb, var(--blue) 17%, transparent); color:#fff; }
+.lay-pages.side .nav-item.on::before { content:''; position:absolute; left:-12px; top:9px; bottom:9px; width:3px; border-radius:0 3px 3px 0; background:var(--blue); }
+.nav-txt { display:flex; flex-direction:column; min-width:0; }
+.nav-lbl { font-size:14px; font-weight:600; line-height:1.25; }
+.nav-sum { font-size:11.5px; font-weight:500; line-height:1.35; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nav-sum:empty { display:none; }
+.nav-item.on .nav-sum { color:rgba(255,255,255,.72); }
+.nav-spacer { flex:1; min-height:12px; min-width:12px; }
+.lay-pages.tabs .nav-item { width:auto; flex-shrink:0; gap:9px; padding:10px 16px 12px; border-radius:10px 10px 0 0; }
+.lay-pages.tabs .nav-item.on { background:color-mix(in srgb, var(--blue) 14%, transparent); }
+.lay-pages.tabs .nav-item.on::after { content:''; position:absolute; left:10px; right:10px; bottom:0; height:3px; border-radius:3px 3px 0 0; background:var(--blue); }
+.lay-pages.tabs .nav-sum { display:none; }
+.lay-pages.tabs .nav-item svg { width:18px; height:18px; }
+.lay-pages.side .lay-nav #season-banner { flex-direction:column; align-items:flex-start; gap:8px; min-height:0; padding:12px; margin:4px 0; }
+.lay-pages.side .lay-nav #season-banner img { height:44px; }
+.lay-pages.side .lay-nav #season-banner .sb-title { font-size:17px; }
+.lay-content { flex:1; min-width:0; min-height:0; overflow-y:auto; }
+.page { display:none; padding:24px 28px 36px; max-width:1500px; }
+.page.on { display:block; animation: pageIn .22s var(--ease) both; }
+@keyframes pageIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.page-head { margin-bottom:18px; }
+.page-head h2 { font-size:25px; font-weight:800; letter-spacing:-.4px; line-height:1.15; color:var(--text); }
+.page-head p { margin-top:5px; font-size:13.5px; color:var(--text-2); }
+.page-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; align-items:start; }
+.page-grid > .span2 { grid-column:1 / -1; }
+.page-grid.one { grid-template-columns:1fr; }
+.page-grid.direct { grid-template-columns:minmax(0,1fr) minmax(270px,340px); }
+.page-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+html[data-season] .page > #season-banner { margin-bottom:16px; min-height:0; padding:8px 16px; }
+.page > #season-banner img { height:40px; }
+.page > #season-banner .sb-title { font-size:16px; }
+.page-col #player-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); }
+html[data-ui="modern"] [data-card="preview"] > .card-title { justify-content:flex-start !important; flex-wrap:wrap; row-gap:8px; }
+html[data-ui="modern"] [data-card="preview"] > .card-title * { white-space:nowrap; }
+html[data-ui="modern"] [data-card="preview"] > .card-title > div:last-child { margin-left:auto; }
+@media (max-width:900px) { .page-grid.direct { grid-template-columns:1fr; } }
+@media (max-width:1020px) {
+  .page-grid { grid-template-columns:1fr; }
+  .lay-pages.side .lay-nav { width:68px; padding:14px 10px; }
+  .lay-pages.side .nav-txt, .lay-pages.side .lay-nav #season-banner { display:none !important; }
+  .lay-pages.side .nav-item { justify-content:center; padding:11px 0; }
+  .page { padding:20px 20px 30px; }
+}
+
+/* ── page unique : deux colonnes comme avant, cartes regroupées ── */
+html[data-layout="single"] #left { width:372px; gap:14px; }
+.lay-group { font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-2); margin:12px 4px -4px; }
+.lay-group:first-child { margin-top:2px; }
+
+/* ── textes lisibles (menu latéral, onglets, page unique) ── */
+html[data-ui="modern"] { --text-2: color-mix(in srgb, var(--text) 64%, transparent); }
+html[data-ui="modern"] body { font-family:'Inter', system-ui, 'Segoe UI', Arial, sans-serif; }
+html[data-ui="modern"] #scoreline, html[data-ui="modern"] #season-banner .sb-title, html[data-ui="modern"] .wz-themes button { font-family:'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; }
+html[data-ui="modern"] .card { border-radius:14px; padding:18px 20px; }
+html[data-ui="modern"] .card-title { font-size:15px; font-weight:700; letter-spacing:-.1px; text-transform:none; color:var(--text); padding-bottom:12px; margin-bottom:14px; gap:9px; }
+html[data-ui="modern"] .card-title::before { width:4px; height:16px; }
+html[data-ui="modern"] label { font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--text-2); margin-bottom:6px; }
+html[data-ui="modern"] label.btn, html[data-ui="modern"] label.bk-opt { color:var(--text); }
+html[data-ui="modern"] .toggle-row { padding:12px 0; gap:14px; }
+html[data-ui="modern"] .toggle-label { font-size:14px; font-weight:600; letter-spacing:0; text-transform:none; }
+html[data-ui="modern"] .toggle-sub { font-size:12.5px; line-height:1.5; color:var(--text-2); margin-top:3px; }
+html[data-ui="modern"] input[type=text], html[data-ui="modern"] input[type=number], html[data-ui="modern"] input[type=password], html[data-ui="modern"] select { font-size:14px; font-weight:500; padding:9px 12px; }
+html[data-ui="modern"] input[type=file], html[data-ui="modern"] input[type=file]::file-selector-button { font-size:12px; letter-spacing:0; text-transform:none; }
+html[data-ui="modern"] .btn { font-size:13px; font-weight:600; letter-spacing:0; text-transform:none; padding:10px 16px; }
+html[data-ui="modern"] .btn-sm { font-size:12.5px; padding:7px 13px; }
+html[data-ui="modern"] .copy-btn { font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; padding:5px 11px; }
+html[data-ui="modern"] .url-link { padding:9px 12px; }
+html[data-ui="modern"] .url-link .lbl { font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--text-2); }
+html[data-ui="modern"] .url-link span { font-size:12.5px; }
+html[data-ui="modern"] .fb { font-size:12.5px; letter-spacing:0; height:auto; min-height:17px; }
+html[data-ui="modern"] .tc-name { font-size:11.5px; letter-spacing:.3px; }
+html[data-ui="modern"] .p-name { font-size:14px; letter-spacing:.2px; text-transform:none; }
+html[data-ui="modern"] .p-boost { font-size:12.5px; }
+html[data-ui="modern"] .tw-status { font-size:13px; }
+html[data-ui="modern"] .utils-item span, html[data-ui="modern"] .mg-file, html[data-ui="modern"] .mg-file label { font-size:12.5px; letter-spacing:0; }
+html[data-ui="modern"] .mg-head .mg-name { font-size:13px; letter-spacing:0; }
+html[data-ui="modern"] .mg-head .mg-count, html[data-ui="modern"] .utils-del, html[data-ui="modern"] .mg-btn { font-size:11px; letter-spacing:.2px; text-transform:none; }
+html[data-ui="modern"] .gc-list div, html[data-ui="modern"] .rm-log div, html[data-ui="modern"] .to-music-name, html[data-ui="modern"] .to-vol-val { font-size:12.5px; }
+html[data-ui="modern"] .bk-opt { font-size:13.5px; }
+html[data-ui="modern"] .logo-preview span { font-size:12px; letter-spacing:0; text-transform:none; }
+html[data-ui="modern"] .store-open .so-t { font-size:13.5px; letter-spacing:0; text-transform:none; }
+html[data-ui="modern"] .store-open .so-s { font-size:12px; }
+html[data-ui="modern"] .acc-title { font-size:15px; font-weight:700; letter-spacing:0; text-transform:none; }
+html[data-ui="modern"] .acc-sum { font-size:12.5px; letter-spacing:0; }
+html[data-ui="modern"] #header-bar h1 { font-size:12px; font-weight:600; letter-spacing:.3px; text-transform:none; }
+html[data-ui="modern"] #version-badge { font-size:11px; letter-spacing:.5px; }
+html[data-ui="modern"] #conn-txt { font-size:10px; letter-spacing:1.5px; }
+html[data-ui="modern"] #layout-btn, html[data-ui="modern"] #donate-btn, html[data-ui="modern"] #review-btn { font-size:11.5px !important; letter-spacing:.2px !important; }
+/* petits textes écrits directement dans les cartes et les fenêtres (7 à 11 px) : agrandis */
+html[data-ui="modern"] :is([data-card], .modal-box) :is([style*="font-size:7px"], [style*="font-size:8px"], [style*="font-size:9px"]) { font-size:11.5px !important; letter-spacing:.3px !important; }
+html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:10px"] { font-size:12px !important; letter-spacing:.2px !important; }
+html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { font-size:12.5px !important; }
+
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:4px; transition: background var(--dur) var(--ease); }
@@ -828,7 +973,10 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
   </div>
   <div id="header-bar">
-    <h1>RL Overlay — Panneau de contrôle</h1>
+    <div id="hdr-left">
+      <h1>RL Overlay — Panneau de contrôle</h1>
+      <button id="layout-btn" type="button" onclick="showDisplaySettings()" title="Choisir la disposition du panneau"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M9 11h12"/></svg>Affichage</button>
+    </div>
     <div id="version-wrap">
       <span id="version-badge">v—</span>
       <button id="review-btn" onclick="openReviewModal()" style="display:none;font-size:10px;font-weight:700;letter-spacing:1px;text-decoration:none;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-xs);padding:2px 9px;transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);white-space:nowrap;cursor:pointer;font-family:inherit;" onmouseover="this.style.background='rgba(251,191,36,.2)';this.style.borderColor='rgba(251,191,36,.55)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(251,191,36,.1)';this.style.borderColor='rgba(251,191,36,.3)';this.style.transform=''">⭐ Laisser un avis</button>
@@ -841,11 +989,15 @@ input:checked + .slider:before { transform:translateX(18px); }
 <!-- ══════════ MAIN ══════════ -->
 <div id="main">
 
-  <!-- ── LEFT ── -->
-  <div id="left">
+  <!-- Disposition du panneau (menu latéral, onglets, page unique ou classique) : construite par le script
+       à partir des cartes ci-dessous, voir « DISPOSITION DU PANNEAU » -->
+  <div id="layout"></div>
+
+  <!-- Toutes les cartes du panneau (data-card), dans l'ordre du panneau classique -->
+  <div id="card-store">
 
     <!-- THÈME SAISONNIER (affiché seulement quand une saison est active sur le site) -->
-    <div class="card" id="season-banner">
+    <div class="card" data-card="season" id="season-banner">
       <img id="season-banner-logo" alt="">
       <div>
         <div class="sb-title" id="season-banner-title"></div>
@@ -854,7 +1006,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- COMPTE -->
-    <div class="card" id="account-card" style="display:none">
+    <div class="card" data-card="account" id="account-card" style="display:none">
       <div class="card-title white">Compte</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div id="acc-avatar" style="width:38px;height:38px;border-radius:6px;background:rgba(26,88,200,.2);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:var(--blue);flex-shrink:0">?</div>
@@ -872,7 +1024,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- HUD à l'écran : l'overlay par-dessus le jeu, devant le caster (application uniquement) -->
-    <div class="card" id="hud-card" style="display:none">
+    <div class="card" data-card="hud" id="hud-card" style="display:none">
       <div class="card-title white">HUD à l'écran (caster)</div>
       <div class="toggle-row">
         <div><div class="toggle-label">Afficher le HUD sur l'écran</div><div class="toggle-sub">L'overlay par-dessus le jeu, comme sur le stream · <b>Ctrl+Maj+H</b></div></div>
@@ -895,7 +1047,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="toggle-sub" style="margin-top:6px">Mets Rocket League en <b>plein écran fenêtré</b> : en plein écran exclusif, le jeu passe par-dessus. La souris traverse le HUD, il ne gêne pas le jeu. Il s'affiche dès qu'une partie est en cours, comme dans OBS.</div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="spectator">
       <div class="card-title white">Joueur spectateur</div>
       <p style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:10px;">Touches <strong style="color:var(--text);">1–9</strong> ou clic pour sélectionner le joueur affiché dans la stat bar &amp; boost.</p>
       <div id="player-grid"><span style="font-size:11px;color:var(--muted);">En attente de joueurs…</span></div>
@@ -903,164 +1055,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-player"></div>
     </div>
 
-    <!-- Modal lien joueur (prompt() non supporté par Electron) -->
-    <div id="link-modal-overlay" class="modal-overlay">
-      <div class="modal-box" style="width:340px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Lien flux vidéo</div>
-        <div id="link-modal-player" style="font-size:11px;color:var(--muted);margin-bottom:10px;"></div>
-        <input type="text" id="link-modal-input" placeholder="https://..." style="width:100%;box-sizing:border-box;">
-        <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="btn btn-gray" style="flex:1;" onclick="closeLinkModal()">Annuler</button>
-          <button class="btn" style="flex:1;background:var(--blue);" onclick="confirmLinkModal()">Enregistrer</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal gestion des liens joueurs (config à l'avance, sans attendre que le joueur soit en jeu) -->
-    <div id="player-links-modal-overlay" class="modal-overlay">
-      <div class="modal-box" style="width:420px;max-height:82vh;display:flex;flex-direction:column;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Liens vidéo joueurs</div>
-        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Le pseudo doit correspondre <strong style="color:var(--text);">exactement</strong> au nom en jeu. Configurable à l'avance, ça s'applique dès que le joueur rejoint la partie.</div>
-        <div class="toggle-row" style="margin-bottom:8px;">
-          <div><div class="toggle-label">Conserver au redémarrage</div><div class="toggle-sub">Garde les joueurs enregistrés après avoir relancé l'app</div></div>
-          <label class="switch"><input type="checkbox" id="keep-player-links-toggle" onchange="setKeepPlayerLinks(this.checked)"><span class="slider"></span></label>
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input type="text" id="pl-modal-name" placeholder="Pseudo exact en jeu" style="flex:1;box-sizing:border-box;">
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" id="pl-modal-url" placeholder="https://..." style="flex:1;box-sizing:border-box;">
-          <button class="btn" style="width:auto;padding:6px 14px;background:var(--blue);white-space:nowrap;" onclick="applyManualPlayerLink()">Appliquer</button>
-        </div>
-        <div class="fb" id="fb-pl-modal" style="margin-bottom:6px;"></div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:8px 0 6px;">Déjà enregistrés</div>
-        <div id="pl-modal-list" style="overflow-y:auto;flex:1;min-height:40px;display:flex;flex-direction:column;gap:5px;"></div>
-        <button class="btn btn-gray" style="margin-top:14px;" onclick="closePlayerLinksManager()">Fermer</button>
-      </div>
-    </div>
-
-    <!-- Modal laisser un avis -->
-    <div id="review-modal-overlay" class="modal-overlay">
-      <div class="modal-box" style="width:380px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Laisser un avis</div>
-        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:14px;">Votre avis nous aide à améliorer RL Overlay. Il sera affiché publiquement après validation.</div>
-        <label>Note</label>
-        <div id="review-stars" style="display:flex;gap:6px;font-size:26px;margin-bottom:14px;line-height:1;">
-          <span class="review-star" data-v="1" onclick="setReviewRating(1)" onmouseover="previewReviewStars(1)" onmouseout="previewReviewStars(0)">☆</span>
-          <span class="review-star" data-v="2" onclick="setReviewRating(2)" onmouseover="previewReviewStars(2)" onmouseout="previewReviewStars(0)">☆</span>
-          <span class="review-star" data-v="3" onclick="setReviewRating(3)" onmouseover="previewReviewStars(3)" onmouseout="previewReviewStars(0)">☆</span>
-          <span class="review-star" data-v="4" onclick="setReviewRating(4)" onmouseover="previewReviewStars(4)" onmouseout="previewReviewStars(0)">☆</span>
-          <span class="review-star" data-v="5" onclick="setReviewRating(5)" onmouseover="previewReviewStars(5)" onmouseout="previewReviewStars(0)">☆</span>
-        </div>
-        <label>Votre avis</label>
-        <textarea id="review-text-input" rows="3" maxlength="600" placeholder="Qu'avez-vous pensé de l'overlay ?" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;margin-bottom:10px;outline:none;"></textarea>
-        <label>Idées d'amélioration <span style="text-transform:none;letter-spacing:0;color:var(--muted);">(optionnel)</span></label>
-        <textarea id="review-suggestion-input" rows="3" maxlength="600" placeholder="Une fonctionnalité qui vous manque ?" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;margin-bottom:4px;outline:none;"></textarea>
-        <div class="fb" id="fb-review-modal" style="margin-bottom:6px;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button id="review-skip-btn" class="btn btn-gray" style="flex:1;" onclick="closeReviewModal()">Annuler</button>
-          <button class="btn" style="flex:1;background:var(--blue);" onclick="submitReview()">Envoyer</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal notes de version (affichée une seule fois après une mise à jour) -->
-    <div id="changelog-modal-overlay" class="modal-overlay">
-      <div class="modal-box" style="width:560px;max-height:82vh;display:flex;flex-direction:column;padding:32px;">
-        <div style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:.5px;">✨ Quoi de neuf</div>
-        <div id="changelog-version-lbl" style="font-size:13px;color:var(--muted);margin-bottom:22px;"></div>
-        <div id="changelog-body" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:24px;"></div>
-        <button class="btn" style="margin-top:22px;padding:12px 16px;font-size:13px;background:var(--blue);" onclick="closeChangelogModal()">Compris !</button>
-      </div>
-    </div>
-
-    <!-- Assistant de démarrage (première ouverture de l'app, relançable depuis « Actions ») -->
-    <div id="wizard-overlay" class="modal-overlay">
-      <div class="modal-box wz-box">
-        <div class="wz-steps" id="wz-steps"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="wz-step" data-step="1">
-          <h2>👋 Bienvenue sur RL Overlay</h2>
-          <p>En quelques étapes, ton overlay sera prêt pour ton premier stream. Commence par choisir la langue de l'application.</p>
-          <div class="wz-langs" data-no-i18n>
-            <button type="button" data-lang="fr" onclick="wzLang('fr')"><i class="lang-flag fr"></i>Français</button>
-            <button type="button" data-lang="en" onclick="wzLang('en')"><i class="lang-flag en"></i>English</button>
-          </div>
-        </div>
-        <div class="wz-step" data-step="2">
-          <h2>🎥 Ajoute l'overlay dans OBS</h2>
-          <ol>
-            <li>Dans OBS, sous <b>Sources</b>, clique <b>+</b> puis <b>Navigateur</b>.</li>
-            <li>Colle cette adresse dans le champ <b>URL</b> :</li>
-          </ol>
-          <div class="url-link"><span id="wz-url"></span><button class="copy-btn" onclick="copy('wz-url')">Copier</button></div>
-          <ol start="3">
-            <li>Mets <b>1920</b> en largeur et <b>1080</b> en hauteur, puis valide.</li>
-            <li>Place la source au-dessus de ta capture du jeu.</li>
-          </ol>
-          <p>Le fond est transparent : seul l'overlay s'affiche par-dessus le jeu.</p>
-        </div>
-        <div class="wz-step" data-step="3">
-          <h2>🚗 Connecte Rocket League</h2>
-          <p>Lance Rocket League et rejoins une partie (match privé, en spectateur ou en jeu). L'app reçoit les données du jeu toute seule : le voyant passe au vert.</p>
-          <div class="wz-rl" id="wz-rl"><i></i><span id="wz-rl-txt">En attente de Rocket League…</span></div>
-          <p style="margin-top:14px">L'overlay n'apparaît que pendant une partie : en dehors, il reste invisible dans OBS. Tu peux passer cette étape et y revenir plus tard.</p>
-        </div>
-        <div class="wz-step" data-step="4">
-          <h2>🛡️ Tes équipes</h2>
-          <p>Optionnel : laisse vide pour utiliser les noms détectés en jeu. Les logos s'ajoutent ensuite dans le menu <b>Équipes</b>.</p>
-          <label>Label ligue</label>
-          <input type="text" id="wz-league" maxlength="80" placeholder="SEMAINE 1 // LIGUE 1">
-          <div class="row">
-            <div><label>Équipe bleue</label><input type="text" id="wz-blue" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
-            <div><label>Équipe orange</label><input type="text" id="wz-orange" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
-          </div>
-          <label>Format de la série</label>
-          <select id="wz-bo"><option value="0">Aucun</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option></select>
-        </div>
-        <div class="wz-step" data-step="5">
-          <h2>🎨 Choisis un thème</h2>
-          <p>Tu peux en changer à tout moment, en installer depuis la bibliothèque du site ou créer le tien avec le Studio de thèmes.</p>
-          <div class="wz-themes" id="wz-themes"></div>
-        </div>
-        <div class="wz-step" data-step="6">
-          <h2>🎉 C'est prêt !</h2>
-          <p>Quelques fonctions à découvrir ensuite :</p>
-          <div class="wz-tips">
-            <div><b>🎨 Studio de thèmes</b>Crée ton propre overlay : placement, couleurs, calques, animations.</div>
-            <div><b>🖥️ HUD à l'écran</b>L'overlay par-dessus ton jeu pendant que tu commentes (Ctrl+Maj+H).</div>
-            <div><b>🟣 Vote Twitch</b>Fais voter ton chat pour l'équipe gagnante, en direct avec son propre lien OBS.</div>
-            <div><b>🎮 Salle de contrôle</b>Donne un lien à un ami : il gère les équipes et les logos à ta place.</div>
-            <div><b>📊 Page des scores</b>Une scène de fin OBS avec le score de la série, mise à jour toute seule.</div>
-            <div><b>💾 Sauvegarde</b>Exporte tes réglages pour les retrouver sur un autre PC.</div>
-          </div>
-        </div>
-        <div class="wz-foot">
-          <button class="wz-skip" id="wz-skip" onclick="closeWizard()">Passer l'assistant</button>
-          <button class="btn btn-gray" id="wz-prev" onclick="wzGo(-1)">← Précédent</button>
-          <button class="btn btn-blue" id="wz-next" onclick="wzGo(1)">Suivant →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bibliothèque de thèmes (thèmes custom publics du site) -->
-    <div id="store-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeThemeStore()">
-      <div class="modal-box store-box">
-        <div class="store-head">
-          <div>
-            <div class="store-title">🛍️ Bibliothèque de thèmes</div>
-            <div class="store-sub">Thèmes custom publiés sur overlay.rscast.fr — un clic pour les installer</div>
-          </div>
-          <button class="store-close" onclick="closeThemeStore()" title="Fermer">✕</button>
-        </div>
-        <div class="store-tools">
-          <input type="text" id="store-search" placeholder="Rechercher un thème…" oninput="renderThemeStore()">
-          <span class="store-count" id="store-count"></span>
-        </div>
-        <div id="store-grid" class="store-grid"></div>
-      </div>
-    </div>
-
-    <div class="card">
+    <div class="card" data-card="visibility">
       <div class="card-title green">Visibilité</div>
       <div class="toggle-row">
         <div><div class="toggle-label">Overlay</div><div class="toggle-sub">Scoreboard, sidebar, replays, fin de match</div></div>
@@ -1082,7 +1077,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-visible"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="animations">
       <div class="card-title green">Animations</div>
       <div class="toggle-row">
         <div><div class="toggle-label">Animation GOAL</div><div class="toggle-sub">Bannière plein écran à chaque but</div></div>
@@ -1104,7 +1099,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Clips des buts : OBS enregistre chaque but (Replay Buffer), l'overlay les repasse à la fin du match -->
-    <div class="card" id="gc-card">
+    <div class="card" data-card="clips" id="gc-card">
       <div class="card-title green">Clips des buts</div>
       <div class="toggle-row">
         <div><div class="toggle-label">Clips des buts</div><div class="toggle-sub">Comme aux RLCS : OBS enregistre chaque but. À la fin du match, les scores restent affichés, puis les buts repassent en plein écran (sans son), puis les scores reviennent.</div></div>
@@ -1143,7 +1138,7 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-gc"></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="obsurls">
       <div class="card-title white">URL OBS — 1920×1080 transparent</div>
       <div class="url-link"><span class="lbl">Overlay</span><span id="u-overlay"></span><button class="copy-btn" onclick="copy('u-overlay')">Copier</button></div>
       <div class="url-link"><span class="lbl">Scores</span><span id="u-scores"></span><button class="copy-btn" onclick="copy('u-scores')">Copier</button></div>
@@ -1153,7 +1148,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Sauvegarde des réglages : tout dans un fichier, pour changer de PC ou réinstaller -->
-    <div class="card">
+    <div class="card" data-card="backup">
       <div class="card-title white">Sauvegarde des réglages</div>
       <div class="toggle-sub" style="margin-bottom:10px">Tous les réglages dans un seul fichier : pour changer de PC ou réinstaller sans tout refaire.</div>
       <label class="bk-opt"><input type="checkbox" id="bk-logos" checked> Logos des équipes</label>
@@ -1168,7 +1163,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Salle de contrôle à distance : un ami gère l'overlay depuis chez lui (relais par overlay.rscast.fr) -->
-    <div class="card" id="remote-card">
+    <div class="card" data-card="remote" id="remote-card">
       <div class="card-title white">Salle de contrôle à distance</div>
       <div class="toggle-sub" style="margin-bottom:10px">Donne un lien à un ami : depuis chez lui, il change les noms, tags, logos, la série, inverse les équipes, gère l'affichage et le flux vidéo de ton overlay. Rien à ouvrir sur ta box, tu fermes la salle quand tu veux.</div>
       <div id="rm-closed"><button class="btn btn-blue" onclick="remoteAction('open')">🎮 Ouvrir une salle</button></div>
@@ -1194,19 +1189,48 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="fb" id="fb-remote"></div>
     </div>
 
-    <div class="card">
+    <!-- Plugin Stream Deck : piloter l'overlay depuis les touches (fichier livré avec l'app) -->
+    <div class="card" data-card="streamdeck" id="sd-card">
+      <div class="card-title white">Stream Deck</div>
+      <div class="toggle-sub" style="margin-bottom:10px">Pilote l'overlay depuis ton Stream Deck : score, série, timeouts, affichage, inversion des équipes et thèmes, avec l'état en direct sur les touches.</div>
+      <button class="btn btn-blue" onclick="installStreamDeck()">⬇ Installer le plugin</button>
+      <div class="tw-status" id="sd-status"><span class="tw-dot"></span><span id="sd-status-txt">Plugin non connecté</span></div>
+      <div class="toggle-sub" style="margin:0">Après l'installation, ouvre Stream Deck : les touches sont dans la catégorie <b>RL Overlay</b>. Stream Deck 7.1 ou plus récent.</div>
+      <div class="fb" id="fb-sd"></div>
+    </div>
+
+    <div class="card" data-card="actions">
       <div class="card-title white">Actions</div>
       <button class="btn btn-gray" onclick="openWizard()">🧭 Relancer l'assistant de démarrage</button>
       <button class="btn btn-danger" onclick="resetAll()">Réinitialiser tout</button>
     </div>
 
-  </div>
-
-  <!-- ── RIGHT ── -->
-  <div id="right">
+    <!-- Affichage du panneau : 4 dispositions au choix (voir « DISPOSITION DU PANNEAU ») -->
+    <div class="card span2" data-card="display" id="display-card">
+      <div class="card-title white">Affichage du panneau</div>
+      <div class="lay-choices">
+        <button type="button" class="lay-choice" data-layout="sidebar" onclick="setLayout('sidebar')">
+          <svg class="lay-mini" viewBox="0 0 64 40" aria-hidden="true"><rect class="m-fr" x=".5" y=".5" width="63" height="39" rx="4"/><rect class="m-hd" x="2" y="2" width="60" height="6" rx="2"/><rect class="m-nv" x="2.5" y="10.5" width="11" height="27" rx="2"/><rect class="m-bx" x="16.5" y="10.5" width="45" height="13" rx="2"/><rect class="m-bx" x="16.5" y="25.5" width="21.5" height="12" rx="2"/><rect class="m-bx" x="40" y="25.5" width="21.5" height="12" rx="2"/></svg>
+          <span class="lay-txt"><b>Menu latéral</b><small>Une page par sujet, menu à gauche</small></span>
+        </button>
+        <button type="button" class="lay-choice" data-layout="tabs" onclick="setLayout('tabs')">
+          <svg class="lay-mini" viewBox="0 0 64 40" aria-hidden="true"><rect class="m-fr" x=".5" y=".5" width="63" height="39" rx="4"/><rect class="m-hd" x="2" y="2" width="60" height="6" rx="2"/><rect class="m-nv" x="2.5" y="10" width="12" height="4" rx="1.5"/><rect class="m-bx" x="16.5" y="10" width="10" height="4" rx="1.5"/><rect class="m-bx" x="28.5" y="10" width="10" height="4" rx="1.5"/><rect class="m-bx" x="2.5" y="16.5" width="59" height="10" rx="2"/><rect class="m-bx" x="2.5" y="28.5" width="28.5" height="9" rx="2"/><rect class="m-bx" x="33" y="28.5" width="28.5" height="9" rx="2"/></svg>
+          <span class="lay-txt"><b>Onglets en haut</b><small>Une page par sujet, onglets au-dessus</small></span>
+        </button>
+        <button type="button" class="lay-choice" data-layout="single" onclick="setLayout('single')">
+          <svg class="lay-mini" viewBox="0 0 64 40" aria-hidden="true"><rect class="m-fr" x=".5" y=".5" width="63" height="39" rx="4"/><rect class="m-hd" x="2" y="2" width="60" height="6" rx="2"/><rect class="m-bx" x="2.5" y="10.5" width="18" height="8" rx="2"/><rect class="m-bx" x="2.5" y="20.5" width="18" height="8" rx="2"/><rect class="m-bx" x="2.5" y="30.5" width="18" height="7" rx="2"/><rect class="m-nv" x="23" y="10.5" width="38.5" height="15" rx="2"/><rect class="m-bx" x="23" y="27.5" width="38.5" height="4" rx="1.5"/><rect class="m-bx" x="23" y="33.5" width="38.5" height="4" rx="1.5"/></svg>
+          <span class="lay-txt"><b>Une seule page</b><small>Tout sur une page, en deux colonnes</small></span>
+        </button>
+        <button type="button" class="lay-choice" data-layout="classic" onclick="setLayout('classic')">
+          <svg class="lay-mini" viewBox="0 0 64 40" aria-hidden="true"><rect class="m-fr" x=".5" y=".5" width="63" height="39" rx="4"/><rect class="m-hd" x="2" y="2" width="60" height="6" rx="2"/><rect class="m-bx" x="2.5" y="10.5" width="16" height="4" rx="1.5"/><rect class="m-bx" x="2.5" y="16" width="16" height="4" rx="1.5"/><rect class="m-bx" x="2.5" y="21.5" width="16" height="4" rx="1.5"/><rect class="m-bx" x="2.5" y="27" width="16" height="4" rx="1.5"/><rect class="m-bx" x="2.5" y="32.5" width="16" height="4" rx="1.5"/><rect class="m-bx" x="21" y="10.5" width="40.5" height="14" rx="2"/><rect class="m-bx" x="21" y="26.5" width="40.5" height="4.5" rx="1.5"/><rect class="m-bx" x="21" y="32.5" width="40.5" height="4.5" rx="1.5"/></svg>
+          <span class="lay-txt"><b>Classique</b><small>Le panneau d'avant, à l'identique</small></span>
+        </button>
+      </div>
+      <div class="toggle-sub" style="margin-top:8px">Change à tout moment : rien n'est perdu, seul le rangement des réglages change.</div>
+    </div>
 
     <!-- Aperçu OBS -->
-    <div class="card span2">
+    <div class="card span2" data-card="preview">
       <div class="card-title white" style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px;">
           <span>Aperçu OBS</span>
@@ -1224,18 +1248,14 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
       <div id="preview-container" style="position:relative;width:100%;overflow:hidden;border-radius:6px;background:#000;border:1px solid rgba(255,255,255,.06);">
         <iframe id="preview-frame"
-          src="http://localhost:3000/global.html?preview=1"
+          data-src="http://localhost:3000/global.html?preview=1"
           style="position:absolute;top:0;left:0;width:1920px;height:1080px;border:none;transform-origin:top left;pointer-events:none;"
           scrolling="no">
         </iframe>
       </div>
     </div>
 
-    <!-- ══ Menu déroulant : Thèmes ══ -->
-    <section class="acc span2" data-acc="themes">
-      <button class="acc-head" type="button"><span class="acc-ico">🎨</span><span class="acc-title">Thèmes</span><span class="acc-sum" id="acc-sum-themes"></span><span class="acc-chev">▾</span></button>
-      <div class="acc-body"><div class="acc-inner">
-    <div class="card acc-card">
+    <div class="card acc-card" data-card="themes">
       <div id="themes-grid">
 
         <!-- RLCS -->
@@ -1575,16 +1595,9 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
 
     </div>
-      </div></div>
-    </section>
-
-    <!-- ══ Menu déroulant : Équipes (noms, série / BO, logos) ══ -->
-    <section class="acc span2" data-acc="teams">
-      <button class="acc-head" type="button"><span class="acc-ico">🛡️</span><span class="acc-title">Équipes</span><span class="acc-sum" id="acc-sum-teams"></span><span class="acc-chev">▾</span></button>
-      <div class="acc-body"><div class="acc-inner acc-grid">
 
     <!-- Équipes & Ligue -->
-    <div class="card">
+    <div class="card" data-card="names">
       <div class="card-title white">Noms &amp; ligue</div>
       <label>Label ligue</label>
       <input type="text" id="league-input" placeholder="SEMAINE 1 // LIGUE 1" maxlength="80">
@@ -1602,7 +1615,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Série -->
-    <div class="card">
+    <div class="card" data-card="series">
       <div class="card-title white">Série (BO)</div>
       <div id="series-dots"></div>
       <div class="row">
@@ -1658,7 +1671,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Logos -->
-    <div class="card span2">
+    <div class="card span2" data-card="logos">
       <div class="card-title white">Logos</div>
       <div style="display:flex;gap:14px;align-items:center;">
         <div style="flex:1;">
@@ -1686,16 +1699,9 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
       <div class="fb" id="fb-logo"></div>
     </div>
-      </div></div>
-    </section>
-
-    <!-- ══ Menu déroulant : Bandeau médias (réglages, groupes de sponsors, images & vidéos) ══ -->
-    <section class="acc span2" data-acc="media">
-      <button class="acc-head" type="button"><span class="acc-ico">📺</span><span class="acc-title">Bandeau médias</span><span class="acc-sum" id="acc-sum-media"></span><span class="acc-chev">▾</span></button>
-      <div class="acc-body"><div class="acc-inner acc-grid">
 
     <!-- Bandeau Médias -->
-    <div class="card">
+    <div class="card" data-card="media-settings">
       <div class="card-title white">Réglages</div>
       <div class="toggle-row">
         <div><div class="toggle-label">Activer</div><div class="toggle-sub">Vidéo / logo — sidebar bleue</div></div>
@@ -1716,7 +1722,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Groupes de médias : préconfigurations de sponsors -->
-    <div class="card">
+    <div class="card" data-card="media-groups">
       <div class="card-title white">Groupes (sponsors)</div>
       <div class="toggle-sub" style="margin-bottom:8px">Range tes médias par groupe (sponsors d'un tournoi, d'une équipe…), puis clique <b>Afficher</b> sur le groupe à passer dans le bandeau. Un même média peut être dans plusieurs groupes.</div>
       <div id="mg-list"></div>
@@ -1728,7 +1734,7 @@ input:checked + .slider:before { transform:translateX(18px); }
     </div>
 
     <!-- Fichiers Médias -->
-    <div class="card span2">
+    <div class="card span2" data-card="media-files">
       <div class="card-title white">Images &amp; vidéos</div>
       <div id="utils-list" style="margin-bottom:8px;min-height:24px;"><span style="font-size:11px;color:var(--muted);">Chargement…</span></div>
       <label>Ajouter (image ou vidéo)</label>
@@ -1738,14 +1744,8 @@ input:checked + .slider:before { transform:translateX(18px); }
       <button class="btn btn-gray" onclick="uploadUtilsFile()">Upload</button>
       <div class="fb" id="fb-utils"></div>
     </div>
-      </div></div>
-    </section>
 
-    <!-- ══ Menu déroulant : Vote du chat Twitch (façon RLCS) ══ -->
-    <section class="acc span2" data-acc="twitch">
-      <button class="acc-head" type="button"><span class="acc-ico">🟣</span><span class="acc-title">Vote Twitch</span><span class="acc-sum" id="acc-sum-twitch"></span><span class="acc-chev">▾</span></button>
-      <div class="acc-body"><div class="acc-inner acc-grid">
-    <div class="card">
+    <div class="card" data-card="tw-channel">
       <div class="card-title white">Chaîne Twitch</div>
       <label>Ta chaîne</label>
       <div style="display:flex;gap:8px;align-items:center">
@@ -1758,7 +1758,8 @@ input:checked + .slider:before { transform:translateX(18px); }
       <div class="url-link"><span id="u-vote-tw"></span><button class="copy-btn" onclick="copy('u-vote-tw')">Copier</button></div>
       <div class="toggle-sub">Ajoute-le dans OBS comme source <b>Navigateur</b> 1920×1080 : le vote apparaît par-dessus ta scène pendant le vote, puis le résultat. Invisible le reste du temps.</div>
     </div>
-    <div class="card">
+
+    <div class="card" data-card="tw-vote">
       <div class="card-title white">Vote</div>
       <label>Question <span class="lbl-opt">· optionnel</span></label>
       <input type="text" id="tw-title" maxlength="60" placeholder="QUI VA GAGNER ?">
@@ -1780,11 +1781,166 @@ input:checked + .slider:before { transform:translateX(18px); }
       </div>
       <div class="fb" id="fb-twitch"></div>
     </div>
-      </div></div>
-    </section>
-
 
   </div>
+
+    <!-- Modal lien joueur (prompt() non supporté par Electron) -->
+    <div id="link-modal-overlay" class="modal-overlay">
+      <div class="modal-box" style="width:340px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Lien flux vidéo</div>
+        <div id="link-modal-player" style="font-size:11px;color:var(--muted);margin-bottom:10px;"></div>
+        <input type="text" id="link-modal-input" placeholder="https://..." style="width:100%;box-sizing:border-box;">
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="closeLinkModal()">Annuler</button>
+          <button class="btn" style="flex:1;background:var(--blue);" onclick="confirmLinkModal()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal gestion des liens joueurs (config à l'avance, sans attendre que le joueur soit en jeu) -->
+    <div id="player-links-modal-overlay" class="modal-overlay">
+      <div class="modal-box" style="width:420px;max-height:82vh;display:flex;flex-direction:column;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Liens vidéo joueurs</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Le pseudo doit correspondre <strong style="color:var(--text);">exactement</strong> au nom en jeu. Configurable à l'avance, ça s'applique dès que le joueur rejoint la partie.</div>
+        <div class="toggle-row" style="margin-bottom:8px;">
+          <div><div class="toggle-label">Conserver au redémarrage</div><div class="toggle-sub">Garde les joueurs enregistrés après avoir relancé l'app</div></div>
+          <label class="switch"><input type="checkbox" id="keep-player-links-toggle" onchange="setKeepPlayerLinks(this.checked)"><span class="slider"></span></label>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input type="text" id="pl-modal-name" placeholder="Pseudo exact en jeu" style="flex:1;box-sizing:border-box;">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" id="pl-modal-url" placeholder="https://..." style="flex:1;box-sizing:border-box;">
+          <button class="btn" style="width:auto;padding:6px 14px;background:var(--blue);white-space:nowrap;" onclick="applyManualPlayerLink()">Appliquer</button>
+        </div>
+        <div class="fb" id="fb-pl-modal" style="margin-bottom:6px;"></div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:8px 0 6px;">Déjà enregistrés</div>
+        <div id="pl-modal-list" style="overflow-y:auto;flex:1;min-height:40px;display:flex;flex-direction:column;gap:5px;"></div>
+        <button class="btn btn-gray" style="margin-top:14px;" onclick="closePlayerLinksManager()">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Modal laisser un avis -->
+    <div id="review-modal-overlay" class="modal-overlay">
+      <div class="modal-box" style="width:380px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Laisser un avis</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:14px;">Votre avis nous aide à améliorer RL Overlay. Il sera affiché publiquement après validation.</div>
+        <label>Note</label>
+        <div id="review-stars" style="display:flex;gap:6px;font-size:26px;margin-bottom:14px;line-height:1;">
+          <span class="review-star" data-v="1" onclick="setReviewRating(1)" onmouseover="previewReviewStars(1)" onmouseout="previewReviewStars(0)">☆</span>
+          <span class="review-star" data-v="2" onclick="setReviewRating(2)" onmouseover="previewReviewStars(2)" onmouseout="previewReviewStars(0)">☆</span>
+          <span class="review-star" data-v="3" onclick="setReviewRating(3)" onmouseover="previewReviewStars(3)" onmouseout="previewReviewStars(0)">☆</span>
+          <span class="review-star" data-v="4" onclick="setReviewRating(4)" onmouseover="previewReviewStars(4)" onmouseout="previewReviewStars(0)">☆</span>
+          <span class="review-star" data-v="5" onclick="setReviewRating(5)" onmouseover="previewReviewStars(5)" onmouseout="previewReviewStars(0)">☆</span>
+        </div>
+        <label>Votre avis</label>
+        <textarea id="review-text-input" rows="3" maxlength="600" placeholder="Qu'avez-vous pensé de l'overlay ?" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;margin-bottom:10px;outline:none;"></textarea>
+        <label>Idées d'amélioration <span style="text-transform:none;letter-spacing:0;color:var(--muted);">(optionnel)</span></label>
+        <textarea id="review-suggestion-input" rows="3" maxlength="600" placeholder="Une fonctionnalité qui vous manque ?" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:13px;padding:8px 11px;margin-bottom:4px;outline:none;"></textarea>
+        <div class="fb" id="fb-review-modal" style="margin-bottom:6px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button id="review-skip-btn" class="btn btn-gray" style="flex:1;" onclick="closeReviewModal()">Annuler</button>
+          <button class="btn" style="flex:1;background:var(--blue);" onclick="submitReview()">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal notes de version (affichée une seule fois après une mise à jour) -->
+    <div id="changelog-modal-overlay" class="modal-overlay">
+      <div class="modal-box" style="width:560px;max-height:82vh;display:flex;flex-direction:column;padding:32px;">
+        <div style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:.5px;">✨ Quoi de neuf</div>
+        <div id="changelog-version-lbl" style="font-size:13px;color:var(--muted);margin-bottom:22px;"></div>
+        <div id="changelog-body" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:24px;"></div>
+        <button class="btn" style="margin-top:22px;padding:12px 16px;font-size:13px;background:var(--blue);" onclick="closeChangelogModal()">Compris !</button>
+      </div>
+    </div>
+
+    <!-- Assistant de démarrage (première ouverture de l'app, relançable depuis « Actions ») -->
+    <div id="wizard-overlay" class="modal-overlay">
+      <div class="modal-box wz-box">
+        <div class="wz-steps" id="wz-steps"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="wz-step" data-step="1">
+          <h2>👋 Bienvenue sur RL Overlay</h2>
+          <p>En quelques étapes, ton overlay sera prêt pour ton premier stream. Commence par choisir la langue de l'application.</p>
+          <div class="wz-langs" data-no-i18n>
+            <button type="button" data-lang="fr" onclick="wzLang('fr')"><i class="lang-flag fr"></i>Français</button>
+            <button type="button" data-lang="en" onclick="wzLang('en')"><i class="lang-flag en"></i>English</button>
+          </div>
+        </div>
+        <div class="wz-step" data-step="2">
+          <h2>🎥 Ajoute l'overlay dans OBS</h2>
+          <ol>
+            <li>Dans OBS, sous <b>Sources</b>, clique <b>+</b> puis <b>Navigateur</b>.</li>
+            <li>Colle cette adresse dans le champ <b>URL</b> :</li>
+          </ol>
+          <div class="url-link"><span id="wz-url"></span><button class="copy-btn" onclick="copy('wz-url')">Copier</button></div>
+          <ol start="3">
+            <li>Mets <b>1920</b> en largeur et <b>1080</b> en hauteur, puis valide.</li>
+            <li>Place la source au-dessus de ta capture du jeu.</li>
+          </ol>
+          <p>Le fond est transparent : seul l'overlay s'affiche par-dessus le jeu.</p>
+        </div>
+        <div class="wz-step" data-step="3">
+          <h2>🚗 Connecte Rocket League</h2>
+          <p>Lance Rocket League et rejoins une partie (match privé, en spectateur ou en jeu). L'app reçoit les données du jeu toute seule : le voyant passe au vert.</p>
+          <div class="wz-rl" id="wz-rl"><i></i><span id="wz-rl-txt">En attente de Rocket League…</span></div>
+          <p style="margin-top:14px">L'overlay n'apparaît que pendant une partie : en dehors, il reste invisible dans OBS. Tu peux passer cette étape et y revenir plus tard.</p>
+        </div>
+        <div class="wz-step" data-step="4">
+          <h2>🛡️ Tes équipes</h2>
+          <p>Optionnel : laisse vide pour utiliser les noms détectés en jeu. Les logos s'ajoutent ensuite dans le menu <b>Équipes</b>.</p>
+          <label>Label ligue</label>
+          <input type="text" id="wz-league" maxlength="80" placeholder="SEMAINE 1 // LIGUE 1">
+          <div class="row">
+            <div><label>Équipe bleue</label><input type="text" id="wz-blue" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
+            <div><label>Équipe orange</label><input type="text" id="wz-orange" maxlength="40" placeholder="Auto (détecté en jeu)"></div>
+          </div>
+          <label>Format de la série</label>
+          <select id="wz-bo"><option value="0">Aucun</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option></select>
+        </div>
+        <div class="wz-step" data-step="5">
+          <h2>🎨 Choisis un thème</h2>
+          <p>Tu peux en changer à tout moment, en installer depuis la bibliothèque du site ou créer le tien avec le Studio de thèmes.</p>
+          <div class="wz-themes" id="wz-themes"></div>
+        </div>
+        <div class="wz-step" data-step="6">
+          <h2>🎉 C'est prêt !</h2>
+          <p>Quelques fonctions à découvrir ensuite :</p>
+          <div class="wz-tips">
+            <div><b>🎨 Studio de thèmes</b>Crée ton propre overlay : placement, couleurs, calques, animations.</div>
+            <div><b>🖥️ HUD à l'écran</b>L'overlay par-dessus ton jeu pendant que tu commentes (Ctrl+Maj+H).</div>
+            <div><b>🟣 Vote Twitch</b>Fais voter ton chat pour l'équipe gagnante, en direct avec son propre lien OBS.</div>
+            <div><b>🎮 Salle de contrôle</b>Donne un lien à un ami : il gère les équipes et les logos à ta place.</div>
+            <div><b>📊 Page des scores</b>Une scène de fin OBS avec le score de la série, mise à jour toute seule.</div>
+            <div><b>💾 Sauvegarde</b>Exporte tes réglages pour les retrouver sur un autre PC.</div>
+          </div>
+        </div>
+        <div class="wz-foot">
+          <button class="wz-skip" id="wz-skip" onclick="closeWizard()">Passer l'assistant</button>
+          <button class="btn btn-gray" id="wz-prev" onclick="wzGo(-1)">← Précédent</button>
+          <button class="btn btn-blue" id="wz-next" onclick="wzGo(1)">Suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bibliothèque de thèmes (thèmes custom publics du site) -->
+    <div id="store-modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeThemeStore()">
+      <div class="modal-box store-box">
+        <div class="store-head">
+          <div>
+            <div class="store-title">🛍️ Bibliothèque de thèmes</div>
+            <div class="store-sub">Thèmes custom publiés sur overlay.rscast.fr — un clic pour les installer</div>
+          </div>
+          <button class="store-close" onclick="closeThemeStore()" title="Fermer">✕</button>
+        </div>
+        <div class="store-tools">
+          <input type="text" id="store-search" placeholder="Rechercher un thème…" oninput="renderThemeStore()">
+          <span class="store-count" id="store-count"></span>
+        </div>
+        <div id="store-grid" class="store-grid"></div>
+      </div>
+    </div>
+
 </div>
 
 <script>
@@ -2021,37 +2177,186 @@ function openThemeStore() {
   loadThemeStore();
 }
 function closeThemeStore() { document.getElementById('store-modal-overlay').style.display = 'none'; }
-/* ══ Menus déroulants : sections de droite (Thèmes, Équipes, Bandeau médias) et cartes de gauche
-   repliables d'un clic sur leur titre — état mémorisé dans le navigateur de l'app ══ */
-(function initFolds() {
-  const KEY = 'rlo-folds';
-  let st = {};
-  try { st = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} };
-  /* pendant l'animation, le contenu est rogné (sinon il déborde le temps que la section s'ouvre) */
-  const animate = (el, fold) => { el.classList.add('fold-anim'); clearTimeout(el._foldT); el._foldT = setTimeout(() => el.classList.remove('fold-anim'), 340); };
-  document.querySelectorAll('#left .card').forEach(card => {
+/* ══════════ DISPOSITION DU PANNEAU ══════════════════
+   Quatre affichages au choix (carte « Affichage du panneau », bouton « Affichage » de l'en-tête) :
+   - sidebar : menu latéral, une page par sujet ;  - tabs : onglets en haut, une page par sujet ;
+   - single  : une seule page en deux colonnes (cartes regroupées), textes lisibles ;
+   - classic : le panneau d'avant, à l'identique (cartes de gauche repliables, menus déroulants à droite).
+   Les cartes (data-card, rangées dans #card-store) sont déplacées dans la disposition choisie : rien n'est
+   recréé, tout garde son état. Affichage et cartes repliées mémorisés dans le navigateur de l'app ; page ouverte
+   gardée seulement au rechargement du panneau (l'app s'ouvre sur Direct). */
+const LAYOUTS = ['sidebar', 'tabs', 'single', 'classic'];
+const NAV_ICONS = {
+  direct:    '<circle cx="12" cy="12" r="2.6"/><path d="M8.1 15.9a5.5 5.5 0 0 1 0-7.8M15.9 8.1a5.5 5.5 0 0 1 0 7.8M5.3 18.7a9.5 9.5 0 0 1 0-13.4M18.7 5.3a9.5 9.5 0 0 1 0 13.4"/>',
+  teams:     '<path d="M12 3l7.5 3v5.6c0 4.6-3.1 8.1-7.5 9.4-4.4-1.3-7.5-4.8-7.5-9.4V6z"/><path d="M9 12l2 2 4-4"/>',
+  themes:    '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.7 1.8-1.7h2.1A4.3 4.3 0 0 0 21 10.7C21 6.4 17 3 12 3z"/><circle cx="7.6" cy="11.2" r="1.1"/><circle cx="10.2" cy="7.4" r="1.1"/><circle cx="14.8" cy="7.4" r="1.1"/>',
+  media:     '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-4.5-4.5-9 8.5"/>',
+  twitch:    '<path d="M5 20V12M11 20V5M17 20v-8M3 20h18"/>',
+  broadcast: '<rect x="3" y="4" width="18" height="12.5" rx="2.2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M9.5 8.5l5 1.8-5 1.8z"/>',
+  account:   '<circle cx="12" cy="8.2" r="3.8"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+};
+/* pages (menu latéral / onglets) : cartes de chaque page ; Direct en deux colonnes (aperçu | réglages du match) */
+const PAGES = [
+  { id: 'direct', title: 'Direct', sub: 'Ce dont tu as besoin pendant le match.', icon: 'direct', cols: [['preview', 'spectator'], ['visibility', 'animations', 'hud']] },
+  { id: 'teams', title: 'Équipes', sub: 'Noms, tags, ligue, série et logos des équipes.', icon: 'teams', sum: 'teams', cards: ['names', 'series', 'logos'] },
+  { id: 'themes', title: 'Thèmes', sub: 'Le look de ton overlay : thèmes intégrés ou importés, bibliothèque du site et Studio.', icon: 'themes', sum: 'themes', cards: ['themes'] },
+  { id: 'media', title: 'Bandeau médias', sub: 'Les images et vidéos (sponsors…) qui défilent sur le stream.', icon: 'media', sum: 'media', cards: ['media-settings', 'media-groups', 'media-files'] },
+  { id: 'twitch', title: 'Vote Twitch', sub: "Fais voter le chat de ta chaîne pour l'équipe gagnante.", icon: 'twitch', sum: 'twitch', cards: ['tw-channel', 'tw-vote'] },
+  { id: 'broadcast', title: 'Diffusion', sub: 'Liens OBS, clips des buts, salle de contrôle à distance et Stream Deck.', icon: 'broadcast', cards: ['obsurls', 'clips', 'remote', 'streamdeck'] },
+  { id: 'account', title: 'Compte', sub: "Ton compte, l'affichage du panneau et la sauvegarde des réglages.", icon: 'account', cards: ['display', 'account', 'backup', 'actions'] },
+];
+/* classique : colonne de gauche comme avant (+ Affichage à la fin) ; page unique : mêmes cartes, regroupées */
+const CLASSIC_LEFT = ['season', 'account', 'hud', 'spectator', 'visibility', 'animations', 'clips', 'obsurls', 'backup', 'remote', 'streamdeck', 'actions', 'display'];
+const SINGLE_LEFT = [['', ['season']], ['En match', ['hud', 'spectator', 'visibility', 'animations']], ['Diffusion', ['clips', 'obsurls', 'remote', 'streamdeck']], ['Compte', ['account', 'display', 'backup', 'actions']]];
+const ACCS = [
+  { id: 'themes', ico: '🎨', title: 'Thèmes', cards: ['themes'] },
+  { id: 'teams', ico: '🛡️', title: 'Équipes', cards: ['names', 'series', 'logos'], grid: true },
+  { id: 'media', ico: '📺', title: 'Bandeau médias', cards: ['media-settings', 'media-groups', 'media-files'], grid: true },
+  { id: 'twitch', ico: '🟣', title: 'Vote Twitch', cards: ['tw-channel', 'tw-vote'], grid: true },
+];
+const FOLD_KEY = 'rlo-folds';
+let _folds = {}, _layout = 'sidebar', _page = 'direct';
+try { _folds = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {}; } catch {}
+const saveFolds = () => { try { localStorage.setItem(FOLD_KEY, JSON.stringify(_folds)); } catch {} };
+/* pendant l'animation, le contenu est rogné (sinon il déborde le temps que la section s'ouvre) */
+const foldAnim = el => { el.classList.add('fold-anim'); clearTimeout(el._foldT); el._foldT = setTimeout(() => el.classList.remove('fold-anim'), 340); };
+const cardEl = k => document.querySelector(`[data-card="${k}"]`);
+const mkEl = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+const putCard = (into, k) => { const c = cardEl(k); if (c) into.appendChild(c); };
+
+/* résumés (thème actif, équipes, médias, vote) : dans le menu latéral et dans les menus déroulants */
+const _sums = {};
+function setSum(key, text) {
+  _sums[key] = text;
+  document.querySelectorAll(`[data-sum="${key}"]`).forEach(e => { if (e.textContent !== text) e.textContent = text; });
+}
+
+function showPage(id, save = true) {
+  if (!PAGES.some(p => p.id === id)) id = 'direct';
+  _page = id;
+  document.querySelectorAll('.nav-item').forEach(b => { const on = b.dataset.page === id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.dataset.page === id));
+  const sc = document.getElementById('lay-scroll'); if (sc) sc.scrollTop = 0;
+  if (id === 'direct') requestAnimationFrame(updatePreviewScale);
+  if (save) try { sessionStorage.setItem('rlo-page', id); } catch {}   // gardée au rechargement du panneau ; au lancement de l'app : Direct
+}
+
+function buildPages(root, mode) {
+  const wrap = mkEl('div', 'lay-pages ' + (mode === 'tabs' ? 'tabs' : 'side'));
+  const nav = mkEl('nav', 'lay-nav'); nav.setAttribute('aria-label', 'Sections du panneau');
+  const content = mkEl('div', 'lay-content'); content.id = 'lay-scroll';
+  for (const p of PAGES) {
+    const b = mkEl('button', 'nav-item'); b.type = 'button'; b.dataset.page = p.id; b.title = p.title;
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${NAV_ICONS[p.icon]}</svg><span class="nav-txt"><span class="nav-lbl">${p.title}</span>${p.sum ? `<span class="nav-sum" data-sum="${p.sum}"></span>` : ''}</span>`;
+    b.addEventListener('click', () => showPage(p.id));
+    if (p.id === 'account') {   // Compte : en bas du menu (au bout des onglets), sous la bannière de saison
+      nav.appendChild(mkEl('div', 'nav-spacer'));
+      if (mode !== 'tabs') putCard(nav, 'season');
+    }
+    nav.appendChild(b);
+    const sec = mkEl('section', 'page'); sec.dataset.page = p.id;
+    sec.innerHTML = `<header class="page-head"><h2>${p.title}</h2><p>${p.sub}</p></header>`;
+    if (p.id === 'direct' && mode === 'tabs') putCard(sec, 'season');
+    const grid = mkEl('div', 'page-grid' + (p.cols ? ' direct' : p.cards.length === 1 ? ' one' : ''));
+    if (p.cols) for (const col of p.cols) { const c = mkEl('div', 'page-col'); col.forEach(k => putCard(c, k)); grid.appendChild(c); }
+    else p.cards.forEach(k => putCard(grid, k));
+    sec.appendChild(grid);
+    content.appendChild(sec);
+  }
+  wrap.append(nav, content);
+  root.appendChild(wrap);
+  showPage(_page, false);
+}
+
+function buildColumns(root, mode) {
+  const left = mkEl('div'); left.id = 'left';
+  const right = mkEl('div'); right.id = 'right';
+  if (mode === 'single') {
+    for (const [title, keys] of SINGLE_LEFT) {
+      if (title) { const g = mkEl('div', 'lay-group'); g.textContent = title; left.appendChild(g); }
+      keys.forEach(k => putCard(left, k));
+    }
+  } else {
+    CLASSIC_LEFT.forEach(k => putCard(left, k));
+    /* cartes de gauche repliables d'un clic sur leur titre, comme avant */
+    left.querySelectorAll(':scope > .card').forEach(card => {
+      const t = card.querySelector(':scope > .card-title'); if (!t) return;
+      t.classList.add('fold');
+      if (_folds['card:' + card.dataset.card]) card.classList.add('folded');
+    });
+  }
+  putCard(right, 'preview');
+  for (const a of ACCS) {
+    const sec = mkEl('section', 'acc span2'); sec.dataset.acc = a.id;
+    sec.innerHTML = `<button class="acc-head" type="button"><span class="acc-ico">${a.ico}</span><span class="acc-title">${a.title}</span><span class="acc-sum" data-sum="${a.id}"></span><span class="acc-chev">▾</span></button><div class="acc-body"><div class="acc-inner${a.grid ? ' acc-grid' : ''}"></div></div>`;
+    a.cards.forEach(k => putCard(sec.querySelector('.acc-inner'), k));
+    const k = 'acc:' + a.id;
+    /* première ouverture : Équipes déplié, le reste replié */
+    if (_folds[k] ?? a.id !== 'teams') sec.classList.add('closed');
+    sec.querySelector('.acc-head').addEventListener('click', () => { foldAnim(sec); sec.classList.toggle('closed'); _folds[k] = sec.classList.contains('closed'); saveFolds(); });
+    right.appendChild(sec);
+  }
+  root.append(left, right);
+}
+
+function buildLayout(mode) {
+  const root = document.getElementById('layout'), store = document.getElementById('card-store');
+  root.querySelectorAll('[data-card]').forEach(c => store.appendChild(c));   // l'ancienne disposition est vidée
+  root.textContent = '';
+  store.querySelectorAll(':scope > .card').forEach(c => { c.classList.remove('folded'); c.querySelector(':scope > .card-title')?.classList.remove('fold'); });
+  document.documentElement.dataset.layout = mode;
+  document.documentElement.dataset.ui = mode === 'classic' ? 'classic' : 'modern';
+  if (mode === 'sidebar' || mode === 'tabs') buildPages(root, mode);
+  else buildColumns(root, mode);
+  for (const k in _sums) setSum(k, _sums[k]);
+  document.querySelectorAll('.lay-choice').forEach(b => b.classList.toggle('on', b.dataset.layout === mode));
+  requestAnimationFrame(updatePreviewScale);
+}
+
+function setLayout(mode) {
+  if (!LAYOUTS.includes(mode)) mode = 'sidebar';
+  if (mode === _layout) return;
+  _layout = mode;
+  try { localStorage.setItem('rlo-layout', mode); } catch {}
+  buildLayout(mode);
+  requestAnimationFrame(() => { const c = cardEl('display'); if (c) c.scrollIntoView({ block: 'nearest' }); });
+}
+
+/* bouton « Affichage » de l'en-tête : montre la carte des dispositions */
+function showDisplaySettings() {
+  if (_layout === 'sidebar' || _layout === 'tabs') showPage('account');
+  const c = cardEl('display'); if (!c) return;
+  if (c.classList.contains('folded')) { c.classList.remove('folded'); _folds['card:display'] = false; saveFolds(); }
+  c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash');
+}
+
+(function initLayout() {
+  /* contenu de chaque carte sous son titre, dans un bloc repliable (utilisé par l'affichage classique) */
+  document.querySelectorAll('#card-store > .card').forEach(card => {
     const t = card.querySelector(':scope > .card-title');
     if (!t) return;
-    const body = document.createElement('div'); body.className = 'card-body';
+    const body = mkEl('div', 'card-body');
     while (t.nextSibling) body.appendChild(t.nextSibling);
-    const fold = document.createElement('div'); fold.className = 'card-fold';
+    const fold = mkEl('div', 'card-fold');
     fold.appendChild(body); card.appendChild(fold);
-    t.classList.add('fold');
-    const k = 'card:' + t.textContent.trim();
-    if (st[k]) card.classList.add('folded');
-    t.addEventListener('click', () => { animate(card); card.classList.toggle('folded'); st[k] = card.classList.contains('folded'); save(); });
+    t.addEventListener('click', e => {
+      if (!t.classList.contains('fold') || e.target.closest('button, input, select, a, label')) return;
+      foldAnim(card); card.classList.toggle('folded');
+      _folds['card:' + card.dataset.card] = card.classList.contains('folded'); saveFolds();
+    });
   });
-  document.querySelectorAll('.acc').forEach(sec => {
-    const k = 'acc:' + sec.dataset.acc;
-    /* première ouverture : Équipes déplié, le reste replié */
-    if (st[k] ?? sec.dataset.acc !== 'teams') sec.classList.add('closed');
-    sec.querySelector('.acc-head').addEventListener('click', () => { animate(sec); sec.classList.toggle('closed'); st[k] = sec.classList.contains('closed'); save(); });
-  });
+  try { _layout = localStorage.getItem('rlo-layout') || 'sidebar'; _page = sessionStorage.getItem('rlo-page') || 'direct'; } catch {}
+  if (!LAYOUTS.includes(_layout)) _layout = 'sidebar';
+  buildLayout(_layout);
+  /* aperçu OBS chargé une fois placé (le déplacer recharge l'iframe) */
+  const f = document.getElementById('preview-frame');
+  if (f && !f.getAttribute('src')) f.src = f.dataset.src;
 })();
+
 /* résumé affiché dans l'en-tête de chaque section (visible même repliée) */
 function updateAccSummaries() {
-  const put = (id, t) => { const e = document.getElementById(id); if (e && e.textContent !== t) e.textContent = t; };
+  const put = (id, t) => setSum(id.replace('acc-sum-', ''), t);
   const th = document.querySelector('.tc.active .tc-name');
   put('acc-sum-themes', th ? 'Actif : ' + th.textContent.trim() : '');
   const nm = id => { const e = document.getElementById(id); return (e && e.value.trim()) || 'Auto'; };
@@ -2414,7 +2719,7 @@ function twTick() {
   else if (_tw.ended) txt = 'Terminé';
   if (el.textContent !== txt) el.textContent = txt;
   const sum = _tw.active ? `En cours · ${txt.replace('⏱ ', '')}` : _tw.ended ? 'Terminé' : _tw.connected ? _tw.channel : '';
-  const s = document.getElementById('acc-sum-twitch'); if (s && s.textContent !== sum) s.textContent = sum;
+  setSum('twitch', sum);
 }
 setInterval(twTick, 500);
 fetch('/api/twitch-poll').then(r => r.json()).then(twRender).catch(() => {});
@@ -2643,6 +2948,24 @@ function gcPreview() {
 }
 fetch('/api/goal-clips').then(r => r.json()).then(gcRender).catch(() => {});
 
+/* ══════════ STREAM DECK ══════════ */
+function sdRender(d) {
+  if (!d) return;
+  const st = document.getElementById('sd-status');
+  st.classList.toggle('ok', d.connected > 0);
+  document.getElementById('sd-status-txt').textContent = d.connected > 0 ? 'Stream Deck connecté' : 'Plugin non connecté';
+}
+async function installStreamDeck() {
+  const f = document.getElementById('fb-sd');
+  const show = (txt, ok) => { f.textContent = txt; f.style.color = ok ? '' : '#f87171'; f.style.opacity = '1'; setTimeout(() => { f.style.opacity = '0'; }, 6000); };
+  try {
+    const r = await post('/api/streamdeck/install', {});
+    if (r.ok) return show('✓ Stream Deck s\'ouvre : clique sur Installer', true);
+    if (r.download) { location.href = r.download; return show('✓ Fichier téléchargé : ouvre-le pour l\'installer', true); }
+    show('⚠ ' + (r.error || 'Installation impossible'), false);
+  } catch { show('⚠ Installation impossible', false); }
+}
+
 /* ══════════ SALLE DE CONTRÔLE À DISTANCE ══════════ */
 function remoteRender(r) {
   if (!r) return;
@@ -2770,6 +3093,7 @@ ws.onmessage = e => {
   if (type === 'theme_download_progress') onThemeDownloadProgress(data);
   if (type === 'themes_changed') loadImportedThemes();   // thème installé depuis le Studio
   if (type === 'season') setSeason(data.season);
+  if (type === 'streamdeck') sdRender(data);
 };
 
 /* ── Thème saisonnier (choisi dans l'admin du site, relayé par le serveur local) ── */
@@ -3327,10 +3651,10 @@ function reloadPreview() {
 // Scale au chargement et au resize
 window.addEventListener('load',   updatePreviewScale);
 window.addEventListener('resize', updatePreviewScale);
-// ResizeObserver sur le panneau right
+// ResizeObserver sur la zone des cartes (toutes dispositions)
 const _roPreview = new ResizeObserver(updatePreviewScale);
 document.addEventListener('DOMContentLoaded', () => {
-  const r = document.getElementById('right');
+  const r = document.getElementById('layout');
   if (r) _roPreview.observe(r);
   updatePreviewScale();
 });

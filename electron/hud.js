@@ -13,7 +13,7 @@ const path = require('path');
 
 const SHORTCUT = 'CommandOrControl+Shift+H';
 
-module.exports = function setupHud({ getMainWindow, port = 3000, file = path.join(app.getPath('userData'), 'hud.json') } = {}) {
+module.exports = function setupHud({ getMainWindow, port = 3000, file = path.join(app.getPath('userData'), 'hud.json'), onChange } = {}) {
   let win = null;
   /* ends : écrans de fin de match et de victoire de série dans le HUD (masqués par défaut : ils couvrent tout le jeu) */
   let opts = { display: null, opacity: 100, protect: true, ends: false };
@@ -40,6 +40,7 @@ module.exports = function setupHud({ getMainWindow, port = 3000, file = path.joi
   function notify() {
     const mw = getMainWindow && getMainWindow();
     if (mw && !mw.isDestroyed()) mw.webContents.send('hud:state', state());
+    if (onChange) try { onChange(shown()); } catch {}   // serveur → plugin Stream Deck (touche « HUD à l'écran »)
   }
   function layout() {
     if (!shown()) return;
@@ -93,5 +94,5 @@ module.exports = function setupHud({ getMainWindow, port = 3000, file = path.joi
   }
   app.on('will-quit', () => { try { require('electron').globalShortcut.unregisterAll(); } catch {} });
 
-  return { show, hide, toggle, state, registerShortcut, window: () => win };
+  return { show, hide, toggle, state, shown, registerShortcut, window: () => win };
 };
