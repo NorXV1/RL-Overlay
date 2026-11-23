@@ -2276,6 +2276,84 @@ app.post('/api/themes/download-by-id', async (req, res) => {
   }
 });
 
+/* ═══ Mise à jour automatique des thèmes installés depuis le site ═══
+   Au démarrage (après 20 s) puis toutes les 6 h : chaque thème téléchargé du site (meta.json « siteId ») est comparé
+   à sa version en ligne — empreinte du CSS (sélecteurs [data-theme] et chemins /themes/<dossier>/ neutralisés, car
+   réécrits à l'installation) et fichiers (images, polices, vidéos : nom + taille). S'il a changé, il est remplacé :
+   CSS + meta.json seulement quand les fichiers lourds n'ont pas bougé (pas 370 Mo pour une retouche de CSS).
+   Thème privé : pas de code à redemander, l'empreinte du CSS installé sert de preuve (le site la reconnaît).
+   Le thème affiché se recharge tout seul dans l'overlay et le panneau. THEME_SITE : tests. */
+const THEME_SITE = process.env.THEME_SITE || 'https://overlay.rscast.fr';
+const AUTO_THEME_UPDATE = process.env.THEME_AUTO_UPDATE ? process.env.THEME_AUTO_UPDATE !== '0' : !process.env.STATS_API_PORT;   // tests automatiques : coupé
+const normThemeCss = s => String(s).replace(/\[data-theme=(["'])[^"']*\1\]/g, '[T]').replace(/\/themes\/[^/'")\s]+\//g, '/themes/X/').replace(/\s+/g, ' ').trim();
+const themeCssHash = s => require('crypto').createHash('sha256').update(normThemeCss(s)).digest('hex');
+let _themeUpdRunning = false;
+async function replaceSiteTheme(zip, l, core) {
+  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'rl-theme-'));
+  try {
+    await extractThemeZip(zip, tmpDir, l.name, null);
+    if (!fs.existsSync(path.join(tmpDir, 'theme.css'))) throw new Error('ZIP sans theme.css');
+    /* CSS seul : les fichiers déjà installés (images, polices, vidéos) sont gardés */
+    if (core) for (const f of fs.readdirSync(l.dir)) { const dst = path.join(tmpDir, f); if (!fs.existsSync(dst)) fs.cpSync(path.join(l.dir, f), dst, { recursive: true }); }
+    const metaPath = path.join(tmpDir, 'meta.json');
+    let meta = {};
+    try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+    meta.siteId = l.meta.siteId;
+    if (l.meta.siteName) meta.siteName = l.meta.siteName;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+    fs.rmSync(l.dir, { recursive: true, force: true });
+    fs.cpSync(tmpDir, l.dir, { recursive: true });
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+async function autoUpdateSiteThemes() {
+  if (_themeUpdRunning) return [];
+  _themeUpdRunning = true;
+  const done = [];
+  try {
+    const local = [];
+    for (const name of listThemes()) {
+      if (name === 'rlcs') continue;
+      const dir = path.join(THEMES_DIR, name);
+      let meta;
+      try { meta = JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8')); } catch { continue; }
+      if (meta && typeof meta.siteId === 'string' && /^[a-z0-9_-]{1,80}$/i.test(meta.siteId)) local.push({ name, dir, meta });
+    }
+    if (!local.length) return done;
+    const ids = [...new Set(local.map(l => l.meta.siteId))];
+    const r = await fetch(`${THEME_SITE}/api/themes/versions?ids=${encodeURIComponent(ids.join(','))}`, { signal: AbortSignal.timeout(15000) });
+    const j = r.ok ? await r.json().catch(() => null) : null;
+    if (!j || !j.ok || !j.themes) return done;
+    for (const l of local) {
+      const v = j.themes[l.meta.siteId];
+      if (!v || !v.css) continue;
+      let css = '';
+      try { css = fs.readFileSync(path.join(l.dir, 'theme.css'), 'utf8'); } catch {}
+      const mine = themeCssHash(css);
+      const filesOk = (v.files || []).every(f => { try { return fs.statSync(path.join(l.dir, path.basename(String(f.n)))).size === f.s; } catch { return false; } });
+      if (mine === v.css && filesOk) continue;
+      try {
+        const z = await fetch(`${THEME_SITE}/download/theme/${encodeURIComponent(l.meta.siteId)}/update?proof=${mine}${filesOk ? '&core=1' : ''}`, { signal: AbortSignal.timeout(15 * 60 * 1000) });
+        if (!z.ok) throw new Error('HTTP ' + z.status);
+        await replaceSiteTheme(Buffer.from(await z.arrayBuffer()), l, filesOk);
+        done.push(l.name);
+        console.log(`[Thèmes] « ${l.name} » mis à jour depuis le site${filesOk ? ' (CSS)' : ' (complet)'}`);
+      } catch (e) { console.warn(`[Thèmes] mise à jour de « ${l.name} » impossible :`, e.message); }
+    }
+  } catch (e) { console.warn('[Thèmes] vérification des mises à jour :', e.message); }
+  finally {
+    _themeUpdRunning = false;
+    if (done.length) {
+      broadcast('themes_changed', {});
+      if (done.includes(currentTheme)) broadcast('theme_change', { theme: currentTheme });   // overlay rechargé avec le nouveau CSS
+    }
+  }
+  return done;
+}
+/* vérification à la demande (tests, et plus tard un bouton du panneau) */
+app.post('/api/themes/check-updates', async (req, res) => res.json({ ok: true, updated: await autoUpdateSiteThemes() }));
+
 app.delete('/api/themes/:name', (req, res) => {
   const name = req.params.name.replace(/[^a-zA-Z0-9_-]/g, '');
   const builtinProtected = ['rlcs'];
@@ -3064,4 +3142,6 @@ server.listen(PORT, () => {
   fs.watch(path.join(LOGOS_DIR, 'bleu'),   () => setTimeout(applySettings, 200));
   fs.watch(path.join(LOGOS_DIR, 'orange'), () => setTimeout(applySettings, 200));
   connectToStatsApi();
+  /* thèmes du site installés : mis à jour tout seuls (au démarrage, puis toutes les 6 h) */
+  if (AUTO_THEME_UPDATE) { setTimeout(autoUpdateSiteThemes, 20000); setInterval(autoUpdateSiteThemes, 6 * 3600 * 1000); }
 });

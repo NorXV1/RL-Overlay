@@ -95,7 +95,7 @@ function hydrateIcons(root = document) {
 }
 
 /* ─────────────────────────── Catalogues ─────────────────────────── */
-const SCENES = { game: 'En jeu', goal: 'But', wreplay: 'Anim. REPLAY', replay: 'Replay', wlive: 'Anim. LIVE', ot: 'Prolongation', end: 'Fin de match', win: 'Victoire' };
+const SCENES = { game: 'En jeu', goal: 'But', wreplay: 'Anim. REPLAY', replay: 'Replay', wlive: 'Anim. LIVE', ot: 'Prolongation', end: 'Fin de match', win: 'Victoire', to: 'Timeout' };
 
 /* Éléments de l'overlay déplaçables (id DOM de global.html, ou sélecteur « sel ») */
 const ELEMENTS = [
@@ -128,6 +128,14 @@ const ELEMENTS = [
   { key: 'win-team-name',    label: 'Victoire — nom',        scene: 'win',    icon: 'text' },
   { key: 'win-subtitle',     label: 'Victoire — sous-titre', scene: 'win',    icon: 'text' },
   { key: 'win-series-score', label: 'Victoire — score',      scene: 'win',    icon: 'pips' },
+  /* écran de timeout : plein écran affiché pendant le TO d'une équipe (compte à rebours) */
+  { key: 'tos-league',       label: 'Timeout — ligue',       scene: 'to',     icon: 'text' },
+  { key: 'tos-icon',         label: 'Timeout — icône',       scene: 'to',     icon: 'timeout' },
+  { key: 'tos-word',         label: 'Timeout — titre',       scene: 'to',     icon: 'text' },
+  { key: 'tos-sub',          label: 'Timeout — sous-titre',  scene: 'to',     icon: 'text' },
+  { key: 'tos-team',         label: 'Timeout — équipe',      scene: 'to',     icon: 'shield' },
+  { key: 'tos-clock',        label: 'Timeout — compte à rebours', scene: 'to', icon: 'clock' },
+  { key: 'tos-series',       label: 'Timeout — série',       scene: 'to',     icon: 'pips' },
 ];
 const EL = Object.fromEntries(ELEMENTS.map(e => [e.key, e]));
 const elSel = E => E.sel || '#' + E.key;
@@ -191,11 +199,12 @@ const EL_LOOPS = [['none', 'Aucune'], ['pulse', 'Pulsation'], ['heartbeat', 'Bat
 const OUT_ANIMS = [['none', 'Instantanée'], ['fade', 'Fondu'], ['slide-left', 'Glisse vers la gauche'], ['slide-right', 'Glisse vers la droite'], ['slide-up', 'Monte'], ['slide-down', 'Descend'], ['zoom', 'Zoom arrière'], ['blur', 'Flou'], ['wipe', 'Balayage']];
 const EASES = { smooth: 'cubic-bezier(.22,1,.36,1)', out: 'ease-out', inout: 'ease-in-out', linear: 'linear', back: 'cubic-bezier(.34,1.56,.64,1)', in: 'ease-in' };
 const EASE_OPTS = [['smooth', 'Douce'], ['out', 'Décélération'], ['inout', 'Accélère puis ralentit'], ['back', 'Rebond'], ['linear', 'Linéaire'], ['in', 'Accélération']];
-const SHOW_OPTS = [['always', 'Toujours'], ['game', 'En jeu'], ['goal', 'Pendant un but'], ['replay', 'Pendant le replay'], ['ot', 'Prolongation'], ['end', 'Écran de fin'], ['win', 'Victoire de la série']];
+const SHOW_OPTS = [['always', 'Toujours'], ['game', 'En jeu'], ['goal', 'Pendant un but'], ['replay', 'Pendant le replay'], ['ot', 'Prolongation'], ['end', 'Écran de fin'], ['win', 'Victoire de la série'], ['to', 'Écran de timeout']];
 /* Moments où un calque s'affiche (plusieurs possibles) — « En jeu » = jeu en cours hors but / replay */
-const MOMENTS = [['always', 'Toujours'], ['game', 'En jeu'], ['goal', 'But'], ['wreplay', 'Anim. REPLAY'], ['replay', 'Replay'], ['wlive', 'Anim. LIVE'], ['ot', 'Prolongation'], ['end', 'Fin de match'], ['win', 'Victoire']];
-const MOMENT_SHORT = { game: 'Jeu', goal: 'But', wreplay: 'Anim. R', replay: 'Replay', wlive: 'Anim. L', ot: 'Prol.', end: 'Fin', win: 'Victoire' };
-const DEFAULT_SHOW = ['game', 'goal', 'replay'];
+const MOMENTS = [['always', 'Toujours'], ['game', 'En jeu'], ['goal', 'But'], ['wreplay', 'Anim. REPLAY'], ['replay', 'Replay'], ['wlive', 'Anim. LIVE'], ['ot', 'Prolongation'], ['end', 'Fin de match'], ['win', 'Victoire'], ['to', 'Timeout']];
+const MOMENT_SHORT = { game: 'Jeu', goal: 'But', wreplay: 'Anim. R', replay: 'Replay', wlive: 'Anim. L', ot: 'Prol.', end: 'Fin', win: 'Victoire', to: 'TO' };
+/* nouveau calque : affiché pendant le jeu, y compris en prolongation (case « Prolongation » à décocher pour l'y cacher) */
+const DEFAULT_SHOW = ['game', 'goal', 'replay', 'ot'];
 /* ancien format (texte) → liste ; « game » voulait dire tout le temps pendant le jeu */
 const showList = L => Array.isArray(L.show) ? L.show : !L.show || L.show === 'always' ? ['always'] : L.show === 'game' ? [...DEFAULT_SHOW] : [L.show];
 /* moments d'un dossier : null = aucune restriction (Toujours) */
@@ -219,16 +228,34 @@ const CLIPS = {
   slant: 'polygon(0 0,100% 0,100% 100%,7% 100%)', chevron: 'polygon(0 0,85% 0,100% 50%,85% 100%,0 100%,15% 50%)',
   hexagon: 'polygon(10% 0,90% 0,100% 50%,90% 100%,10% 100%,0 50%)', diamond: 'polygon(50% 0,100% 50%,50% 100%,0 50%)', triangle: 'polygon(50% 0,100% 100%,0 100%)',
 };
+/* Formes des pastilles de série (masques SVG 100 × 100, remplis de la couleur « gagnée » ou « vide ») */
+const PIP_SHAPES = {
+  circle:  ['Rond', '<circle cx="50" cy="50" r="48"/>'],
+  square:  ['Carré', '<rect x="4" y="4" width="92" height="92"/>'],
+  rounded: ['Carré arrondi', '<rect x="4" y="4" width="92" height="92" rx="22"/>'],
+  diamond: ['Losange', '<path d="M50 2 98 50 50 98 2 50z"/>'],
+  hexagon: ['Hexagone', '<path d="M27 6h46l25 44-25 44H27L2 50z"/>'],
+  star:    ['Étoile', '<path d="M50 4l13.5 29.5L96 37 72 59l6.5 33L50 76 21.5 92 28 59 4 37l32.5-3.5z"/>'],
+  heart:   ['Cœur', '<path d="M50 90C30 74 6 58 6 34 6 18 18 8 31 8c9 0 15 5 19 12 4-7 10-12 19-12 13 0 25 10 25 26 0 24-24 40-44 56z"/>'],
+  shield:  ['Écusson', '<path d="M50 4 92 18v30c0 25-18 42-42 48C26 90 8 73 8 48V18z"/>'],
+  triangle: ['Triangle', '<path d="M50 6 96 92H4z"/>'],
+  chevron: ['Chevron', '<path d="M8 6h44l40 44-40 44H8l40-44z"/>'],
+  bolt:    ['Éclair', '<path d="M60 2 14 58h30l-8 40 50-60H56z"/>'],
+  slash:   ['Barre oblique', '<path d="M34 4h44L56 96H12z"/>'],
+};
+const PIP_SHAPE_OPTS = () => Object.entries(PIP_SHAPES).map(([k, v]) => [k, v[0]]);
+const shapeMask = k => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${(PIP_SHAPES[k] || PIP_SHAPES.circle)[1]}</svg>`)}`;
+const IMG_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,.svg';
 const BLENDS = [['normal', 'Normal'], ['screen', 'Superposition claire'], ['lighten', 'Éclaircir'], ['multiply', 'Produit'], ['overlay', 'Incrustation'], ['color-dodge', 'Densité couleur −'], ['difference', 'Différence']];
 
 /* ─────────────────────────── Projet & état ─────────────────────────── */
 function newProject() {
   return {
-    format: 'rlo-studio', version: 1, id: 'p' + Date.now().toString(36) + uid(),
+    format: 'rlo-studio', version: 2, id: 'p' + Date.now().toString(36) + uid(),
     name: trName('Mon thème'), themeId: '', base: 'rlcs',
     vars: {}, font: null, fonts: [], elements: {}, layers: [], assets: {},
     sidebar: { link: true, blue: {}, orange: {} },
-    transitions: {}, endBg: null, options: { timerShort: false }, end: {}, win: {},
+    transitions: {}, endBg: null, options: { timerShort: false }, end: {}, win: {}, tos: {}, toIcon: {}, sdots: {},
     importedCss: '', importedAnims: [], customCss: '', guides: { v: [], h: [] },
   };
 }
@@ -237,7 +264,13 @@ function normalize(p) {
   n.vars ||= {}; n.fonts ||= []; n.elements ||= {}; n.layers ||= []; n.assets ||= {};
   n.sidebar ||= { link: true, blue: {}, orange: {} }; n.sidebar.blue ||= {}; n.sidebar.orange ||= {};
   n.transitions ||= {}; n.options ||= {}; n.guides ||= { v: [], h: [] }; n.guides.v ||= []; n.guides.h ||= [];
-  n.importedAnims ||= []; n.end ||= {}; n.win ||= {};
+  n.importedAnims ||= []; n.end ||= {}; n.win ||= {}; n.tos ||= {}; n.toIcon ||= {}; n.sdots ||= {};
+  /* projets d'avant la 1.9.9 : le jeu en prolongation comptait comme « En jeu ». Là où le calque (ou le dossier)
+     s'affichait déjà en prolongation, « Prolongation » est cochée : même affichage qu'avant, et la case dit vrai */
+  if (!(+(p && p.version) >= 2)) {
+    for (const L of n.layers) if (Array.isArray(L.show) && L.show.includes('game') && !L.show.includes('ot')) L.show = MOMENTS.map(m => m[0]).filter(m => m === 'ot' || L.show.includes(m));
+    n.version = 2;
+  }
   n.layers.forEach(L => { if (!isGroup(L)) { L.anim ||= {}; L.show = showList(L); } });
   return n;
 }
@@ -463,15 +496,25 @@ function layerCss(L, sel, ctx) {
   if (L.type === 'text') out.push(textCss(L, s));
   if (L.type === 'shape') out.push(shapeCss(L, s));
   if (L.type === 'media') out.push(mediaCss(s, L.media || {}, '.st-media'));
-  if (L.type === 'series') out.push(seriesCss(L, s));
+  if (L.type === 'series') out.push(seriesCss(L, s, ctx));
   if (L.type === 'boost') out.push(boostCss(L, s));
   return out.join('\n');
 }
 /* Série : couleur « gagnée » = couleur de l'équipe sauf couleur choisie */
-function seriesCss(L, s) {
+function seriesCss(L, s, ctx) {
   const r = L.series || {};
   const on = r.on || (r.team === 'orange' ? 'var(--orange)' : 'var(--blue)');
   let css = `${s} .st-series { --st-on:${on}; --st-off:${r.off ?? 'rgba(255,255,255,0.16)'}; --st-gap:${r.gap ?? 6}px; --st-r:${r.radius ?? 3}px; --st-bw:${r.bw ?? 8}px; }`;
+  /* forme au choix ou image (répétée autant de fois qu'il y a de matchs à gagner) : cases carrées */
+  const file = r.style === 'image' ? fileOf(r.img) : null;
+  if (r.style === 'shape' || (r.style === 'image' && file)) {
+    const mask = r.style === 'shape' ? `url("${shapeMask(r.shape)}")` : r.tint ? `url('${ctx.url(file)}')` : '';
+    css += `\n${s} .st-series > i { flex:0 0 auto; aspect-ratio:${r.ar || 1}; border-radius:0; box-shadow:none;${mask ? ` -webkit-mask:${mask} center/contain no-repeat; mask:${mask} center/contain no-repeat;` : ''} }`;
+    if (!mask) css += `\n${s} .st-series > i, ${s} .st-series > i.on { background:url('${ctx.url(file)}') center/contain no-repeat; }`
+      + `\n${s} .st-series > i { opacity:${(r.dim ?? 30) / 100}; filter:grayscale(1); transition:opacity .35s, filter .35s; }\n${s} .st-series > i.on { opacity:1; filter:none; }`;
+    if (r.glow) css += `\n${s} .st-series { filter:drop-shadow(0 0 ${r.glow}px ${mask ? 'var(--st-on)' : 'rgba(255,255,255,.5)'}); }`;
+    return css;
+  }
   const inset = r.borderW ? `inset 0 0 0 ${r.borderW}px ${r.borderC || '#ffffff'}` : '';
   if (inset) css += `\n${s} .st-series > i { box-shadow:${inset}; }`;
   if (r.glow) css += `\n${s} .st-series > i.on { box-shadow:0 0 ${r.glow}px var(--st-on)${inset ? ', ' + inset : ''}; }`;
@@ -753,6 +796,80 @@ function winRuntimeOpts() {
   return Object.keys(o).length ? o : null;
 }
 
+/* ─── Écran de timeout (S.p.tos) : fond, accent, titre, sous-titre, équipe, compte à rebours, série
+   (!important : les thèmes de base l'habillent fortement) ─── */
+function tosCss(ctx) {
+  const t = S.p.tos || {}, R = `html ${ctx.sel} #to-screen`, r = [];
+  const add = (sub, p) => r.push(`${R}${sub} { ${p} }`);
+  const imp = (k, sub, prop, unit = '') => { if (t[k] != null && t[k] !== '') add(sub, `${prop}:${t[k]}${unit} !important;`); };
+  if (t.accent) add('', `--to-c:${t.accent} !important; --to-cl:${t.accent} !important;`);
+  imp('bg', ' #tos-bg', 'background');
+  if (t.noDeco) add(' #tos-bg::before, ' + R + ' #tos-bg::after', 'display:none !important;');
+  if (t.noLeague) add(' #tos-league', 'display:none !important;');
+  imp('leagueSize', ' #tos-league', 'font-size', 'px'); imp('leagueColor', ' #tos-league', 'color');
+  if (t.noIcon) add(' #tos-icon', 'display:none !important;');
+  if (t.iconSize != null) add(' #tos-icon', `width:${t.iconSize}px !important; height:${round(t.iconSize * 101 / 118)}px !important;`);
+  imp('iconColor', ' #tos-icon', 'color');
+  imp('wordSize', ' #tos-word', 'font-size', 'px'); imp('wordColor', ' #tos-word', 'color'); imp('wordSpacing', ' #tos-word', 'letter-spacing', 'px');
+  if (t.wordItalic) add(' #tos-word', 'font-style:italic !important;');
+  if (t.noSub) add(' #tos-sub', 'display:none !important;');
+  imp('subSize', ' #tos-sub', 'font-size', 'px'); imp('subColor', ' #tos-sub', 'color'); imp('subSpacing', ' #tos-sub', 'letter-spacing', 'px');
+  imp('teamBg', ' #tos-team', 'background'); imp('teamRadius', ' #tos-team', 'border-radius', 'px');
+  if (t.noTeamBorder) add(' #tos-team', 'border:none !important; box-shadow:none !important;');
+  if (t.noLogo) add(' #tos-logo', 'display:none !important;');
+  imp('logoBg', ' #tos-logo', 'background');
+  imp('nameSize', ' #tos-name', 'font-size', 'px'); imp('nameColor', ' #tos-name', 'color');
+  if (t.noBack) add(' #tos-back', 'display:none !important;');
+  imp('backColor', ' #tos-back', 'color');
+  imp('timerSize', ' #tos-timer', 'font-size', 'px'); imp('timerColor', ' #tos-timer', 'color');
+  imp('timerBg', ' #tos-timer', 'background'); imp('timerRadius', ' #tos-timer', 'border-radius', 'px');
+  if (t.noBar) add(' #tos-bar', 'display:none !important;');
+  imp('barW', ' #tos-bar', 'width', 'px'); imp('barH', ' #tos-bar', 'height', 'px');
+  imp('barColor', ' #tos-bar i', 'background');
+  if (t.noSeries) add(' #tos-series', 'display:none !important;');
+  imp('seriesSize', ' #tos-series', 'font-size', 'px');
+  return r.join('\n');
+}
+/* Icône de timeout perso (S.p.toIcon) : image à la place de l'hexagone pause — icônes du scoreboard et, au choix,
+   écran de timeout. tint = l'image (PNG transparent) prend la couleur de l'équipe (masque). imgO = image de l'équipe orange. */
+function toIconCss(ctx) {
+  const t = S.p.toIcon || {}, file = fileOf(t.img);
+  if (!file) return '';
+  const fileO = fileOf(t.imgO) || file, H = `html ${ctx.sel}`;
+  const pic = f => t.tint
+    ? `background:currentColor !important; -webkit-mask:url('${ctx.url(f)}') center/contain no-repeat !important; mask:url('${ctx.url(f)}') center/contain no-repeat !important;`
+    : `background:url('${ctx.url(f)}') center/contain no-repeat !important; -webkit-mask:none !important; mask:none !important;`;
+  const r = [`${H} .to-pip svg { display:none !important; }`, `${H} .to-pip.blue { ${pic(file)} }`, `${H} .to-pip.orange { ${pic(fileO)} }`];
+  if (t.screen !== false) r.push(`${H} #tos-icon svg { display:none !important; }`, `${H} #to-screen.blue #tos-icon { ${pic(file)} }`, `${H} #to-screen.orange #tos-icon { ${pic(fileO)} }`);
+  return r.join('\n');
+}
+/* Pastilles de série du scoreboard (S.p.sdots) : forme au choix ou image, répétée autant de fois qu'il y a de
+   matchs à gagner (BO5 → 3, BO7 → 4), couleurs « gagnée » / « vide » (!important : chaque thème les dessine à sa façon) */
+function sdotsCss(ctx) {
+  const d = S.p.sdots || {}, st = d.style;
+  const file = st === 'image' ? fileOf(d.img) : null;
+  if (st !== 'shape' && !(st === 'image' && file)) return '';
+  const D = `html ${ctx.sel} .series-dots-small .sdot`;
+  const mask = st === 'shape' ? `url("${shapeMask(d.shape)}")` : d.tint ? `url('${ctx.url(file)}')` : '';
+  const base = `width:${d.w ?? 18}px !important; height:${d.h ?? 18}px !important; border-radius:0 !important; outline:none !important; border:none !important; box-shadow:none !important; clip-path:none !important; animation:none !important;`;
+  const r = [];
+  if (mask) {
+    r.push(`${D} { ${base} -webkit-mask:${mask} center/contain no-repeat !important; mask:${mask} center/contain no-repeat !important; background:${d.off || 'rgba(255,255,255,0.18)'} !important; }`);
+    r.push(`${D}.won.blue { background:${d.on || 'var(--blue)'} !important; }`, `${D}.won.orange { background:${d.on || 'var(--orange)'} !important; }`);
+  } else {
+    r.push(`${D} { ${base} -webkit-mask:none !important; mask:none !important; background:url('${ctx.url(file)}') center/contain no-repeat !important; opacity:${(d.dim ?? 30) / 100} !important; filter:grayscale(1) !important; transition:opacity .35s, filter .35s; }`);
+    r.push(`${D}.won { opacity:1 !important; filter:none !important; }`);
+  }
+  if (d.gap != null) r.push(`html ${ctx.sel} .series-dots-small { gap:${d.gap}px !important; }`);
+  return r.join('\n');
+}
+/* textes perso de l'écran de timeout (appliqués par le moteur : meta.json "tos") */
+function tosRuntimeOpts() {
+  const t = S.p.tos || {}, o = {};
+  for (const k of ['word', 'sub', 'back']) if (t[k]) o[k] = t[k];
+  return Object.keys(o).length ? o : null;
+}
+
 /* Bandeau médias (calque ou élément d'origine) : fond, arrondi, bordure, marge et ajustement des médias */
 function mediaCss(s, m, box) {
   const b = [];
@@ -1010,15 +1127,18 @@ function buildStudioCss(ctx) {
   const vars = Object.entries(p.vars).filter(([, v]) => v !== '' && v != null);
   if (vars.length) out.push(`${ctx.sel} { ${vars.map(([k, v]) => `${k}:${v};`).join(' ')} }`);
   if (p.font) {
-    const roots = ['#top-bar', '#overlay-root', '#boost-meter', '#end-screen', '#win-screen'];
+    const roots = ['#top-bar', '#overlay-root', '#boost-meter', '#end-screen', '#win-screen', '#to-screen'];
     out.push(`${roots.map(r => `${ctx.sel} ${r}, ${ctx.sel} ${r} *`).join(', ')} { font-family:${fontStack(p.font)} !important; }`);
   }
   for (const E of ELEMENTS) { const d = p.elements[E.key]; if (d && Object.keys(d).length) { const c = elementCss(E, d, ctx.sel); if (c) out.push(c); } }
   const sb = sidebarsCss(ctx.sel);
   if (sb) out.push(sb);
-  const ec = endCss(ctx), wc = winCss(ctx);
+  const ec = endCss(ctx), wc = winCss(ctx), tc = tosCss(ctx), ti = toIconCss(ctx), sd = sdotsCss(ctx);
   if (ec) out.push(ec);
   if (wc) out.push(wc);
+  if (tc) out.push(tc);
+  if (ti) out.push(ti);
+  if (sd) out.push(sd);
   /* animations REPLAY / LIVE de base masquées (le moment reste déclenché pour les calques perso) */
   const tr = p.transitions || {};
   const hideWipe = (word, vids) => [`#replay-wipe[data-st-word="${word}"]`, ...vids].map(x => `html ${ctx.sel} ${x}`).join(', ') + ' { visibility:hidden !important; }';
@@ -1033,7 +1153,8 @@ const studioPreviewCss = () => { const s = buildStudioCss(previewCtx); return s.
 
 function layerSpecs(ctx) {
   return realLayers().map(L => {
-    const spec = { id: L.id, type: L.type, show: showList(L), z: L.z || 'front', out: (L.anim && L.anim.out) || 'fade', loop: L.loop !== false };
+    /* otx : la prolongation est un moment à part (calque sans « Prolongation » caché pendant le jeu en prolongation) */
+    const spec = { id: L.id, type: L.type, show: showList(L), z: L.z || 'front', out: (L.anim && L.anim.out) || 'fade', loop: L.loop !== false, otx: 1 };
     const gs = groupShow(groupOf(L));
     if (gs) spec.gshow = gs;
     /* condition « ligue renseignée / vide » du calque et de son dossier */
@@ -1061,7 +1182,7 @@ function previewMedia() {
     ['replayCut', 'liveCut', 'replayDelay', 'liveDelay'].forEach(k => { if (t[k] !== '' && t[k] != null) wipe[k] = Number(t[k]); });
   }
   const eb = fileOf(S.p.endBg) ? { url: `/studio-work/${fileOf(S.p.endBg)}`, kind: extKind(fileOf(S.p.endBg)) } : null;
-  const options = { timerShort: !!S.p.options.timerShort || (S.base.meta && S.base.meta.timerFormat === 'm:ss'), goal: goalRuntimeOpts(), end: endRuntimeOpts(), win: winRuntimeOpts(), boostMeter: bmtRuntimeOpts() };
+  const options = { timerShort: !!S.p.options.timerShort || (S.base.meta && S.base.meta.timerFormat === 'm:ss'), goal: goalRuntimeOpts(), end: endRuntimeOpts(), win: winRuntimeOpts(), tos: tosRuntimeOpts(), boostMeter: bmtRuntimeOpts() };
   return { wipe, endBg: eb, options };
 }
 
@@ -1329,7 +1450,7 @@ function layerVisibleInScene(L) {
   const f = F();
   if (!f || !f.isShown) return true;
   const gs = groupShow(groupOf(L));
-  return f.isShown(showList(L)) && (!gs || f.isShown(gs));
+  return f.isShown(showList(L), true) && (!gs || f.isShown(gs, true));
 }
 /* Cadre d'un dossier : englobe ses calques visibles (ou tous s'il n'y en a aucun de visible) */
 function groupBox(gid) {
@@ -1950,7 +2071,7 @@ function select(sel, opts = {}) {
       const L = layerById(sel.id);
       /* calque invisible dans la scène affichée : on passe à la scène de son premier moment */
       const gs = L && isGroup(L) ? groupShow(L) : null, f = F();
-      const want = gs ? (f && !f.isShown(gs) ? SHOW_SCENE[gs[0]] : null)
+      const want = gs ? (f && !f.isShown(gs, true) ? SHOW_SCENE[gs[0]] : null)
         : L && !isGroup(L) && !effHidden(L) && !layerVisibleInScene(L) ? SHOW_SCENE[(groupShow(groupOf(L)) || showList(L)).find(m => m !== 'always') || 'always'] : null;
       if (want && want !== S.scene) setScene(want, true);
     }
@@ -2734,7 +2855,7 @@ function renderGroupProps() {
       if (s.length) g.show = MOMENTS.map(m => m[0]).filter(m => s.includes(m)); else delete g.show;
       changed('layers', { commit: 'now', layers: true });
       const gs = groupShow(g), f = F();
-      if (gs && f && !f.isShown(gs)) { const sc = SHOW_SCENE[gs[0]]; if (sc) setScene(sc, true); }
+      if (gs && f && !f.isShown(gs, true)) { const sc = SHOW_SCENE[gs[0]]; if (sc) setScene(sc, true); }
     }),
     note('Tout le contenu du dossier n\'apparaît qu\'à ces moments, en plus des réglages de chaque calque. Par exemple, décoche <b>Replay</b> pour cacher tout le dossier pendant les replays. <b>Toujours</b> = aucune restriction.')));
   insp.append(leagueCondSection(g, 'Tout le dossier'));
@@ -3456,8 +3577,16 @@ function seriesSections(L) {
       if (!L.name || /^Série équipe| team series$/i.test(L.name)) L.name = trName(`Série équipe ${v === 'orange' ? 'orange' : 'bleue'}`);
       r.team = v;
     }, { level: 'layers', layers: true })),
-    row('Style', selectField([['rects', 'Rectangles remplis'], ['bars', 'Bâtons'], ['dots', 'Ronds'], ['text', 'Texte']], () => st, v => { r.style = v; }, { level: 'layers', rebuild: true })),
+    row('Style', selectField([['rects', 'Rectangles remplis'], ['bars', 'Bâtons'], ['dots', 'Ronds'], ['shape', 'Forme au choix'], ['image', 'Image perso'], ['text', 'Texte']], () => st, v => { r.style = v; }, { level: 'layers', rebuild: true })),
   ];
+  /* forme ou image répétée autant de fois qu'il y a de matchs à gagner */
+  const picked = st === 'shape' || st === 'image', imgKeep = st === 'image' && !r.tint;
+  if (st === 'shape') kids.push(row('Forme', selectField(PIP_SHAPE_OPTS(), () => r.shape || 'circle', v => { r.shape = v; })));
+  if (st === 'image') kids.push(
+    fileRow('Image', () => r.img, id => { if (id) r.img = id; else delete r.img; }, IMG_ACCEPT, { removable: true, level: 'layers' }),
+    row('Teinter', toggle(() => !!r.tint, v => { if (v) r.tint = true; else delete r.tint; }, { rebuild: true })),
+    imgKeep ? row('Case vide (opacité)', slider(() => r.dim ?? 30, v => { r.dim = v; }, { max: 100, unit: ' %' })) : null,
+    note(r.tint ? 'L\'image (de préférence un PNG transparent) prend la couleur « gagnée » ou « vide » ci-dessous.' : 'L\'image garde ses couleurs : pleine quand le match est gagné, grisée et transparente sinon. Active « Teinter » pour la colorer.'));
   if (st === 'text') {
     kids.push(
       row('Affiche', selectField([['wins', 'Victoires (2)'], ['need', 'Victoires / à gagner (2 / 3)'], ['series', 'Score de série (2 - 1)'], ['bo', 'GAME X - BOX']], () => r.fmt || 'wins', v => { r.fmt = v; }, { level: 'layers' })),
@@ -3470,13 +3599,13 @@ function seriesSections(L) {
     kids.push(
       row('Sens', selectField([['ltr', 'Gauche → droite'], ['rtl', 'Droite → gauche']], () => r.dir || 'ltr', v => { r.dir = v; }, { level: 'layers' })),
       row('Vertical', toggle(() => !!r.vertical, v => { r.vertical = v; if (v && L.w > L.h) { const t = L.w; L.w = L.h; L.h = t; } else if (!v && L.h > L.w) { const t = L.w; L.w = L.h; L.h = t; } }, { level: 'layers' })),
-      row('Gagnée', colorField(() => r.on || '', v => { r.on = v; }, { reset: () => { delete r.on; }, isSet: () => !!r.on })),
-      row('Vide', colorField(() => r.off ?? 'rgba(255,255,255,0.16)', v => { r.off = v; })),
+      imgKeep ? null : row('Gagnée', colorField(() => r.on || '', v => { r.on = v; }, { reset: () => { delete r.on; }, isSet: () => !!r.on })),
+      imgKeep ? null : row('Vide', colorField(() => r.off ?? 'rgba(255,255,255,0.16)', v => { r.off = v; })),
       row('Espacement', slider(() => r.gap ?? 6, v => { r.gap = v; }, { max: 40, unit: ' px' })),
-      st !== 'dots' ? row('Arrondi', slider(() => r.radius ?? 3, v => { r.radius = v; }, { max: 40, unit: ' px' })) : null,
+      st !== 'dots' && !picked ? row('Arrondi', slider(() => r.radius ?? 3, v => { r.radius = v; }, { max: 40, unit: ' px' })) : null,
       st === 'bars' ? row('Épaisseur', slider(() => r.bw ?? 8, v => { r.bw = v; }, { min: 2, max: 60, unit: ' px' })) : null,
-      row('Bordure', slider(() => r.borderW || 0, v => { r.borderW = v; }, { max: 8, unit: ' px' })),
-      r.borderW ? row('Couleur bordure', colorField(() => r.borderC || '#ffffff', v => { r.borderC = v; })) : null,
+      picked ? null : row('Bordure', slider(() => r.borderW || 0, v => { r.borderW = v; }, { max: 8, unit: ' px' })),
+      r.borderW && !picked ? row('Couleur bordure', colorField(() => r.borderC || '#ffffff', v => { r.borderC = v; })) : null,
       note(`Vide = couleur de l'équipe. Le nombre de cases suit le BO : BO5 → 3, BO7 → 4.`));
   }
   kids.push(row('Lueur', slider(() => r.glow || 0, v => { r.glow = v; }, { max: 30, unit: ' px' })));
@@ -3536,6 +3665,85 @@ function mediaSections(get, set, o = {}) {
     row('Vidéos', selectField([['cover', 'Remplir (rogner)'], ['contain', 'Entières (contenir)'], ['fill', 'Étirer']], () => m().vfit || 'cover', v => upd('vfit', v))));
 }
 
+/* Icône de timeout perso : ton logo à la place de l'hexagone pause (scoreboard + écran de timeout) */
+function toIconSection() {
+  const t = () => S.p.toIcon || {}, ensure = () => (S.p.toIcon ||= {});
+  const setK = (k, v) => { if (v == null || v === false) delete ensure()[k]; else ensure()[k] = v; };
+  const on = !!t().img;
+  return sec('Icône de timeout', 'timeout',
+    note('Ton propre logo à la place de l\'icône pause hexagonale : dans le scoreboard (tant que l\'équipe a encore son timeout) et sur l\'écran de timeout.'),
+    fileRow('Image', () => t().img, id => setK('img', id), IMG_ACCEPT, { removable: true, level: 'css', empty: 'Icône d\'origine' }),
+    on ? fileRow('Image équipe orange', () => t().imgO, id => setK('imgO', id), IMG_ACCEPT, { removable: true, level: 'css', empty: 'La même' }) : null,
+    on ? row('Teinter à la couleur de l\'équipe', toggle(() => !!t().tint, v => setK('tint', v || null))) : null,
+    on ? row('Aussi sur l\'écran de timeout', toggle(() => t().screen !== false, v => setK('screen', v ? null : false))) : null,
+    note('Teinter : l\'image (de préférence un PNG transparent) prend la couleur de chaque équipe ; sinon elle garde ses couleurs. Taille et position : déplace et redimensionne l\'icône sur le canevas (scène En jeu).'));
+}
+/* Pastilles de série du scoreboard : forme ou image au choix, couleurs gagnée / vide */
+function sdotSection() {
+  const read = () => S.p.sdots || {}, ensure = () => (S.p.sdots ||= {});
+  const K = cfgKit(read, ensure, () => ({}));
+  const st = read().style || '', picked = st === 'shape' || st === 'image', imgKeep = st === 'image' && !read().tint;
+  return sec('Pastilles de série', 'pips',
+    note('Les pastilles du scoreboard qui comptent les victoires de chaque équipe dans la série : autant que de matchs à gagner (BO5 → 3, BO7 → 4).'),
+    row('Style', selectField([['', 'Celui du thème'], ['shape', 'Forme au choix'], ['image', 'Image perso']], () => st, v => K.set('style', v || null), { rebuild: true })),
+    st === 'shape' ? row('Forme', selectField(PIP_SHAPE_OPTS(), () => read().shape || 'circle', v => K.set('shape', v))) : null,
+    st === 'image' ? fileRow('Image', () => read().img, id => K.set('img', id), IMG_ACCEPT, { removable: true, level: 'css' }) : null,
+    st === 'image' ? row('Teinter', toggle(() => !!read().tint, v => K.set('tint', v || null), { rebuild: true })) : null,
+    picked ? h('div', { class: 'grid2' },
+      num('L', () => read().w ?? 18, v => K.set('w', clamp(Math.round(v), 4, 120)), { unit: 'px', dec: 0 }),
+      num('H', () => read().h ?? 18, v => K.set('h', clamp(Math.round(v), 4, 120)), { unit: 'px', dec: 0 })) : null,
+    picked && !imgKeep ? K.col('on', 'Gagnée') : null,
+    picked && !imgKeep ? K.col('off', 'Vide', 'rgba(255,255,255,0.18)') : null,
+    imgKeep ? K.sl('dim', 'Case vide (opacité)', 0, 100, 30, { unit: ' %' }) : null,
+    picked ? K.sl('gap', 'Espacement', 0, 40, 4) : null,
+    note(picked ? (imgKeep ? 'L\'image garde ses couleurs : pleine quand le match est gagné, grisée et transparente sinon.' : 'Gagnée vide = couleur de chaque équipe.')
+      + ' Si le thème de base ne montre pas de pastilles (ex. RLCS 2025), ajoute plutôt un calque <b>Série</b> : il a les mêmes formes et images.' : 'Choisis une forme ou ton image pour remplacer les pastilles du thème.'));
+}
+
+/* Écran de timeout : réglages communs + ceux du bloc sélectionné (titre, équipe, compte à rebours…) */
+const TOS_PARTS = { 'tos-league': 'league', 'tos-icon': 'icon', 'tos-word': 'word', 'tos-sub': 'sub', 'tos-team': 'team', 'tos-clock': 'clock', 'tos-series': 'series' };
+function tosSections(E) {
+  const read = () => S.p.tos || {}, ensure = () => (S.p.tos ||= {});
+  const meas = measureIn('#to-screen', [
+    ['leagueSize', '#tos-league', 'fontSize'], ['iconSize', '#tos-icon', 'w'], ['wordSize', '#tos-word', 'fontSize'], ['wordSpacing', '#tos-word', 'letterSpacing'],
+    ['subSize', '#tos-sub', 'fontSize'], ['subSpacing', '#tos-sub', 'letterSpacing'], ['teamRadius', '#tos-team', 'borderTopLeftRadius'],
+    ['nameSize', '#tos-name', 'fontSize'], ['timerSize', '#tos-timer', 'fontSize'], ['timerRadius', '#tos-timer', 'borderTopLeftRadius'],
+    ['barW', '#tos-bar', 'w'], ['barH', '#tos-bar', 'h'], ['seriesSize', '#tos-series', 'fontSize']]);
+  const K = cfgKit(read, ensure, () => meas);
+  const out = [sec('Écran de timeout', 'timeout',
+    note('Affiché quand une équipe prend son timeout (bouton <b>TO</b> du panneau de contrôle), par-dessus tout l\'overlay, avec le compte à rebours. Aperçu figé à 1:35.'),
+    row('Équipe (aperçu)', selectField([['0', 'Équipe bleue'], ['1', 'Équipe orange']], () => String(S.pvWin || 0), v => { S.pvWin = +v; setScene(S.scene, true); setTimeout(renderSel, 120); return false; })),
+    h('div', { class: 'btns', style: 'margin-bottom:10px' }, btn('Tester l\'écran de timeout', 'play', () => playTest('tos'), 'primary')),
+    K.col('bg', 'Fond'), K.tog('noDeco', 'Décor du thème', true), K.col('accent', 'Couleur d\'accent'),
+    note('Fond vide = fond du thème. Accent vide = couleur de l\'équipe en timeout. Pour un écran 100 % perso : calques avec <b>Afficher pendant : Timeout</b> (« Derrière » = sur le fond, « Devant » = par-dessus), textes <b>{blue_name}</b>, <b>{orange_name}</b>…'))];
+  const part = TOS_PARTS[E.key];
+  if (part === 'league') out.push(sec('Ligue', 'text',
+    K.tog('noLeague', 'Afficher', true), K.sl('leagueSize', 'Taille', 6, 80, 22), K.col('leagueColor', 'Couleur'),
+    note('Texte du label de ligue (panneau de contrôle).')));
+  if (part === 'icon') out.push(sec('Icône', 'timeout',
+    K.tog('noIcon', 'Afficher', true), K.sl('iconSize', 'Taille', 20, 400, 118), K.col('iconColor', 'Couleur'),
+    note('Couleur vide = couleur de l\'équipe en timeout.')), toIconSection());
+  if (part === 'word') out.push(sec('Titre', 'text',
+    K.txt('word', 'Texte', 'TIMEOUT', { max: 30 }), K.sl('wordSize', 'Taille', 20, 400, 190), K.col('wordColor', 'Couleur', '#ffffff'),
+    K.sl('wordSpacing', 'Espacement', -10, 60, 18), K.tog('wordItalic', 'Italique')));
+  if (part === 'sub') out.push(sec('Sous-titre', 'text',
+    K.tog('noSub', 'Afficher', true), K.txt('sub', 'Texte', 'TEMPS MORT TACTIQUE', { max: 40 }), K.sl('subSize', 'Taille', 6, 120, 28),
+    K.col('subColor', 'Couleur'), K.sl('subSpacing', 'Espacement', -5, 40, 10)));
+  if (part === 'team') out.push(sec('Équipe', 'shield',
+    K.col('teamBg', 'Fond'), K.sl('teamRadius', 'Arrondi', 0, 80, 14), K.tog('noTeamBorder', 'Bordure du thème', true),
+    K.tog('noLogo', 'Logo', true), K.col('logoBg', 'Fond du logo'), K.sl('nameSize', 'Taille du nom', 10, 160, 66), K.col('nameColor', 'Couleur du nom', '#ffffff'),
+    note('Nom et logo de l\'équipe en timeout (panneau de contrôle).')));
+  if (part === 'clock') out.push(sec('Compte à rebours', 'clock',
+    K.tog('noBack', 'Texte au-dessus', true), K.txt('back', 'Texte', 'REPRISE DANS', { max: 30 }), K.col('backColor', 'Couleur du texte'),
+    K.sl('timerSize', 'Taille du chrono', 20, 300, 124), K.col('timerColor', 'Couleur du chrono', '#ffffff'), K.col('timerBg', 'Fond du chrono'), K.sl('timerRadius', 'Arrondi', 0, 80, 0),
+    K.tog('noBar', 'Barre de progression', true), K.sl('barW', 'Largeur de la barre', 60, 1600, 640), K.sl('barH', 'Épaisseur de la barre', 1, 40, 8), K.col('barColor', 'Couleur de la barre'),
+    note('Durée du timeout : réglée dans le panneau de contrôle (carte Série). Couleurs vides = celles du thème.')));
+  if (part === 'series') out.push(sec('Série', 'pips',
+    K.tog('noSeries', 'Afficher', true), K.sl('seriesSize', 'Taille', 6, 120, 30),
+    note('Score de la série (masqué sans BO).')));
+  return out;
+}
+
 function renderElProps() {
   const E = EL[S.sel.id], d = elData(E.key);
   const A = () => selectedAabb() || { l: 0, t: 0 };
@@ -3554,6 +3762,9 @@ function renderElProps() {
   if (E.key === 'goal-notif') goalSections(d).forEach(s => insp.append(s));
   if (E.scene === 'end') endSections(E, d).forEach(s => insp.append(s));
   if (E.scene === 'win') winSections(E).forEach(s => insp.append(s));
+  if (E.scene === 'to') tosSections(E).forEach(s => insp.append(s));
+  if (E.key === 'to-pip-blue' || E.key === 'to-pip-orange') insp.append(toIconSection());
+  if (E.key === 'top-bar') insp.append(sdotSection());
   if (E.scene === 'game') insp.append(sec('Moments', 'clock',
     note('Masque cet élément pendant certains moments du match (il revient tout seul après).'),
     h('div', { class: 'lbl', style: 'width:auto;margin-bottom:6px' }, 'Masquer pendant'),
@@ -3628,7 +3839,7 @@ function renderLayerProps() {
       changed('layers', { commit: 'now', layers: true, inspector: k === 'wreplay' || k === 'wlive' });
       if (!layerVisibleInScene(L)) { const sc = SHOW_SCENE[L.show.find(m => m !== 'always')]; if (sc) setScene(sc, true); }
     }),
-    note('Le calque n\'apparaît qu\'aux moments choisis (plusieurs possibles). <b>En jeu</b> = pendant le jeu, hors but, replay et animations de transition. Un seul moment à la fois : dès que l\'animation REPLAY démarre, ce n\'est plus « But ».'),
+    note('Le calque n\'apparaît qu\'aux moments choisis (plusieurs possibles). <b>En jeu</b> = pendant le jeu, hors but, replay et animations de transition. <b>Prolongation</b> = pendant toute la prolongation : décochée, le calque est caché pendant le jeu en prolongation. Un seul moment à la fois : dès que l\'animation REPLAY démarre, ce n\'est plus « But ».'),
     showList(L).includes('wreplay') ? wipeToggle('replay') : null,
     showList(L).includes('wlive') ? wipeToggle('live') : null,
     showList(L).some(m => m === 'wreplay' || m === 'wlive') ? note('Décoche l\'animation de base pour que ton calque la remplace au lieu de s\'y superposer.') : null,
@@ -3968,10 +4179,10 @@ function playTest(kind) {
   setScene('game', true);
   setTimeout(() => {
     frame.contentWindow.postMessage({ type: 'preview-' + kind, team: S.pvWin || 0 }, '*');
-    toast(kind === 'goal' ? 'But → replay → retour au direct (≈ 16 s)' : kind === 'end' ? 'Écran de fin (7 s)' : 'Victoire de la série (5 s)');
+    toast(kind === 'goal' ? 'But → replay → retour au direct (≈ 16 s)' : kind === 'end' ? 'Écran de fin (7 s)' : kind === 'tos' ? 'Écran de timeout (10 s)' : 'Victoire de la série (5 s)');
   }, 250);
   const back = S.scene;
-  testT = setTimeout(() => setScene(back, true), kind === 'goal' ? 17000 : kind === 'end' ? 7800 : 5800);
+  testT = setTimeout(() => setScene(back, true), kind === 'goal' ? 17000 : kind === 'end' ? 7800 : kind === 'tos' ? 11200 : 5800);
 }
 function replayLayer(id) { const f = F(); if (f) f.replay(id); }
 
@@ -3983,6 +4194,10 @@ function usedAssets() {
   ['replay', 'live'].forEach(k => p.transitions[k] && ids.add(p.transitions[k]));
   if (p.endBg) ids.add(p.endBg);
   if (p.end && p.end.mvp && p.end.mvp.img) ids.add(p.end.mvp.img);
+  /* images perso : icône de timeout, pastilles de série du scoreboard, calques Série */
+  if (p.toIcon) [p.toIcon.img, p.toIcon.imgO].forEach(id => id && ids.add(id));
+  if (p.sdots && p.sdots.img) ids.add(p.sdots.img);
+  p.layers.forEach(L => L.series && L.series.img && ids.add(L.series.img));
   return [...ids].filter(id => p.assets[id]);
 }
 function download(blob, name) {
@@ -4096,6 +4311,8 @@ function buildMeta() {
   const eo = endRuntimeOpts(), wo = winRuntimeOpts();
   if (eo) m.end = eo;
   if (wo) m.win = wo;
+  const to = tosRuntimeOpts();
+  if (to) m.tos = to;
   const bo = bmtRuntimeOpts();
   if (bo) m.boostMeter = bo;
   m.layers = layerSpecs(installCtx);

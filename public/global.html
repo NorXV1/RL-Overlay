@@ -151,7 +151,9 @@ body {
   background: var(--panel-bg);
   padding: 0 22px;
   gap: 12px;
-  min-width: 260px;
+  /* largeur fixe : un nom d'équipe long rétrécit (autoFitTeamName) au lieu d'élargir le panneau,
+     sinon tout le scoreboard se décalait. Un thème peut fixer sa propre largeur (width / min-width). */
+  min-width: 260px; width: 260px; flex-shrink: 0;
 }
 .team-panel.blue {
   flex-direction: row-reverse;
@@ -187,12 +189,12 @@ body {
 .team-logo-outer.blue   .team-logo-letter { color: var(--blue); }
 .team-logo-outer.orange .team-logo-letter { color: var(--orange); }
 
-.team-name-wrap { display: flex; flex-direction: column; gap: 4px; }
+.team-name-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 0; }   /* ne déborde pas du panneau : le nom long est rétréci */
 
 .team-name {
   font-size: 26px; font-weight: 800;
   letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--panel-text); white-space: nowrap; line-height: 1;
+  color: var(--panel-text); white-space: nowrap; line-height: 1; max-width: 100%;
 }
 
 .series-dots-small { display: flex; gap: 4px; }
@@ -2459,7 +2461,10 @@ function autoFitTeamName(el) {
     void el.offsetWidth;
     if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
       const fs = parseFloat(getComputedStyle(el).fontSize);
-      el.style.fontSize = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth)) + 'px';
+      let size = Math.max(11, Math.floor(fs * el.clientWidth / el.scrollWidth));
+      el.style.fontSize = size + 'px';
+      /* l'espacement des lettres ne rétrécit pas avec la police : on finit au pixel près */
+      while (size > 11 && el.scrollWidth > el.clientWidth) { size--; el.style.fontSize = size + 'px'; }
     }
   };
   /* Attendre le chargement effectif des polices (Bourgeois etc.) : mesurer avant

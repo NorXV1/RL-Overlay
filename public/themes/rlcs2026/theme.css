@@ -785,7 +785,7 @@
     #0d0d0f;
 }
 [data-theme="rlcs2026"] #tos-bg::after { opacity: .045; }
-[data-theme="rlcs2026"] #tos-league { left: 50%; right: auto; translate: -50% 0; top: 52px; padding: 6px 34px .25em; background: var(--rc-bar); color: #cfcfcf; font-weight: 900; font-size: 26px; letter-spacing: 4px; white-space: nowrap; }
+[data-theme="rlcs2026"] #tos-league { left: 0; right: 0; width: fit-content; margin: 0 auto; top: 52px; padding: 6px 34px .25em; background: var(--rc-bar); color: #cfcfcf; font-weight: 900; font-size: 26px; letter-spacing: 4px; white-space: nowrap; }
 [data-theme="rlcs2026"] #tos-league:empty { display: none; }
 [data-theme="rlcs2026"] #tos-word { font-size: 214px; letter-spacing: 4px; padding: 0 0 .1em 4px; }
 [data-theme="rlcs2026"] #tos-sub { color: var(--to-c); }

@@ -20,6 +20,7 @@
 #st-back, #st-front { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 #st-back { z-index:0; }
 #st-front { z-index:9000; }
+#st-to-back, #st-to-front { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .st-layer { position:absolute; left:0; top:0; width:100px; height:100px; opacity:0; visibility:hidden;
   transition: opacity var(--st-out,.35s) ease, visibility 0s linear var(--st-out,.35s), translate .45s cubic-bezier(.2,.8,.3,1); }
 .st-layer.st-on { opacity:var(--st-o,1); visibility:visible; transition: opacity .12s ease, visibility 0s, translate .45s cubic-bezier(.2,.8,.3,1); }
@@ -138,6 +139,17 @@
   const front = document.createElement('div'); front.id = 'st-front';
   allOv.insertBefore(back, allOv.firstChild);
   allOv.appendChild(front);
+  /* Écran de timeout (moment « to ») : il couvre tout l'overlay, les calques passent donc dans #to-screen pendant
+     qu'il est affiché — « derrière » juste au-dessus de son fond, « devant » au-dessus de son contenu */
+  const toScreen = document.getElementById('to-screen');
+  let toBack = null, toFront = null;
+  if (toScreen) {
+    toBack = document.createElement('div');  toBack.id = 'st-to-back';
+    toFront = document.createElement('div'); toFront.id = 'st-to-front';
+    const tosBg = document.getElementById('tos-bg');
+    toScreen.insertBefore(toBack, tosBg ? tosBg.nextSibling : toScreen.firstChild);
+    toScreen.appendChild(toFront);
+  }
 
   /* ── Calques ── */
   let layers = [];          // [{ spec, el, media, lottie }]
@@ -147,7 +159,7 @@
   /* Moments du match. « game » = jeu en cours hors but / replay ; « ot » = toute la prolongation.
      Ils sont aussi posés en classes sur <html> (st-m-goal, st-m-replay…) pour que le CSS d'un thème
      puisse masquer un élément de l'overlay pendant un moment (ex. les sidebars pendant le replay). */
-  const MOMENT_KEYS = ['game', 'goal', 'wreplay', 'replay', 'wlive', 'end', 'win'];
+  const MOMENT_KEYS = ['game', 'goal', 'wreplay', 'replay', 'wlive', 'end', 'win', 'to'];
   const shown = id => { const v = document.getElementById(id); return !!(v && v.style.display === 'block'); };
   function readFlags() {
     const live = has('overlay-root', 'visible');
@@ -167,8 +179,10 @@
     if (rwBox) { const k = word === 'LIVE' ? 'live' : word ? 'replay' : ''; if (rwBox.dataset.stWord !== k) rwBox.dataset.stWord = k; }
     flags.wreplay = (wipeOn && word !== 'LIVE') || ['tw-replay-video', 'lc-transition-video', 'rs-transition-video'].some(shown);
     flags.wlive   = (wipeOn && word === 'LIVE') || ['tw-live-video', 'lc-live-video', 'rs-live-video'].some(shown);
+    /* écran de timeout : par-dessus tout le reste (écran de fin compris) */
+    flags.to = has('to-screen', 'show');
     /* un seul moment à la fois, par priorité : la transition REPLAY n'est plus « But » même si le GOAL est encore affiché */
-    flags.moment = flags.end ? 'end' : flags.win ? 'win' : flags.wlive ? 'wlive' : flags.wreplay ? 'wreplay'
+    flags.moment = flags.to ? 'to' : flags.end ? 'end' : flags.win ? 'win' : flags.wlive ? 'wlive' : flags.wreplay ? 'wreplay'
       : flags.replay ? 'replay' : flags.goal ? 'goal' : live ? 'game' : '';
     flags.game = flags.moment === 'game';
     /* condition : label de ligue renseigné (texte non vide) — html.st-c-league / html.st-c-noleague
@@ -184,9 +198,16 @@
   /* condition d'un calque / d'un dossier : '' (toujours), 'league' (ligue renseignée), 'noleague' (ligue vide) */
   const condOk = c => !c || (c === 'league' ? !!flags.league : c === 'noleague' ? !flags.league : true);
   /* show : liste de moments (["game","goal"…] ou ["always"]) — ou ancien format texte d'un thème déjà installé.
-     « ot » (prolongation) s'ajoute aux autres : vrai pendant toute la prolongation. */
-  function isShown(show) {
-    if (Array.isArray(show)) return show.includes('always') || show.includes(flags.moment) || (show.includes('ot') && !!flags.ot);
+     « ot » (prolongation) : vrai pendant toute la prolongation.
+     strictOt (thèmes du Studio depuis la 1.9.9 : spec.otx) : le jeu en prolongation est un moment à part — un calque sans
+     « Prolongation » y est caché (ses cases But, Replay… restent valables). Thèmes plus anciens : le jeu en prolongation
+     compte comme « En jeu », comme avant. */
+  function isShown(show, strictOt) {
+    if (Array.isArray(show)) {
+      if (show.includes('always') || (show.includes('ot') && !!flags.ot)) return true;
+      if (strictOt && flags.ot && flags.moment === 'game') return false;
+      return show.includes(flags.moment);
+    }
     if (!show || show === 'always') return true;
     if (show === 'game') return !!flags.live;
     return !!flags[show];
@@ -207,12 +228,26 @@
     if (L.lottie) { try { L.lottie.goToAndPlay(0, true); } catch (e) {} }
   }
 
+  /* calques rangés selon le moment : sur l'écran de timeout pendant le TO, sinon dans #st-back / #st-front
+     (tous déplacés dans l'ordre pour garder leur superposition ; une vidéo déplacée repart) */
+  function placeLayers() {
+    const inTo = flags.moment === 'to' && !!toBack;
+    const target = L => (L.spec.z === 'back' ? (inTo ? toBack : back) : (inTo ? toFront : front));
+    if (!layers.some(L => L.el && L.el.parentNode !== target(L))) return;
+    for (const L of layers) {
+      if (!L.el) continue;
+      const wasPlaying = L.media && L.media.tagName === 'VIDEO' && !L.media.paused;
+      target(L).appendChild(L.el);
+      if (wasPlaying) L.media.play().catch(() => {});
+    }
+  }
   function sync() {
     readFlags();
+    placeLayers();
     updateTokens();   // textes à jour avant l'apparition (ex. nom du buteur au début du replay)
     for (const L of layers) {
       /* gshow : moments du dossier qui contient le calque (filtre en plus des siens) */
-      const on = !L.spec.hidden && condOk(L.spec.cond) && condOk(L.spec.gcond) && isShown(L.spec.show) && (!L.spec.gshow || isShown(L.spec.gshow));
+      const on = !L.spec.hidden && condOk(L.spec.cond) && condOk(L.spec.gcond) && isShown(L.spec.show, L.spec.otx) && (!L.spec.gshow || isShown(L.spec.gshow, L.spec.otx));
       if (on && !L.on) restart(L);
       else if (!on && L.on) {
         /* « Lire jusqu'au bout » : la vidéo reste affichée jusqu'à sa fin même si le moment est terminé
@@ -474,6 +509,20 @@
     if (winLbl) winLbl.textContent = w.label != null ? w.label : orig(winLbl.dataset.stOrig);
     if (winSub) winSub.textContent = w.sub != null ? w.sub : orig(winSub.dataset.stOrig);
   }
+  /* ── Écran de timeout (meta.json "tos") : titre, sous-titre et « REPRISE DANS » personnalisés ── */
+  const TOS_TXT = { word: 'tos-word', sub: 'tos-sub', back: 'tos-back' };
+  for (const id of Object.values(TOS_TXT)) { const e = document.getElementById(id); if (e) e.dataset.stOrig = e.textContent; }
+  function setTosOpts(o) {
+    const t = o && typeof o === 'object' ? o : {};
+    const orig = s => (window.I18N ? window.I18N.tr(s) : s);
+    for (const [k, id] of Object.entries(TOS_TXT)) {
+      const e = document.getElementById(id);
+      if (!e) continue;
+      /* texte perso : plus traduit automatiquement (sinon il reviendrait au texte d'origine au changement de langue) */
+      if (t[k] != null) { e.removeAttribute('data-i18n'); _setText(e, t[k]); }
+      else { if (k !== 'word') e.setAttribute('data-i18n', ''); _setText(e, orig(e.dataset.stOrig)); }
+    }
+  }
   const origCheckWin = window.checkSeriesWin;
   if (typeof origCheckWin === 'function') {
     window.checkSeriesWin = function () {
@@ -717,7 +766,7 @@
 
   /* Les déclencheurs suivent les classes posées par l'overlay (aucune modification de sa logique) */
   const mo = new MutationObserver(() => sync());
-  ['overlay-root', 'goal-notif', 'replay-bar', 'end-screen', 'win-screen', 'ot-notif', 'timer', 'replay-wipe'].forEach(id => {
+  ['overlay-root', 'goal-notif', 'replay-bar', 'end-screen', 'win-screen', 'ot-notif', 'timer', 'replay-wipe', 'to-screen'].forEach(id => {
     const e = document.getElementById(id);
     if (e) mo.observe(e, { attributes: true, attributeFilter: ['class'] });
   });
@@ -736,7 +785,7 @@
   let loadSeq = 0;
   function loadThemeLayers(theme) {
     const seq = ++loadSeq;
-    if (!theme || theme === 'rlcs') { clearLayers(); setGoalOpts(null); setEndOpts(null); setWinOpts(null); setBoostMeterOpts(null); return; }
+    if (!theme || theme === 'rlcs') { clearLayers(); setGoalOpts(null); setEndOpts(null); setWinOpts(null); setTosOpts(null); setBoostMeterOpts(null); return; }
     fetch(`/themes/${theme}/meta.json`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : {})
       .catch(() => ({}))
@@ -745,6 +794,7 @@
         setGoalOpts(m && m.goal);
         setEndOpts(m && m.end);
         setWinOpts(m && m.win);
+        setTosOpts(m && m.tos);
         setBoostMeterOpts(m && m.boostMeter);
         const specs = Array.isArray(m && m.layers) ? m.layers : [];
         buildLayers(specs.map(s => Object.assign({}, s, s.file ? { url: `/themes/${theme}/${String(s.file).split(/[\\/]/).pop()}` } : {})));
@@ -810,6 +860,7 @@
     setGoalOpts(lastOpts.goal || null);
     setEndOpts(lastOpts.end || null);
     setWinOpts(lastOpts.win || null);
+    setTosOpts(lastOpts.tos || null);
     setBoostMeterOpts(lastOpts.boostMeter || null);
   }
 
@@ -882,7 +933,7 @@
   /* Aperçu : équipe qui gagne dans les scènes Fin de match / Victoire (0 = bleue, 1 = orange) */
   function setPreviewWinner(w) {
     pvWinner = w === 1 ? 1 : 0;
-    if (scene === 'end' || scene === 'win') setScene(scene);
+    if (scene === 'end' || scene === 'win' || scene === 'to') setScene(scene);
   }
   function resetScenes() {
     try { clearTimeout(goalT); } catch (e) {}
@@ -894,6 +945,10 @@
     cls('timer', 'ot', false);
     cls('replay-wipe', 'rw-active', false);
     cls('replay-wipe', 'rw-fadeout', false);
+    /* écran de timeout retiré tout de suite (sans son fondu de sortie) */
+    cls('to-screen', 'show', false);
+    cls('to-screen', 'hide', false);
+    try { _tos.on = false; _tos.preview = false; clearInterval(_tos.tick); _tos.tick = null; clearTimeout(_tos.hideT); clearTimeout(_tos.prevT); } catch (e) {}
     if (sceneVid) { sceneVid.style.display = 'none'; sceneVid = null; }
     void document.body.offsetWidth;   // les animations d'entrée (annonce de but…) repartent du début
   }
@@ -902,7 +957,7 @@
     scene = s || 'game';
     resetScenes();
     try {
-      if (scene === 'end' || scene === 'win') {
+      if (scene === 'end' || scene === 'win' || scene === 'to') {
         hideOverlay(0);
       } else {
         showOverlay();
@@ -959,6 +1014,12 @@
           _showLogo(document.getElementById('win-logo-img'), letter, state?.game?.teams?.[w]?.logo_url);
         } catch (e) {}
         cls('win-screen', 'show', true);
+      } else if (scene === 'to') {
+        /* écran de timeout figé à 1:35 (2 min), équipe : celle choisie pour l'aperçu ; sans musique */
+        if (typeof showTimeoutScreen === 'function') {
+          showTimeoutScreen(pvWinner, 95000, 120, null, true);
+          try { clearInterval(_tos.tick); _tos.tick = null; clearTimeout(_tos.prevT); } catch (e) {}
+        }
       }
     } catch (e) { console.warn('[studio] scène', e); }
     setTimeout(sync, 30);

@@ -297,5 +297,22 @@
       "Fix: after a logo change, the end screen still showed the old logo until the OBS source was refreshed",
       "Fix: the installer no longer ships test settings, logos or media"
     ]
+  },
+  "1.9.9": {
+    "date": "2026-11-23",
+    "notes": [
+      "Nouveau : les thèmes installés depuis la boutique du site se mettent à jour tout seuls quand leur auteur les modifie (vérification au démarrage puis toutes les 6 heures) — tes thèmes déjà importés reçoivent ainsi l'écran de timeout et la correction des noms d'équipe longs, sans rien réinstaller ; quand ses images et vidéos n'ont pas changé, seul le style du thème est téléchargé",
+      "Nouveau dans le Studio : scène Timeout — l'écran de timeout se modifie comme l'écran de fin : titre, sous-titre et « REPRISE DANS » personnalisables, couleurs, tailles, fond, bloc de l'équipe, compte à rebours et barre ; chaque bloc se déplace et se redimensionne, et tes calques peuvent s'afficher pendant le timeout, derrière ou devant son contenu",
+      "Nouveau dans le Studio : ton propre logo à la place de l'icône de timeout (scoreboard et écran de timeout), teinté ou non à la couleur de l'équipe ; pastilles de série au choix — une forme (étoile, cœur, losange, hexagone, écusson…) ou ton image, répétée selon le BO, avec la couleur des matchs gagnés et celle des cases vides — sur le scoreboard comme sur le calque Série",
+      "Correction : un nom d'équipe long ne décale plus le scoreboard — le nom rétrécit pour tenir dans son panneau (thème par défaut, Amber, Néon, Nord, Onyx, Arcade et les thèmes qui reprennent leur mise en page). Dans RLCS 2025 et Enisorail, il n'est plus coupé",
+      "Correction (Studio) : un calque dont la case « Prolongation » est décochée est maintenant caché pendant le jeu en prolongation (avant, il restait affiché). Les thèmes déjà installés ne changent pas ; à l'ouverture d'un ancien projet, la case est cochée là où le calque s'affichait déjà en prolongation"
+    ],
+    "notes_en": [
+      "New: themes installed from the website store now update themselves when their author changes them (checked at startup, then every 6 hours) — your imported themes get the timeout screen and the long team name fix without reinstalling anything; when a theme's images and videos are unchanged, only its style is downloaded",
+      "New in the Studio: Timeout scene — the timeout screen can be edited like the end screen: custom title, subtitle and \"BACK IN\" texts, colors, sizes, background, team block, countdown and bar; every block can be moved and resized, and your layers can show during the timeout, behind or in front of its content",
+      "New in the Studio: your own logo instead of the timeout icon (scoreboard and timeout screen), tinted with the team color or not; series pips of your choice — a shape (star, heart, diamond, hexagon, shield…) or your image, repeated according to the BO, with the color of won games and of empty slots — on the scoreboard as well as on the Series layer",
+      "Fix: a long team name no longer shifts the scoreboard — the name shrinks to fit its panel (Default, Amber, Neon, Nord, Onyx, Arcade and the themes based on their layout). In RLCS 2025 and Enisorail, it is no longer cut off",
+      "Fix (Studio): a layer with the \"Overtime\" box unticked is now hidden during overtime play (it used to stay on screen). Themes already installed do not change; when an older project is opened, the box is ticked wherever the layer was already showing in overtime"
+    ]
   }
 }
