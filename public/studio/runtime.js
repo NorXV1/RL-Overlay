@@ -189,14 +189,23 @@
        servent aux calques et dossiers « si la ligue est renseignée / vide » et à leur décalage */
     const lg = document.getElementById('league-label');
     flags.league = !!(lg && lg.textContent.trim());
+    /* équipe du joueur suivi : celle de la stat bar affichée (0 bleue, 1 orange), null sans joueur suivi
+       (et pendant les buts / replays, où la stat bar est retirée) — html.st-p-blue / html.st-p-orange */
+    const sb = document.getElementById('stat-bar');
+    flags.spec = sb && sb.classList.contains('show') ? (String(sb.dataset.team) === '1' ? 1 : 0) : null;
     const root = document.documentElement;
     MOMENT_KEYS.forEach(k => root.classList.toggle('st-m-' + k, flags.moment === k));
     root.classList.toggle('st-m-ot', !!flags.ot);
     root.classList.toggle('st-c-league', flags.league);
     root.classList.toggle('st-c-noleague', !flags.league);
+    root.classList.toggle('st-p-blue', flags.spec === 0);
+    root.classList.toggle('st-p-orange', flags.spec === 1);
   }
   /* condition d'un calque / d'un dossier : '' (toujours), 'league' (ligue renseignée), 'noleague' (ligue vide) */
   const condOk = c => !c || (c === 'league' ? !!flags.league : c === 'noleague' ? !flags.league : true);
+  /* « Joueur suivi » d'un calque / d'un dossier : '' (tout le monde), 'blue' / 'orange' (seulement quand un joueur
+     de cette équipe est suivi) */
+  const playerOk = p => !p || (p === 'blue' ? flags.spec === 0 : p === 'orange' ? flags.spec === 1 : true);
   /* show : liste de moments (["game","goal"…] ou ["always"]) — ou ancien format texte d'un thème déjà installé.
      « ot » (prolongation) : vrai pendant toute la prolongation.
      strictOt (thèmes du Studio depuis la 1.9.9 : spec.otx) : le jeu en prolongation est un moment à part — un calque sans
@@ -247,7 +256,8 @@
     updateTokens();   // textes à jour avant l'apparition (ex. nom du buteur au début du replay)
     for (const L of layers) {
       /* gshow : moments du dossier qui contient le calque (filtre en plus des siens) */
-      const on = !L.spec.hidden && condOk(L.spec.cond) && condOk(L.spec.gcond) && isShown(L.spec.show, L.spec.otx) && (!L.spec.gshow || isShown(L.spec.gshow, L.spec.otx));
+      const on = !L.spec.hidden && condOk(L.spec.cond) && condOk(L.spec.gcond) && playerOk(L.spec.player) && playerOk(L.spec.gplayer)
+        && isShown(L.spec.show, L.spec.otx) && (!L.spec.gshow || isShown(L.spec.gshow, L.spec.otx));
       if (on && !L.on) restart(L);
       else if (!on && L.on) {
         /* « Lire jusqu'au bout » : la vidéo reste affichée jusqu'à sa fin même si le moment est terminé
@@ -770,6 +780,9 @@
     const e = document.getElementById(id);
     if (e) mo.observe(e, { attributes: true, attributeFilter: ['class'] });
   });
+  /* stat bar : joueur suivi affiché ou retiré, changement d'équipe (condition « Joueur suivi ») */
+  const statBar = document.getElementById('stat-bar');
+  if (statBar) mo.observe(statBar, { attributes: true, attributeFilter: ['class', 'data-team'] });
   /* texte du label de ligue : condition « ligue renseignée / vide » */
   const lgLabel = document.getElementById('league-label');
   if (lgLabel) mo.observe(lgLabel, { childList: true, characterData: true, subtree: true });
@@ -935,6 +948,24 @@
     pvWinner = w === 1 ? 1 : 0;
     if (scene === 'end' || scene === 'win' || scene === 'to') setScene(scene);
   }
+  /* Aperçu : joueur suivi (stat bar, boost meter, sidebar) pris dans l'équipe bleue (0) ou orange (1) */
+  function setPreviewSpec(t) {
+    try {
+      const pl = typeof _pvPlayers !== 'undefined' ? _pvPlayers : null;
+      if (!pl) return false;
+      const team = t === 0 ? 0 : 1, list = Object.values(pl);
+      const p = list.find(x => x.team === team && x.isPrimary) || list.find(x => x.team === team);
+      if (!p) return false;
+      list.forEach(x => { x.isPrimary = x === p; });
+      _pvPrimary = p;
+      if (typeof renderSidebar === 'function') renderSidebar(pl);
+      /* comme en match : pas de stat bar ni de boost meter pendant le but, le replay et les écrans plein écran
+         (le joueur est gardé : il revient avec la scène En jeu) */
+      if (['goal', 'wreplay', 'replay', 'wlive', 'end', 'win', 'to'].includes(scene)) _lastSpecPlayer = p;
+      else { renderBoostMeter(p); renderStatBar(p); }
+      return true;
+    } catch (e) { return false; }
+  }
   function resetScenes() {
     try { clearTimeout(goalT); } catch (e) {}
     cls('goal-notif', 'show', false);
@@ -1062,12 +1093,12 @@
 
   window.__studio = {
     ready: true,
-    setTheme, setCss, reColor, setWipe, setEndBg, setOptions, setBg, setScene, replay, render, setSeries, setPreviewWinner,
+    setTheme, setCss, reColor, setWipe, setEndBg, setOptions, setBg, setScene, replay, render, setSeries, setPreviewWinner, setPreviewSpec,
     get series() { return seriesState(); },
     setLayers: buildLayers,
     get scene() { return scene; },
     get flags() { return Object.assign({}, flags); },
-    isShown,
+    isShown, playerOk,
   };
   try { window.parent && window.parent !== window && window.parent.postMessage({ type: 'studio-frame-ready' }, '*'); } catch (e) {}
 })();

@@ -3904,7 +3904,8 @@ if (IS_PREVIEW) {
        1. CSS du thème charge en async → couleurs tc() incorrectes au 1er appel
        2. currentThemeBase résolu en async (ds→da→rlcs2025) → is34 incorrect au 1er appel
        On re-rend au chargement CSS ET après 500ms (résolution thème garantie). */
-    const _pvReBoost = () => { renderBoostMeter(primary); renderStatBar(primary); };
+    /* joueur suivi à ce moment (le Studio peut le changer d'équipe : voir __studio.setPreviewSpec) */
+    const _pvReBoost = () => { renderBoostMeter(_pvPrimary || primary); renderStatBar(_pvPrimary || primary); };
     const _tLink = document.getElementById('theme-stylesheet');
     if (_tLink && _tLink.href) _tLink.addEventListener('load', _pvReBoost, { once: true });
     setTimeout(_pvReBoost, 500);

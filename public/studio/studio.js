@@ -282,6 +282,8 @@ const S = {
   base: { id: null, css: '', meta: {}, previewCss: '' },
   themes: [], frameOk: false, boxes: new Map(), drag: null, space: false, clip: null,
   fields: [], kfSel: 0, forced: null,
+  /* stat bar : réglages communs ('all') ou propres à une équipe ('b' / 'o') ; joueur suivi de l'aperçu (0 bleu, 1 orange, null = celui du thème) */
+  stbTeam: 'all', pvSpec: null,
 };
 const sceneElements = () => ELEMENTS.filter(E => sceneShowsElement(E));
 const elData = key => (S.p.elements[key] ||= {});
@@ -365,7 +367,11 @@ function elementCss(E, d, sel) {
   /* masqué pendant certains moments (classes st-m-… posées sur <html> par le moteur) */
   for (const m of d.hideIn || []) css += `\nhtml.st-m-${m} ${sel} ${elSel(E)} { opacity:0 !important; pointer-events:none !important; }`;
   if (E.key === 'goal-notif' && d.goal) css += '\n' + goalCss(`html ${sel} #goal-notif`, d.goal);
-  if (E.key === 'stat-bar' && d.stb) css += '\n' + statBarCss(`html ${sel} #stat-bar`, d.stb);
+  if (E.key === 'stat-bar') {
+    if (d.stb) css += '\n' + statBarCss(`html ${sel} #stat-bar`, d.stb);
+    /* réglages propres à l'équipe du joueur suivi (data-team posé par l'overlay : 0 bleue, 1 orange) : passent avant les communs */
+    for (const [k, t] of [['stbB', 0], ['stbO', 1]]) if (d[k]) css += '\n' + statBarCss(`html ${sel} #stat-bar[data-team="${t}"]`, d[k], { x, y });
+  }
   if (E.key === 'boost-meter' && d.bmt) css += '\n' + boostMeterCss(`html ${sel} #boost-meter`, d.bmt);
   if ((E.key === 'media-banner' || E.key === 'end-media-banner') && d.mb) {
     const m = d.mb;
@@ -594,10 +600,18 @@ function goalRuntimeOpts() {
   return Object.keys(o).length ? o : null;
 }
 
-/* Stat bar (joueur suivi) : tailles, couleurs, stats affichées */
+/* Stat bar (joueur suivi) : tailles, couleurs, stats affichées.
+   pos (réglages d'une équipe) : position de l'élément, pour le décalage propre à l'équipe (dx / dy) */
 const STAT_KEYS = [['goals', 'Buts'], ['assists', 'Passes D'], ['shots', 'Tirs'], ['saves', 'Arrêts'], ['demos', 'Démos']];
-function statBarCss(R, m) {
+function statBarCss(R, m, pos) {
   const r = [], add = (sub, p) => r.push(`${R}${sub} { ${p} }`);
+  if (pos && (m.dx || m.dy)) add('', `translate:${round((pos.x || 0) + (m.dx || 0), 1)}px ${round((pos.y || 0) + (m.dy || 0), 1)}px !important;`);
+  /* inversée : stats à gauche, joueur à droite, flèches tournées vers les stats */
+  if (m.mirror) {
+    add('', 'flex-direction:row-reverse !important;');
+    add(' #stat-team-tag', 'flex-direction:row-reverse !important;');
+    add(' #stat-arrows', 'margin-right:0 !important; margin-left:14px !important; transform:scaleX(-1);');
+  }
   if (m.h != null) add('', `height:${m.h}px !important;`);
   if (m.w != null) add('', `width:${m.w}px !important;`);
   if (m.radius != null) add('', `border-radius:${m.radius}px !important;`);
@@ -1160,6 +1174,9 @@ function layerSpecs(ctx) {
     /* condition « ligue renseignée / vide » du calque et de son dossier */
     if (L.cond) spec.cond = L.cond;
     if (groupOf(L) && groupOf(L).cond) spec.gcond = groupOf(L).cond;
+    /* « Joueur suivi » du calque et de son dossier : seulement quand un joueur bleu / orange est suivi */
+    if (L.player) spec.player = L.player;
+    if (groupOf(L) && groupOf(L).player) spec.gplayer = groupOf(L).player;
     if (effHidden(L)) spec.hidden = true;
     if (L.type === 'text') { spec.text = (L.text && L.text.content) || ''; if (L.text && L.text.hideEmpty) spec.hideEmpty = true; if (L.text && L.text.fit === false) spec.fit = false; }
     if (L.type === 'logo') spec.team = L.team || 'blue';
@@ -1449,6 +1466,8 @@ function layerVisibleInScene(L) {
   if (!condShown(L.cond) || !condShown((groupOf(L) || {}).cond)) return false;
   const f = F();
   if (!f || !f.isShown) return true;
+  /* caché par sa condition « Joueur suivi » (ou celle de son dossier) avec le joueur de l'aperçu */
+  if (f.playerOk && (!f.playerOk(L.player) || !f.playerOk((groupOf(L) || {}).player))) return false;
   const gs = groupShow(groupOf(L));
   return f.isShown(showList(L), true) && (!gs || f.isShown(gs, true));
 }
@@ -2462,6 +2481,7 @@ function renderLayers() {
         <div class="l-ico">${icon(L.open ? 'folderOpen' : 'folder')}</div>
         <div class="l-name">${esc(L.name || 'Dossier')}</div>
         ${groupShow(L) ? `<span class="l-chip${groupShow(L).includes(sc) ? ' hl' : ''}" title="Affiché pendant : ${groupShow(L).map(m => MOMENT_SHORT[m]).join(', ')}">${groupShow(L).map(m => MOMENT_SHORT[m]).join(' · ')}</span>` : ''}
+        ${playerChip(L)}
         <span class="l-chip">${cnt}</span>
         <button class="l-btn${L.locked ? ' lock-on' : ''}" data-l-act="lock" title="Verrouiller le dossier">${icon(L.locked ? 'lock' : 'unlock')}</button>
       </div>`;
@@ -2478,6 +2498,7 @@ function renderLayers() {
       ${layerIcon(L)}
       <div class="l-name">${esc(L.name || 'Calque')}</div>
       ${chip ? `<span class="l-chip${show.includes(sc) ? ' hl' : ''}">${chip}</span>` : ''}
+      ${playerChip(L)}
       ${L.z === 'back' ? '<span class="l-chip" title="Derrière l\'overlay">Arrière</span>' : ''}
       <button class="l-btn${L.locked ? ' lock-on' : ''}" data-l-act="lock" title="Verrouiller">${icon(L.locked ? 'lock' : 'unlock')}</button>
     </div>`;
@@ -2748,6 +2769,19 @@ function selectField(opts, get, set, o = {}) {
   s.addEventListener('keydown', e => e.stopPropagation());
   return s;
 }
+/* choix en boutons côte à côte ; set() renvoie false : choix d'affichage seulement (rien d'enregistré dans le projet) */
+function segField(opts, get, set, o = {}) {
+  const s = h('div', { class: 'seg grow' });
+  const btns = opts.map(([v, l]) => h('button', { type: 'button', onclick: () => {
+    const r = set(v);
+    refresh();
+    if (r !== false) changed(o.level || 'css', { commit: 'now', inspector: o.rebuild, layers: o.layers });
+  } }, l));
+  const refresh = () => btns.forEach((b, i) => b.classList.toggle('on', String(get()) === String(opts[i][0])));
+  reg(refresh);
+  s.append(...btns);
+  return s;
+}
 function toggle(get, set, o = {}) {
   const inp = h('input', { type: 'checkbox' });
   reg(() => { inp.checked = !!get(); });
@@ -2857,7 +2891,8 @@ function renderGroupProps() {
       const gs = groupShow(g), f = F();
       if (gs && f && !f.isShown(gs, true)) { const sc = SHOW_SCENE[gs[0]]; if (sc) setScene(sc, true); }
     }),
-    note('Tout le contenu du dossier n\'apparaît qu\'à ces moments, en plus des réglages de chaque calque. Par exemple, décoche <b>Replay</b> pour cacher tout le dossier pendant les replays. <b>Toujours</b> = aucune restriction.')));
+    note('Tout le contenu du dossier n\'apparaît qu\'à ces moments, en plus des réglages de chaque calque. Par exemple, décoche <b>Replay</b> pour cacher tout le dossier pendant les replays. <b>Toujours</b> = aucune restriction.'),
+    ...playerCondRows(g, 'group')));
   insp.append(leagueCondSection(g, 'Tout le dossier'));
   if (ms.length) {
     const sel = { kind: 'group', id: g.id };
@@ -3296,10 +3331,60 @@ function goalSections(d) {
   ];
 }
 
-/* Stat bar : valeur affichée = réglage, sinon valeur mesurée dans l'aperçu */
+/* Aperçu : joueur suivi pris dans l'équipe bleue (0) ou orange (1) — stat bar, boost meter (rien d'enregistré) */
+function setPreviewSpec(t) {
+  S.pvSpec = t === 0 ? 0 : 1;
+  try { F().setPreviewSpec(S.pvSpec); } catch (e) {}
+  setTimeout(() => changed('css', { commit: false }), 60);   // cadres de sélection recalés sur la stat bar de cette équipe
+}
+const previewSpecRow = () => row('Joueur suivi (aperçu)', segField([[0, 'Bleu'], [1, 'Orange']], () => S.pvSpec ?? 1, v => { setPreviewSpec(+v); return false; }));
+/* « Joueur suivi » d'un calque ou d'un dossier : affiché pour tout le monde, ou seulement quand le joueur suivi est
+   bleu / orange (ex. une stat bar perso par équipe). L'aperçu passe sur un joueur de cette équipe pour le voir. */
+/* badge de la liste des calques : calque / dossier affiché seulement pour un joueur suivi bleu ou orange */
+const playerChip = o => o.player === 'blue' ? '<span class="l-chip pl-blue" title="Seulement quand le joueur suivi est bleu">Bleu</span>'
+  : o.player === 'orange' ? '<span class="l-chip pl-orange" title="Seulement quand le joueur suivi est orange">Orange</span>' : '';
+const PLAYER_NOTES = {
+  layer: {
+    blue: 'Ce calque n\'apparaît que quand le joueur suivi (stat bar) est dans l\'équipe <b>bleue</b> — caché sans joueur suivi, pendant les buts et les replays.',
+    orange: 'Ce calque n\'apparaît que quand le joueur suivi (stat bar) est dans l\'équipe <b>orange</b> — caché sans joueur suivi, pendant les buts et les replays.',
+  },
+  group: {
+    blue: 'Tout le dossier n\'apparaît que quand le joueur suivi (stat bar) est dans l\'équipe <b>bleue</b> — caché sans joueur suivi, pendant les buts et les replays.',
+    orange: 'Tout le dossier n\'apparaît que quand le joueur suivi (stat bar) est dans l\'équipe <b>orange</b> — caché sans joueur suivi, pendant les buts et les replays.',
+  },
+};
+function playerCondRows(o, kind) {
+  return [
+    row('Joueur suivi', segField([['', 'Tout le monde'], ['blue', 'Bleu'], ['orange', 'Orange']], () => o.player || '', v => {
+      if (v) o.player = v; else delete o.player;
+      if (v) setPreviewSpec(v === 'blue' ? 0 : 1);
+    }, { level: 'layers', layers: true, rebuild: true })),
+    o.player ? note(PLAYER_NOTES[kind][o.player])
+      : note('Choisis <b>Bleu</b> ou <b>Orange</b> pour ne l\'afficher que quand le joueur suivi est dans cette équipe (ex. une stat bar perso par équipe).'),
+  ];
+}
+
+/* Stat bar : valeur affichée = réglage, sinon valeur mesurée dans l'aperçu.
+   Réglages communs (d.stb) ou propres à l'équipe du joueur suivi (d.stbB bleue, d.stbO orange : passent avant les communs) */
 function statBarSections(d) {
-  const m = () => d.stb || {};
-  const upd = (k, v) => { const x = { ...m() }; if (v === null || v === undefined || v === '') delete x[k]; else x[k] = v; d.stb = x; };
+  const team = S.stbTeam === 'b' || S.stbTeam === 'o' ? S.stbTeam : 'all';
+  const key = team === 'b' ? 'stbB' : team === 'o' ? 'stbO' : 'stb';
+  const m = () => d[key] || {}, common = () => (team === 'all' ? {} : d.stb || {});
+  const upd = (k, v) => { const x = { ...m() }; if (v === null || v === undefined || v === '') delete x[k]; else x[k] = v; if (Object.keys(x).length) d[key] = x; else delete d[key]; };
+  const pickTeam = v => {
+    S.stbTeam = v;
+    if (v !== 'all') setPreviewSpec(v === 'b' ? 0 : 1);   // l'aperçu montre un joueur de l'équipe réglée
+    renderInspector();
+    return false;
+  };
+  const teamSec = sec('Équipes', 'shield',
+    row('Régler pour', segField([['all', 'Les deux'], ['b', 'Bleue'], ['o', 'Orange']], () => team, pickTeam)),
+    previewSpecRow(),
+    team === 'all'
+      ? note('Réglages communs aux deux équipes. Choisis <b>Bleue</b> ou <b>Orange</b> pour donner à la stat bar d\'une équipe ses propres couleurs, tailles ou sa propre place.')
+      : note(team === 'b'
+        ? 'Stat bar d\'un joueur de l\'équipe <b>bleue</b> : ces réglages passent avant les réglages communs. Vide = réglage commun.'
+        : 'Stat bar d\'un joueur de l\'équipe <b>orange</b> : ces réglages passent avant les réglages communs. Vide = réglage commun.'));
   let meas = {};
   try {
     const doc = FD(), w = frame.contentWindow, bar = doc.getElementById('stat-bar'), cs = el => el ? w.getComputedStyle(el) : {};
@@ -3307,26 +3392,36 @@ function statBarSections(d) {
       nameSize: parseFloat(cs(doc.getElementById('stat-player-name')).fontSize), valSize: parseFloat(cs(bar.querySelector('.stat-val')).fontSize),
       lblSize: parseFloat(cs(bar.querySelector('.stat-lbl')).fontSize), radius: parseFloat(cs(bar).borderTopRightRadius) || 0 };
   } catch (e) {}
-  const G = (k, def) => m()[k] ?? meas[k] ?? def;
-  const sl = (k, label, min, max, def) => row(label, slider(() => G(k, def), v => upd(k, v), { min, max, unit: ' px' }));
-  const col = (k, label, def) => row(label, colorField(() => m()[k] || def, v => upd(k, v), { reset: () => upd(k, null), isSet: () => !!m()[k] }));
+  /* valeur affichée : réglage de l'équipe, sinon réglage commun, sinon mesure dans l'aperçu */
+  const G = (k, def) => m()[k] ?? common()[k] ?? meas[k] ?? def;
+  const sl = (k, label, min, max, def, o = {}) => row(label, slider(() => G(k, def), v => upd(k, v), { min, max, unit: ' px', ...o }));
+  const col = (k, label, def) => row(label, colorField(() => m()[k] || common()[k] || def, v => upd(k, v), { reset: () => upd(k, null), isSet: () => !!m()[k] }));
   const hidden = () => m().hide || [];
+  const resetLabel = team === 'all' ? 'Réinitialiser' : team === 'b' ? 'Réinitialiser l\'équipe bleue' : 'Réinitialiser l\'équipe orange';
   return [
+    teamSec,
     sec('Stat bar', 'bar',
       sl('w', 'Largeur', 300, 1920, 860), sl('h', 'Hauteur', 30, 200, 76), sl('radius', 'Arrondi', 0, 60, 12),
       sl('tagW', 'Bloc du joueur', 80, 600, 220), col('tagBg', 'Fond du joueur', ''), col('valsBg', 'Fond des stats', ''),
       note('Fond du joueur vide = couleur de l\'équipe du joueur suivi.'),
-      h('div', { class: 'btns' }, btn('Réinitialiser', 'replay', () => { delete d.stb; changed('css', { commit: 'now', inspector: true }); }))),
+      h('div', { class: 'btns' }, btn(resetLabel, 'replay', () => { delete d[key]; changed('css', { commit: 'now', inspector: true }); }))),
+    /* place et sens propres à une équipe (ex. la stat bar de l'équipe orange à droite, inversée) */
+    team !== 'all' && sec('Place de cette équipe', 'flipH',
+      sl('dx', 'Décalage horizontal', -1920, 1920, 0), sl('dy', 'Décalage vertical', -1080, 1080, 0),
+      row('Inversée (joueur à droite)', toggle(() => !!m().mirror, v => upd('mirror', v || null))),
+      note('Décalage par rapport à la place de la stat bar sur le canevas (la déplacer sur le canevas la déplace pour les deux équipes). Ex. : équipe orange décalée de 1060 px et inversée = stat bar à droite de l\'écran.')),
     sec('Textes de la stat bar', 'text',
       sl('nameSize', 'Taille du nom', 8, 70, 26), col('nameColor', 'Couleur du nom', '#ffffff'),
       sl('valSize', 'Taille des scores', 8, 80, 28), col('valColor', 'Couleur des scores', '#ffffff'),
       sl('lblSize', 'Taille des libellés', 6, 40, 11), col('lblColor', 'Couleur des libellés', 'rgba(255,255,255,0.32)'),
-      row('Libellés', toggle(() => !m().hideLbl, v => upd('hideLbl', v ? null : true))),
-      row('Flèches', toggle(() => !m().hideArrows, v => upd('hideArrows', v ? null : true))),
-      row('Séparateurs', toggle(() => !m().noSep, v => upd('noSep', v ? null : true)))),
-    sec('Stats affichées', 'list',
+      ...(team === 'all' ? [
+        row('Libellés', toggle(() => !m().hideLbl, v => upd('hideLbl', v ? null : true))),
+        row('Flèches', toggle(() => !m().hideArrows, v => upd('hideArrows', v ? null : true))),
+        row('Séparateurs', toggle(() => !m().noSep, v => upd('noSep', v ? null : true)))] : [])),
+    team === 'all' && sec('Stats affichées', 'list',
       ...STAT_KEYS.map(([k, l]) => row(l, toggle(() => !hidden().includes(k), v => upd('hide', v ? hidden().filter(x => x !== k) : [...hidden(), k])))),
       note('Pour placer un score où tu veux, ajoute un calque <b>Texte</b> avec <b>{goals}</b>, <b>{assists}</b>, <b>{shots}</b>, <b>{saves}</b> ou <b>{demos}</b> (joueur suivi).')),
+    team !== 'all' && note('Libellés, flèches, séparateurs et stats affichées : communs aux deux équipes (réglables dans « Les deux »).'),
   ];
 }
 /* Boost meter d'origine : réglages, ou remplacement par une jauge (calque) */
@@ -3774,8 +3869,8 @@ function renderElProps() {
       if (s.size) d.hideIn = [...s]; else delete d.hideIn;
       changed('css', { commit: 'now', layers: true });
     })));
-  if (E.key === 'stat-bar') statBarSections(d).forEach(s => insp.append(s));
-  if (E.key === 'boost-meter') insp.append(boostMeterSection(d));
+  if (E.key === 'stat-bar') statBarSections(d).filter(Boolean).forEach(s => insp.append(s));
+  if (E.key === 'boost-meter') { insp.append(boostMeterSection(d)); insp.lastChild.append(previewSpecRow()); }
   if (E.key === 'media-banner') {
     insp.append(mediaSections(() => d.mb, x => { d.mb = x; }, { size: { w: 210, h: 100 } }));
     insp.lastChild.append(h('div', { class: 'btns', style: 'margin-top:10px' }, btn('Le placer librement (calque)', 'media', () => addLayer('media'))));
@@ -3843,6 +3938,7 @@ function renderLayerProps() {
     showList(L).includes('wreplay') ? wipeToggle('replay') : null,
     showList(L).includes('wlive') ? wipeToggle('live') : null,
     showList(L).some(m => m === 'wreplay' || m === 'wlive') ? note('Décoche l\'animation de base pour que ton calque la remplace au lieu de s\'y superposer.') : null,
+    ...playerCondRows(L, 'layer'),
     row('Plan', selectField([['front', 'Devant l\'overlay'], ['back', 'Derrière l\'overlay']], () => L.z || 'front', v => { L.z = v; }, { level: 'layers', layers: true })),
     row('Opacité', slider(() => L.o ?? 100, v => { L.o = v; }, { unit: ' %' })),
     row('Fusion', selectField(BLENDS, () => L.blend || 'normal', v => { L.blend = v; }))));
@@ -4803,7 +4899,10 @@ function onFrameReady() {
   const f = F();
   f.setBg(S.bg);
   schedule('all'); schedule('layers');
-  setTimeout(() => { f.setScene(S.scene, { winner: S.pvWin || 0 }); forceOptional(); }, 400);
+  setTimeout(() => {
+    f.setScene(S.scene, { winner: S.pvWin || 0 }); forceOptional();
+    if (S.pvSpec != null && f.setPreviewSpec) f.setPreviewSpec(S.pvSpec);   // joueur suivi choisi dans l'inspecteur (aperçu rechargé)
+  }, 400);
   setTimeout(() => { if (S.tab === 'theme') renderInspector(); }, 900);
 }
 frame.addEventListener('load', () => { S.frameOk = false; onFrameReady(); });

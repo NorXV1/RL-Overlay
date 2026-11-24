@@ -107,6 +107,9 @@ aside { background:var(--panel); display:flex; flex-direction:column; min-height
 .l-name input { width:100%; height:22px; padding:0 5px; background:var(--bg); border:1px solid var(--accent); border-radius:4px; outline:none; }
 .l-chip { flex-shrink:0; font-size:9.5px; font-weight:600; padding:1px 6px; border-radius:10px; background:var(--panel-3); color:var(--muted); }
 .l-chip.hl { background:rgba(255,47,210,.14); color:#ff8ae6; }
+/* calque / dossier affiché seulement pour un joueur suivi bleu ou orange */
+.l-chip.pl-blue { background:rgba(46,125,255,.2); color:#8db8ff; }
+.l-chip.pl-orange { background:rgba(255,140,0,.2); color:#ffb766; }
 /* Dossiers */
 .ll-add { margin-left:6px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:5px; color:var(--muted); }
 .ll-add:hover { color:#fff; background:var(--panel-3); }
@@ -148,6 +151,9 @@ aside { background:var(--panel); display:flex; flex-direction:column; min-height
 .seg button { height:24px; padding:0 9px; border-radius:5px; color:var(--muted); font-weight:600; font-size:11px; }
 .seg button:hover { color:var(--text); }
 .seg button.on { background:var(--panel-3); color:#fff; }
+/* choix en boutons dans l'inspecteur (segField) : sur une ligne, répartis sur toute la largeur */
+.seg.grow { min-width:0; }
+.seg.grow button { flex:1 1 auto; white-space:nowrap; padding:0 7px; }
 
 #viewport { position:relative; flex:1; overflow:hidden; background:
   radial-gradient(circle at 50% 40%, #12141b 0%, #0a0b0e 70%); }

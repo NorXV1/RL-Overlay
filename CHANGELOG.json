@@ -334,5 +334,16 @@
     "notes_en": [
       "Fix (Stream Deck): the series \"Reset\" key works with a simple press — a 1st press shows \"CONFIRM?\" (3 s), a 2nd one resets the series to 0 - 0, with ✓ on the key (holding still works). To get the updated plugin (1.0.1), click \"Install the plugin\" on the Broadcast page, then confirm the update in Stream Deck"
     ]
+  },
+  "2.0.2": {
+    "date": "2026-11-24",
+    "notes": [
+      "Nouveau dans le Studio : une stat bar différente selon l'équipe du joueur suivi. Sur la Stat bar, « Régler pour » : les deux équipes, l'équipe bleue ou l'équipe orange — couleurs, tailles, décalage et sens propres à chaque équipe (ex. stat bar orange à droite de l'écran, inversée). L'aperçu montre au choix un joueur bleu ou orange (aussi sur le Boost meter)",
+      "Nouveau dans le Studio : chaque calque (forme, texte, image…) et chaque dossier peut s'afficher pour tout le monde, ou seulement quand le joueur suivi est bleu ou orange (« Joueur suivi » dans Affichage) — pour créer ta propre stat bar par équipe. Badge Bleu / Orange dans la liste des calques"
+    ],
+    "notes_en": [
+      "New in the Studio: a different stat bar depending on the spectated player's team. On the Stat bar, \"Settings for\": both teams, the blue team or the orange team — each team's own colors, sizes, offset and direction (e.g. orange stat bar on the right of the screen, mirrored). The preview can show a blue or an orange player (also on the Boost meter)",
+      "New in the Studio: every layer (shape, text, image…) and every folder can be shown to everyone, or only when the spectated player is blue or orange (\"Spectated player\" in Display) — to build your own stat bar per team. Blue / Orange badge in the layer list"
+    ]
   }
 }
