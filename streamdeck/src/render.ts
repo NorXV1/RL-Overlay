@@ -97,8 +97,8 @@ export function seriesKey(o: { name: string; team: 0 | 1; blue: number; orange: 
 		+ (o.step < 0 ? pill(stepLabel(o.step), 112, "#000000", "#ffffff", 0.45) : pill(stepLabel(o.step), 112, "#ffffff", dark, 0.92)));
 }
 
-/* ───── série remise à 0 (appui long) : flèche circulaire autour du score de la série ───── */
-export function seriesResetKey(o: { blue: number; orange: number; blueColor: RGB; orangeColor: RGB }): string {
+/* ───── série remise à 0 : flèche circulaire autour du score de la série ; confirm = en attente du 2e appui ───── */
+export function seriesResetKey(o: { blue: number; orange: number; blueColor: RGB; orangeColor: RGB; confirm: boolean }): string {
 	const cx = 72, cy = 70, r = 31, rad = (d: number) => (Math.PI / 180) * d;
 	const pt = (d: number, rr = r) => [cx + rr * Math.cos(rad(d)), cy + rr * Math.sin(rad(d))];
 	const [x1, y1] = pt(-40), [x2, y2] = pt(220);
@@ -106,15 +106,16 @@ export function seriesResetKey(o: { blue: number; orange: number; blueColor: RGB
 	const tip = [x2 + dir[0] * 10, y2 + dir[1] * 10], b1 = [x2 + nrm[0] * 9 - dir[0] * 2, y2 + nrm[1] * 9 - dir[1] * 2], b2 = [x2 - nrm[0] * 9 - dir[0] * 2, y2 - nrm[1] * 9 - dir[1] * 2];
 	const f = (p: number[]) => p.map((v) => v.toFixed(1)).join(",");
 	const blue = hex(lighten(o.blueColor, 0.25)), orange = hex(lighten(o.orangeColor, 0.15));
-	return svg(darkBg()
-		+ `<rect width="72" height="6" fill="${hex(o.blueColor)}"/><rect x="72" width="72" height="6" fill="${hex(o.orangeColor)}"/>`
-		+ text(W / 2, 28, 13, "#9aa0aa", t("resetSeries"), `letter-spacing="1"`)
+	return svg(darkBg(o.confirm ? "#4a0f17" : "#15171d")
+		+ (o.confirm ? `<rect x="3" y="3" width="138" height="138" rx="10" fill="none" stroke="${RED}" stroke-width="6"/>`
+			: `<rect width="72" height="6" fill="${hex(o.blueColor)}"/><rect x="72" width="72" height="6" fill="${hex(o.orangeColor)}"/>`)
+		+ text(W / 2, 28, 13, o.confirm ? "#ffd0d5" : "#9aa0aa", t("resetSeries"), `letter-spacing="1"`)
 		+ `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} A${r} ${r} 0 1 1 ${x2.toFixed(1)} ${y2.toFixed(1)}" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>`
 		+ `<polygon points="${f(tip)} ${f(b1)} ${f(b2)}" fill="#ffffff"/>`
 		+ `<text x="58" y="79" text-anchor="middle" ${FONT} font-size="24" fill="${blue}">${o.blue}</text>`
 		+ text(W / 2, 78, 20, "#ffffff", "-", `fill-opacity="0.6"`)
 		+ `<text x="86" y="79" text-anchor="middle" ${FONT} font-size="24" fill="${orange}">${o.orange}</text>`
-		+ pill(t("hold"), 112, "#f5a524", "#2a1a00"));
+		+ (o.confirm ? pill(t("confirm"), 112, RED, "#ffffff") : pill(t("resetBtn"), 112, "#f5a524", "#2a1a00")));
 }
 
 /* ───── HUD à l'écran : écran avec un mini scoreboard ───── */

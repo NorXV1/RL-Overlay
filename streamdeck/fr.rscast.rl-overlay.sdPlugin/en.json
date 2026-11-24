@@ -7,7 +7,7 @@
 	},
 	"fr.rscast.rl-overlay.series": {
 		"Name": "Series",
-		"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (hold). The key shows the series."
+		"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (press twice to confirm). The key shows the series."
 	},
 	"fr.rscast.rl-overlay.timeout": {
 		"Name": "Timeout",

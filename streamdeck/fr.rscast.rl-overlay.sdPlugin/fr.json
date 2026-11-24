@@ -7,7 +7,7 @@
 	},
 	"fr.rscast.rl-overlay.series": {
 		"Name": "Série",
-		"Tooltip": "Ajoute ou retire un match gagné dans la série (BO), ou remet la série à 0 - 0 (appui long). La touche affiche la série."
+		"Tooltip": "Ajoute ou retire un match gagné dans la série (BO), ou remet la série à 0 - 0 (deux appuis pour confirmer). La touche affiche la série."
 	},
 	"fr.rscast.rl-overlay.timeout": {
 		"Name": "Timeout",

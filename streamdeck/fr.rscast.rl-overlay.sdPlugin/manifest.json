@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"UUID": "fr.rscast.rl-overlay",
 	"Name": "RL Overlay",
-	"Version": "1.0.0.0",
+	"Version": "1.0.1.0",
 	"Author": "RS Cast",
 	"Description": "Control your RL Overlay Rocket League overlay from your Stream Deck: score, series, timeouts, overlay visibility, on-screen HUD, team swap and themes, with the live state on your keys.",
 	"URL": "https://overlay.rscast.fr",
@@ -49,7 +49,7 @@
 			"Name": "Series",
 			"UUID": "fr.rscast.rl-overlay.series",
 			"Icon": "imgs/actions/series/icon",
-			"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (hold). The key shows the series.",
+			"Tooltip": "Adds or removes a won game in the series (BO), or resets the series to 0 - 0 (press twice to confirm). The key shows the series.",
 			"Controllers": [
 				"Keypad"
 			],

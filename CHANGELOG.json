@@ -325,5 +325,14 @@
       "New control panel, more modern and easier to read: a menu on the left with one page per topic (Live, Teams, Themes, Media banner, Twitch vote, Broadcast, Account); the Live page gathers the OBS preview and the match settings. Four layouts to choose from in Account → Panel layout (or the \"Display\" button at the top): side menu, top tabs, single page, or Classic (the previous panel, unchanged). Seasonal decorations stay on the header",
       "New: Stream Deck plugin — score (+1 / −1), series (+1 / −1, or reset with a long press), timeouts (press: take, press again: end the screen, hold: give back), overlay shown or hidden, on-screen HUD, team swap and themes, right from your keys, with the live state on each key (score, series pips, timeout countdown, active theme). Install it from the panel, Stream Deck card: an indicator shows when it is connected. Stream Deck 7.1 or later"
     ]
+  },
+  "2.0.1": {
+    "date": "2026-11-23",
+    "notes": [
+      "Correction (Stream Deck) : la touche « Remettre à 0 » de la série marche d'un simple appui — un 1er appui affiche « CONFIRMER ? » (3 s), un 2e remet la série à 0 - 0, avec ✓ sur la touche (l'appui long marche toujours). Pour avoir le plugin à jour (1.0.1), clique « Installer le plugin » dans la page Diffusion, puis valide la mise à jour dans Stream Deck"
+    ],
+    "notes_en": [
+      "Fix (Stream Deck): the series \"Reset\" key works with a simple press — a 1st press shows \"CONFIRM?\" (3 s), a 2nd one resets the series to 0 - 0, with ✓ on the key (holding still works). To get the updated plugin (1.0.1), click \"Install the plugin\" on the Broadcast page, then confirm the update in Stream Deck"
+    ]
   }
 }

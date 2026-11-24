@@ -27,14 +27,14 @@ export abstract class RlAction<S extends Settings> extends SingletonAction<S> {
 		rl.onChange(() => this.refreshAll());
 	}
 
-	/** image de la touche quand l'appli est joignable */
-	protected abstract draw(settings: S): string;
+	/** image de la touche (id : la touche dessinée) quand l'appli est joignable */
+	protected abstract draw(settings: S, id: string): string;
 	/** titre de la touche hors ligne (ex. « SCORE ») */
 	protected abstract offlineTitle(settings: S): string;
 	/** appui sur la touche ; renvoie false pour afficher l'alerte ⚠, true pour ✓ (undefined : rien) */
 	protected abstract press(settings: S, action: KeyAction<S>): Promise<boolean | undefined>;
 	/** appui long (0,8 s) pour ces réglages, ou null s'il n'y en a pas */
-	protected longPress(_settings: S): Run | null {
+	protected longPress(_settings: S, _action: KeyAction<S>): Run | null {
 		return null;
 	}
 	/** true : seul l'appui long agit (action à risque) ; dans une multi-action, c'est lui qui est lancé */
@@ -62,7 +62,7 @@ export abstract class RlAction<S extends Settings> extends SingletonAction<S> {
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<S>): Promise<void> {
-		const a = ev.action as KeyAction<S>, s = ev.payload.settings, long = this.longPress(s);
+		const a = ev.action as KeyAction<S>, s = ev.payload.settings, long = this.longPress(s, a);
 		if (!long) { await this.run(a, () => this.press(s, a)); return; }
 		/* multi-action : pas d'appui long possible, action directe */
 		if (a.isInMultiAction()) { await this.run(a, this.holdRequired(s) ? long : () => this.press(s, a)); return; }
@@ -95,7 +95,7 @@ export abstract class RlAction<S extends Settings> extends SingletonAction<S> {
 	protected refresh(id: string): void {
 		const inst = this.instances.get(id);
 		if (!inst) return;
-		const image = rl.connected ? this.draw(inst.settings) : offlineKey(this.offlineTitle(inst.settings));
+		const image = rl.connected ? this.draw(inst.settings, id) : offlineKey(this.offlineTitle(inst.settings));
 		if (image === inst.image) return;
 		inst.image = image;
 		void inst.action.setImage(toImage(image));
