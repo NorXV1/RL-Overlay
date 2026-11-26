@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Caméra joueur</title>
+<!-- Une caméra de la salle caméras, affichée par l'overlay comme n'importe quel lien vidéo joueur (iframe).
+     La vidéo arrive du navigateur du joueur en WebRTC ; la mise en relation passe par l'app (/api/cams/…),
+     qui la relaie au site. Fond transparent tant que l'image n'est pas là : l'image de remplacement du
+     thème reste visible en dessous. -->
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+  video.on { opacity: 1; }
+</style>
+</head>
+<body>
+<video id="v" autoplay muted playsinline></video>
+<script>
+(function () {
+  const ID = (new URLSearchParams(location.search).get('id') || '').replace(/[^a-f0-9]/g, '');
+  const rnd = n => Array.from((window.crypto || window.msCrypto).getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('');
+  const VIEWER = 'v' + rnd(10);
+  const v = document.getElementById('v');
+  let pc = null, ice = [], online = false, wantT = null, pending = [], chain = Promise.resolve();
+  if (!ID) return;
+
+  function send(msg) {
+    msg.viewerId = VIEWER;
+    return fetch('/api/cams/signal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pubId: ID, msg }) }).catch(() => {});
+  }
+  function reset() {
+    pending = [];
+    if (pc) { const p = pc; pc = null; p.ontrack = p.onicecandidate = p.onconnectionstatechange = null; try { p.close(); } catch (e) {} }
+    v.classList.remove('on');
+  }
+  /* demande du flux au joueur ; sans connexion au bout de 20 s (page du joueur rechargée…), on redemande */
+  function want() {
+    clearTimeout(wantT);
+    reset();
+    if (!online) return;
+    send({ type: 'want' });
+    wantT = setTimeout(() => { if (!pc || pc.connectionState !== 'connected') want(); }, 20000);
+  }
+  async function handle(m) {
+    if (m.type === 'offer') {
+      reset();
+      const p = pc = new RTCPeerConnection({ iceServers: ice });
+      p.ontrack = e => { v.srcObject = e.streams[0] || new MediaStream([e.track]); v.play().catch(() => {}); };
+      p.onicecandidate = e => { if (e.candidate) send({ type: 'ice', cand: e.candidate.toJSON() }); };
+      p.onconnectionstatechange = () => {
+        if (p !== pc) return;
+        const s = p.connectionState;
+        if (s === 'connected') { clearTimeout(wantT); v.classList.add('on'); }
+        else if (s === 'failed') want();
+        else if (s === 'disconnected') setTimeout(() => { if (p === pc && p.connectionState === 'disconnected') want(); }, 5000);
+      };
+      await p.setRemoteDescription(m.sdp);
+      await p.setLocalDescription(await p.createAnswer());
+      send({ type: 'answer', sdp: p.localDescription.toJSON() });
+      for (const c of pending.splice(0)) await p.addIceCandidate(c).catch(() => {});
+    } else if (m.type === 'ice' && m.cand) {
+      if (pc && pc.remoteDescription) await pc.addIceCandidate(m.cand).catch(() => {});
+      else pending.push(m.cand);
+    } else if (m.type === 'bye') want();
+  }
+  const es = new EventSource('/api/cams/events?id=' + ID + '&viewer=' + VIEWER);
+  es.onmessage = e => {
+    let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+    if (d.type === 'state') {
+      if (Array.isArray(d.ice) && d.ice.length) ice = d.ice;
+      const was = online;
+      online = !!d.online;
+      if (!online) { clearTimeout(wantT); reset(); }
+      else if (!was || !pc) want();
+    } else if (d.type === 'signal' && d.msg) {
+      chain = chain.then(() => handle(d.msg)).catch(() => {});
+    }
+  };
+  window.addEventListener('pagehide', () => { try { navigator.sendBeacon('/api/cams/signal', new Blob([JSON.stringify({ pubId: ID, msg: { type: 'bye', viewerId: VIEWER } })], { type: 'application/json' })); } catch (e) {} });
+})();
+</script>
+</body>
+</html>

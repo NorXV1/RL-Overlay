@@ -412,6 +412,25 @@ html[data-season="halloween"] #season-banner .sb-sub { color:#ff9c3a; }
 .gc-btns { display:flex; flex-wrap:wrap; gap:8px; }
 .gc-btns .btn { flex:1 1 auto; margin:0; width:auto; }
 .gc-btns .btn:disabled { opacity:.4; cursor:default; }
+/* salle caméras */
+.cr-list { display:flex; flex-direction:column; gap:5px; margin:2px 0 8px; }
+.cr-row { display:flex; align-items:center; gap:7px; background:var(--subtle); border:1px solid var(--border); border-radius:6px; padding:5px 6px 5px 9px; }
+.cr-dot { width:8px; height:8px; border-radius:50%; background:#6b7280; flex-shrink:0; }
+.cr-row.on .cr-dot { background:#22c55e; box-shadow:0 0 6px #22c55e; }
+/* width:0 : sinon sa largeur naturelle (~180 px) élargit la carte dans la disposition classique (bord droit coupé) */
+.cr-name { flex:1 1 auto; width:0 !important; min-width:0; background:transparent !important; border:1px solid transparent !important; border-radius:4px; padding:4px 6px !important; font-size:12px !important; font-weight:700; color:var(--text); }
+.cr-name:hover { border-color:var(--border) !important; }
+.cr-name:focus { border-color:var(--blue) !important; background:var(--bg) !important; }
+.cr-tag { font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; white-space:nowrap; border:1px solid; flex-shrink:0; }
+.cr-tag.ok { color:#4ade80; border-color:rgba(74,222,128,.35); background:rgba(74,222,128,.08); }
+.cr-tag.wait { color:#93c5fd; border-color:rgba(147,197,253,.3); background:rgba(147,197,253,.07); }
+.cr-tag.warn { color:#fbbf24; border-color:rgba(251,191,36,.35); background:rgba(251,191,36,.08); }
+.cr-tag.off { color:var(--muted); border-color:var(--border); }
+.cr-x { background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:2px 5px; border-radius:4px; flex-shrink:0; }
+.cr-x:hover { color:#f87171; background:rgba(248,113,113,.1); }
+.cr-empty { font-size:11px; color:var(--muted); padding:4px 2px; }
+.cr-warn { display:flex; align-items:center; gap:8px; font-size:11px; color:#fbbf24; background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:6px; padding:6px 8px; margin:2px 0 6px; }
+.cr-warn span { flex:1; }
 /* salle de contrôle à distance */
 .rm-log { display:flex; flex-direction:column; gap:3px; margin:2px 0 6px; }
 .rm-log div { font-size:11px; color:var(--muted); }
@@ -1165,7 +1184,7 @@ html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { 
     <!-- Salle de contrôle à distance : un ami gère l'overlay depuis chez lui (relais par overlay.rscast.fr) -->
     <div class="card" data-card="remote" id="remote-card">
       <div class="card-title white">Salle de contrôle à distance</div>
-      <div class="toggle-sub" style="margin-bottom:10px">Donne un lien à un ami : depuis chez lui, il change les noms, tags, logos, la série, inverse les équipes, gère l'affichage et le flux vidéo de ton overlay. Rien à ouvrir sur ta box, tu fermes la salle quand tu veux.</div>
+      <div class="toggle-sub" style="margin-bottom:10px">Donne un lien à quelqu'un : depuis chez lui, connecté à son compte RL Overlay, il change les noms, tags, logos, la série, inverse les équipes, gère l'affichage et le flux vidéo de ton overlay. Tu vois son pseudo et tout ce qu'il fait. Rien à ouvrir sur ta box, tu fermes la salle quand tu veux.</div>
       <div id="rm-closed"><button class="btn btn-blue" onclick="remoteAction('open')">🎮 Ouvrir une salle</button></div>
       <div id="rm-open" style="display:none">
         <div class="url-link"><span id="rm-url"></span><button class="copy-btn" onclick="copy('rm-url')">Copier</button></div>
@@ -1175,10 +1194,10 @@ html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { 
           <div class="rm-code-btns">
             <button class="copy-btn" id="rm-code-eye" onclick="rmCodeToggle()">Afficher</button>
             <button class="copy-btn" onclick="rmCodeCopy(this)">Copier</button>
-            <button class="copy-btn" onclick="remoteAction('code')" title="Ton ami devra entrer le nouveau code">Nouveau</button>
+            <button class="copy-btn" onclick="remoteAction('code')" title="Il faudra entrer le nouveau code">Nouveau</button>
           </div>
         </div>
-        <div class="toggle-sub" style="margin:2px 0 0">Ton ami ouvre le lien, puis entre ce code de sécurité. Envoie-le à part (vocal, message privé) : sans le code, le lien ne donne accès à rien.</div>
+        <div class="toggle-sub" style="margin:2px 0 0">La personne ouvre le lien, se connecte à son compte RL Overlay, puis entre ce code de sécurité. Envoie-le à part (vocal, message privé) : sans le code, le lien ne donne accès à rien.</div>
         <div class="tw-status" id="rm-status"><span class="tw-dot"></span><span id="rm-status-txt"></span></div>
         <div id="rm-log" class="rm-log"></div>
         <div style="display:flex;gap:8px">
@@ -1187,6 +1206,26 @@ html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { 
         </div>
       </div>
       <div class="fb" id="fb-remote"></div>
+    </div>
+
+    <!-- Salle caméras : les joueurs envoient leur caméra depuis un lien (overlay.rscast.fr), liée à leur pseudo Rocket League -->
+    <div class="card" data-card="camroom" id="cam-card">
+      <div class="card-title white">Salle caméras</div>
+      <div class="toggle-sub" style="margin-bottom:10px">Donne un lien aux joueurs : ils branchent leur caméra et entrent leur pseudo Rocket League, et leur caméra apparaît dans le flux vidéo joueur de l'overlay. Rien à installer pour eux. Fermer la salle coupe toutes les caméras.</div>
+      <div id="cr-closed"><button class="btn btn-blue" onclick="camAction('open')">📷 Ouvrir une salle caméras</button></div>
+      <div id="cr-open" style="display:none">
+        <div class="url-link"><span id="cr-url"></span><button class="copy-btn" onclick="copy('cr-url')">Copier</button></div>
+        <div class="cr-warn" id="cr-video-off" style="display:none"><span>Le flux vidéo joueur est désactivé : les caméras ne s'affichent pas dans l'overlay.</span><button class="copy-btn" onclick="camEnableVideo()">Activer</button></div>
+        <div class="tw-status" id="cr-status"><span class="tw-dot"></span><span id="cr-status-txt"></span></div>
+        <div id="cr-list" class="cr-list"></div>
+        <datalist id="cr-players"></datalist>
+        <div class="toggle-sub" id="cr-hint" style="margin:0 0 8px;display:none">Le pseudo lie la caméra au joueur du même nom en jeu. S'il est faux, corrige-le ici : la caméra passe tout de suite sur le bon joueur.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-gray" style="flex:1" onclick="camAction('rotate')" title="L'ancien lien ne permettra plus d'entrer (les caméras déjà connectées restent)">🔄 Nouveau lien</button>
+          <button class="btn btn-danger" style="flex:1" onclick="camAction('close')">Fermer la salle</button>
+        </div>
+      </div>
+      <div class="fb" id="fb-cam"></div>
     </div>
 
     <!-- Plugin Stream Deck : piloter l'overlay depuis les touches (fichier livré avec l'app) -->
@@ -1802,6 +1841,7 @@ html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { 
       <div class="modal-box" style="width:420px;max-height:82vh;display:flex;flex-direction:column;">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;">Liens vidéo joueurs</div>
         <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Le pseudo doit correspondre <strong style="color:var(--text);">exactement</strong> au nom en jeu. Configurable à l'avance, ça s'applique dès que le joueur rejoint la partie.</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.5;margin:-6px 0 12px;">📷 Les caméras de la <b>salle caméras</b> s'ajoutent ici toutes seules, tant que la salle est ouverte.</div>
         <div class="toggle-row" style="margin-bottom:8px;">
           <div><div class="toggle-label">Conserver au redémarrage</div><div class="toggle-sub">Garde les joueurs enregistrés après avoir relancé l'app</div></div>
           <label class="switch"><input type="checkbox" id="keep-player-links-toggle" onchange="setKeepPlayerLinks(this.checked)"><span class="slider"></span></label>
@@ -2202,12 +2242,12 @@ const PAGES = [
   { id: 'themes', title: 'Thèmes', sub: 'Le look de ton overlay : thèmes intégrés ou importés, bibliothèque du site et Studio.', icon: 'themes', sum: 'themes', cards: ['themes'] },
   { id: 'media', title: 'Bandeau médias', sub: 'Les images et vidéos (sponsors…) qui défilent sur le stream.', icon: 'media', sum: 'media', cards: ['media-settings', 'media-groups', 'media-files'] },
   { id: 'twitch', title: 'Vote Twitch', sub: "Fais voter le chat de ta chaîne pour l'équipe gagnante.", icon: 'twitch', sum: 'twitch', cards: ['tw-channel', 'tw-vote'] },
-  { id: 'broadcast', title: 'Diffusion', sub: 'Liens OBS, clips des buts, salle de contrôle à distance et Stream Deck.', icon: 'broadcast', cards: ['obsurls', 'clips', 'remote', 'streamdeck'] },
+  { id: 'broadcast', title: 'Diffusion', sub: 'Liens OBS, clips des buts, salle de contrôle à distance, salle caméras et Stream Deck.', icon: 'broadcast', cards: ['obsurls', 'clips', 'remote', 'camroom', 'streamdeck'] },
   { id: 'account', title: 'Compte', sub: "Ton compte, l'affichage du panneau et la sauvegarde des réglages.", icon: 'account', cards: ['display', 'account', 'backup', 'actions'] },
 ];
 /* classique : colonne de gauche comme avant (+ Affichage à la fin) ; page unique : mêmes cartes, regroupées */
-const CLASSIC_LEFT = ['season', 'account', 'hud', 'spectator', 'visibility', 'animations', 'clips', 'obsurls', 'backup', 'remote', 'streamdeck', 'actions', 'display'];
-const SINGLE_LEFT = [['', ['season']], ['En match', ['hud', 'spectator', 'visibility', 'animations']], ['Diffusion', ['clips', 'obsurls', 'remote', 'streamdeck']], ['Compte', ['account', 'display', 'backup', 'actions']]];
+const CLASSIC_LEFT = ['season', 'account', 'hud', 'spectator', 'visibility', 'animations', 'clips', 'obsurls', 'backup', 'remote', 'camroom', 'streamdeck', 'actions', 'display'];
+const SINGLE_LEFT = [['', ['season']], ['En match', ['hud', 'spectator', 'visibility', 'animations']], ['Diffusion', ['clips', 'obsurls', 'remote', 'camroom', 'streamdeck']], ['Compte', ['account', 'display', 'backup', 'actions']]];
 const ACCS = [
   { id: 'themes', ico: '🎨', title: 'Thèmes', cards: ['themes'] },
   { id: 'teams', ico: '🛡️', title: 'Équipes', cards: ['names', 'series', 'logos'], grid: true },
@@ -2975,16 +3015,22 @@ function remoteRender(r) {
   const st = document.getElementById('rm-status');
   st.classList.toggle('on', !!r.guestOnline);
   st.classList.toggle('err', !!r.error);
-  document.getElementById('rm-status-txt').textContent = r.error || (r.guestOnline ? 'Ton ami est connecté à la salle' : 'En attente de ton ami (envoie-lui le lien et le code)');
+  /* pseudos des comptes connectés à la salle (le site exige un compte pour y entrer) */
+  _rmGuests = r.guestOnline ? (r.guests || []) : [];
+  const who = _rmGuests.join(', ');
+  document.getElementById('rm-status-txt').textContent = r.error || (r.guestOnline
+    ? (!who ? 'Quelqu\'un est connecté à la salle' : (_rmGuests.length > 1 ? `${who} sont connectés à la salle` : `${who} est connecté à la salle`))
+    : 'En attente de connexion (envoie le lien et le code)');
   _rmCode = r.code || ''; rmCodeDraw();
   const hm = t => new Date(t).toLocaleTimeString(window.I18N && I18N.lang === 'en' ? 'en-GB' : 'fr-FR', { hour: '2-digit', minute: '2-digit' });
   document.getElementById('rm-log').innerHTML = (r.log || []).slice().reverse().map(l => l.type === 'badCode'
     ? `<div class="err">${hm(l.at)} · <b>🔒</b> <span>${l.text}</span></div>`
-    : `<div class="${l.ok ? '' : 'err'}">${hm(l.at)} · <b>${l.ok ? '🎮' : '⚠'}</b> <span>Ton ami ${l.text}</span>${l.ok ? '' : ' — <span>' + String(l.error || '').replace(/[<>&]/g, '') + '</span>'}</div>`).join('');
+    : `<div class="${l.ok ? '' : 'err'}">${hm(l.at)} · <b>${l.ok ? '🎮' : '⚠'}</b> ${l.by ? `<b data-no-i18n>${_esc(l.by)}</b>` : '<b>Quelqu\'un</b>'} <span>${l.text}</span>${l.ok ? '' : ' — <span>' + String(l.error || '').replace(/[<>&]/g, '') + '</span>'}</div>`).join('');
   if (!r.open && r.error) { const f = document.getElementById('fb-remote'); f.textContent = '⚠ ' + r.error; f.style.color = '#f87171'; f.style.opacity = '1'; }
 }
 /* code de sécurité : masqué par défaut (panneau visible en stream / partage d'écran), copiable sans l'afficher */
 let _rmCode = '', _rmCodeShown = false;
+var _rmGuests = [];
 function rmCodeDraw() {
   document.getElementById('rm-code').textContent = !_rmCode ? '—' : _rmCodeShown ? _rmCode.slice(0, 3) + ' ' + _rmCode.slice(3) : '••• •••';
   document.getElementById('rm-code-eye').textContent = _rmCodeShown ? 'Masquer' : 'Afficher';
@@ -2995,16 +3041,107 @@ function rmCodeCopy(btn) {
   navigator.clipboard.writeText(_rmCode).then(() => { const t = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = t, 1800); });
 }
 async function remoteAction(action) {
-  if (action === 'close' && !confirm('Fermer la salle ? Ton ami ne pourra plus contrôler l\'overlay.')) return;
+  const who = (_rmGuests || []).join(', ');
+  if (action === 'close' && !confirm(who ? `Fermer la salle ? ${who} ne pourra plus contrôler l'overlay.` : 'Fermer la salle ? Plus personne ne pourra contrôler l\'overlay à distance.')) return;
   if (action === 'rotate' && !confirm('Créer un nouveau lien et un nouveau code ? L\'ancien lien ne marchera plus.')) return;
-  if (action === 'code' && !confirm('Créer un nouveau code de sécurité ? Ton ami devra entrer le nouveau code pour continuer.')) return;
+  if (action === 'code' && !confirm(who ? `Créer un nouveau code de sécurité ? ${who} devra entrer le nouveau code pour continuer.` : 'Créer un nouveau code de sécurité ? Il faudra entrer le nouveau code pour continuer.')) return;
   fb('fb-remote', action === 'close' ? 'Fermeture…' : action === 'code' ? 'Nouveau code…' : 'Ouverture de la salle…');
   const r = await post('/api/remote', { action }).catch(() => ({ error: 'Erreur réseau' }));
   if (r.remote) remoteRender(r.remote);
   if (r.error) fb('fb-remote', '⚠ ' + r.error, true);
   else fb('fb-remote', action === 'close' ? '✓ Salle fermée' : action === 'rotate' ? '✓ Nouveau lien et nouveau code créés'
-    : action === 'code' ? '✓ Nouveau code créé : donne-le à ton ami' : '✓ Salle ouverte : envoie le lien et le code à ton ami');
+    : action === 'code' ? '✓ Nouveau code créé : donne-le à la personne' : '✓ Salle ouverte : envoie le lien et le code');
 }
+
+/* ══════════ SALLE CAMÉRAS ══════════
+   Les joueurs ouvrent le lien, branchent leur caméra et entrent leur pseudo Rocket League ; l'app relie chaque
+   caméra au joueur du même nom. Le pseudo se corrige ici (la caméra passe tout de suite sur le bon joueur). */
+var _cam = null;   // var : lue par renderPlayerGrid, qui peut tourner avant cette ligne
+const _camNorm = s => String(s || '').normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
+function camRender(r) {
+  if (r) _cam = r;
+  r = _cam;
+  if (!r) return;
+  document.getElementById('cr-closed').style.display = r.open ? 'none' : '';
+  document.getElementById('cr-open').style.display = r.open ? '' : 'none';
+  document.getElementById('cr-url').textContent = r.url || '';
+  const pubs = r.pubs || [], on = pubs.filter(p => p.online).length;
+  const st = document.getElementById('cr-status');
+  st.classList.toggle('on', on > 0);
+  st.classList.toggle('err', !!r.error);
+  document.getElementById('cr-status-txt').textContent = r.error
+    || (on > 1 ? `${on} caméras connectées` : on === 1 ? '1 caméra connectée' : 'En attente des joueurs (envoie-leur le lien)');
+  document.getElementById('cr-video-off').style.display = r.open && !document.getElementById('player-video-toggle').checked ? '' : 'none';
+  document.getElementById('cr-hint').style.display = pubs.length ? '' : 'none';
+  camRenderList();
+  if (!r.open && r.error) { const f = document.getElementById('fb-cam'); f.textContent = '⚠ ' + r.error; f.style.color = '#f87171'; f.style.opacity = '1'; }
+}
+/* une ligne par caméra : pseudo modifiable (liste des joueurs en jeu proposée) et état du lien avec la partie */
+function camRenderList() {
+  const r = _cam;
+  if (!r || !r.open) return;
+  const list = document.getElementById('cr-list');
+  if (list.contains(document.activeElement)) { list.dataset.pending = '1'; return; }   // pseudo en cours de saisie : pas écrasé
+  const players = Object.values(_lastPlayers || {}).filter(p => p.id !== '__manual_spec__');
+  const inGame = new Set(players.map(p => _camNorm(p.name)));
+  document.getElementById('cr-players').innerHTML = players.map(p => `<option value="${_esc(p.name)}">`).join('');
+  const taken = new Set(), pubs = r.pubs || [];
+  list.innerHTML = pubs.length ? pubs.map(p => {
+    const n = _camNorm(p.name);
+    let tag, cls;
+    if (!p.online) { tag = 'Hors ligne'; cls = 'off'; }
+    else if (taken.has(n)) { tag = 'Pseudo déjà pris'; cls = 'warn'; }
+    else if (!players.length) { tag = 'Prête'; cls = 'wait'; }
+    else if (inGame.has(n)) { tag = '✓ En jeu'; cls = 'ok'; }
+    else { tag = 'Pas dans la partie'; cls = 'warn'; }
+    if (p.online) taken.add(n);
+    return `<div class="cr-row${p.online ? ' on' : ''}">
+      <span class="cr-dot" title="${p.online ? 'Caméra connectée' : 'Hors ligne'}"></span>
+      <input class="cr-name" data-no-i18n value="${_esc(p.name)}" list="cr-players" maxlength="32" spellcheck="false" data-id="${p.id}" data-old="${_esc(p.name)}" title="Pseudo Rocket League lié à cette caméra"
+        onchange="camRename(this)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.dataset.old;this.blur();}" onblur="camListBlur()">
+      <span class="cr-tag ${cls}">${tag}</span>
+      <button class="cr-x" onclick="camKick('${p.id}')" title="Retirer cette caméra de la salle">✕</button>
+    </div>`;
+  }).join('') : '<div class="cr-empty">Aucune caméra pour le moment</div>';
+}
+function camListBlur() {
+  setTimeout(() => {
+    const l = document.getElementById('cr-list');
+    if (l.dataset.pending && !l.contains(document.activeElement)) { delete l.dataset.pending; camRenderList(); }
+  }, 60);
+}
+async function camRename(input) {
+  const name = input.value.replace(/\s+/g, ' ').trim();
+  if (!name || name === input.dataset.old) { input.value = input.dataset.old; return; }
+  const r = await post('/api/cams', { action: 'rename', pubId: input.dataset.id, name }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.error) { input.value = input.dataset.old; fb('fb-cam', '⚠ ' + r.error, true); return; }
+  input.dataset.old = name;
+  fb('fb-cam', `✓ Caméra liée à ${name}`);
+  if (r.cams) camRender(r.cams);
+}
+async function camKick(id) {
+  const p = ((_cam && _cam.pubs) || []).find(x => x.id === id);
+  if (!confirm(p ? `Retirer la caméra de ${p.name} ? Elle est coupée tout de suite.` : 'Retirer cette caméra ? Elle est coupée tout de suite.')) return;
+  const r = await post('/api/cams', { action: 'kick', pubId: id }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.error) return fb('fb-cam', '⚠ ' + r.error, true);
+  fb('fb-cam', '✓ Caméra retirée');
+  if (r.cams) camRender(r.cams);
+}
+async function camAction(action) {
+  if (action === 'close' && !confirm('Fermer la salle caméras ? Toutes les caméras sont coupées.')) return;
+  if (action === 'rotate' && !confirm('Créer un nouveau lien ? L\'ancien ne permettra plus d\'entrer (les caméras déjà connectées restent).')) return;
+  fb('fb-cam', action === 'close' ? 'Fermeture…' : 'Ouverture de la salle…');
+  const r = await post('/api/cams', { action }).catch(() => ({ error: 'Erreur réseau' }));
+  if (r.cams) camRender(r.cams);
+  if (r.error) fb('fb-cam', '⚠ ' + r.error, true);
+  else fb('fb-cam', action === 'close' ? '✓ Salle fermée : caméras coupées' : action === 'rotate' ? '✓ Nouveau lien créé' : '✓ Salle ouverte : envoie le lien aux joueurs');
+}
+async function camEnableVideo() {
+  document.getElementById('player-video-toggle').checked = true;
+  await setPlayerVideoEnabled(true);
+  camRender();
+}
+fetch('/api/cams').then(r => r.json()).then(camRender).catch(() => {});
 fetch('/api/remote').then(r => r.json()).then(remoteRender).catch(() => {});
 /* changement fait à distance : champs du panneau remis à jour */
 function refreshFromRemote(type) {
@@ -3039,6 +3176,9 @@ ws.onmessage = e => {
   if (type === 'reload_all') { location.reload(); return; }
   if (type === 'twitch_poll') { twRender(data); return; }
   if (type === 'remote_room') { remoteRender(data); return; }
+  if (type === 'cam_room') { camRender(data); renderPlayerLinksModalList(); return; }
+  /* liens joueurs changés par l'app (caméras de la salle caméras) */
+  if (type === 'player_links') { _playerLinks = (data && data.links) || {}; renderPlayerLinksModalList(); renderPlayerGrid(_lastPlayers || {}); return; }
   if (type === 'timeouts') { toRender(data); return; }
   if (type === 'goal_clips') { gcRender(data); return; }
   if (type === 'remote_change') {
@@ -3158,6 +3298,7 @@ renderSeriesDots();
 let _lastPlayers = {};
 function renderPlayerGrid(players) {
   _lastPlayers = players || {};
+  if (_cam && _cam.open) camRenderList();   // état « en jeu » des caméras de la salle
   const grid=document.getElementById('player-grid');
   const list=Object.values(players);
   if(!list.length) { grid.innerHTML='<span style="font-size:11px;color:var(--muted);">Aucun joueur en jeu</span>'; return; }
@@ -3171,8 +3312,10 @@ function renderPlayerGrid(players) {
     btn.className='p-btn'+(active?' active':'');
     btn.dataset.playerName = p.name;
     if(active) { btn.style.borderColor=c; btn.style.background=c+'18'; }
-    const hasLink = !!_playerLinks[p.name];
-    btn.innerHTML=`<div class="p-badge" style="background:${c}28;border:1px solid ${c}55;color:${c};">${p.shortcut??'?'}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="boost-bar"><div class="boost-fill" style="width:${boost}%;background:${c};"></div></div></div><div class="p-boost">${boost}%</div><span class="p-link-icon" data-player-link="${p.name}" title="Lien flux vidéo" style="cursor:pointer;font-size:16px;padding:4px 6px;opacity:${hasLink?'1':'.35'};">🔗</span>`;
+    /* caméra de la salle caméras (prioritaire sur le lien saisi) : 📷 */
+    const camLinked = typeof p.link === 'string' && p.link.startsWith('/camview.html');
+    const hasLink = camLinked || !!_playerLinks[p.name];
+    btn.innerHTML=`<div class="p-badge" style="background:${c}28;border:1px solid ${c}55;color:${c};">${p.shortcut??'?'}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="boost-bar"><div class="boost-fill" style="width:${boost}%;background:${c};"></div></div></div><div class="p-boost">${boost}%</div><span class="p-link-icon" data-player-link="${p.name}" title="${camLinked ? 'Caméra de la salle caméras' : 'Lien flux vidéo'}" style="cursor:pointer;font-size:16px;padding:4px 6px;opacity:${hasLink?'1':'.35'};">${camLinked ? '📷' : '🔗'}</span>`;
     btn.onmouseover=()=>{ if(!active) btn.style.borderColor=c+'55'; };
     btn.onmouseout =()=>{ if(!active) btn.style.borderColor=''; };
     grid.appendChild(btn);
@@ -3234,7 +3377,7 @@ function renderPlayerLinksModalList() {
   const el = document.getElementById('pl-modal-list');
   const names = Object.keys(_playerLinks).sort((a, b) => a.localeCompare(b));
   if (!names.length) { el.innerHTML = '<span style="font-size:11px;color:var(--muted);">Aucun lien enregistré</span>'; return; }
-  el.innerHTML = names.map(n => `
+  el.innerHTML = names.map(n => _isCamLink(_playerLinks[n]) ? camLinkRow(n, _playerLinks[n]) : `
     <div style="display:flex;align-items:center;gap:8px;background:var(--subtle);border:1px solid var(--border);border-radius:5px;padding:6px 8px;">
       <div style="flex:1;min-width:0;">
         <div style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;">${n}</div>
@@ -3244,6 +3387,39 @@ function renderPlayerLinksModalList() {
       <button class="btn btn-danger btn-sm" style="width:auto;padding:4px 8px;font-size:10px;" onclick="deleteManualPlayerLink('${n.replace(/'/g, "\\'")}')">✕</button>
     </div>
   `).join('');
+}
+/* caméra de la salle caméras dans la liste : pseudo corrigeable sur place (✎), caméra retirée de la salle (✕) */
+const _isCamLink = l => typeof l === 'string' && l.startsWith('/camview.html?id=');
+function camLinkRow(name, link) {
+  const id = link.split('id=')[1] || '';
+  const pub = ((_cam && _cam.pubs) || []).find(p => p.id === id);
+  return `<div class="pl-cam-row" data-cam="${_esc(id)}" style="display:flex;align-items:center;gap:8px;background:var(--subtle);border:1px solid var(--border);border-radius:5px;padding:6px 8px;">
+      <div style="flex:1;min-width:0;">
+        <div class="pl-cam-nm" data-no-i18n style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_esc(name)}</div>
+        <div style="font-size:10px;color:var(--muted);">📷 <span>Caméra de la salle caméras</span> · <span style="color:${pub && pub.online ? '#4ade80' : 'var(--muted)'}">${pub && pub.online ? 'en ligne' : 'hors ligne'}</span></div>
+      </div>
+      <button class="btn btn-gray btn-sm" style="width:auto;padding:4px 8px;font-size:10px;" title="Corriger le pseudo lié à cette caméra" onclick="editCamLinkName(this)">✎</button>
+      <button class="btn btn-danger btn-sm" style="width:auto;padding:4px 8px;font-size:10px;" title="Retirer cette caméra de la salle" onclick="camKick('${_esc(id)}')">✕</button>
+    </div>`;
+}
+function editCamLinkName(btn) {
+  const row = btn.closest('.pl-cam-row'), nm = row.querySelector('.pl-cam-nm'), old = nm.textContent;
+  nm.style.textTransform = 'none';
+  nm.innerHTML = `<input class="cr-name" data-no-i18n maxlength="32" spellcheck="false" list="cr-players" value="${_esc(old)}" style="width:100% !important;border-color:var(--blue) !important;">`;
+  const inp = nm.querySelector('input');
+  inp.focus(); inp.select();
+  let sent = false;
+  const save = async () => {
+    if (sent) return; sent = true;
+    const name = inp.value.replace(/\s+/g, ' ').trim();
+    if (!name || name === old) { renderPlayerLinksModalList(); return; }
+    const r = await post('/api/cams', { action: 'rename', pubId: row.dataset.cam, name }).catch(() => ({ error: 'Erreur réseau' }));
+    if (r.error) { fb('fb-pl-modal', '⚠ ' + r.error, true); renderPlayerLinksModalList(); return; }
+    fb('fb-pl-modal', `✓ Caméra liée à ${name}`);
+    if (r.cams) camRender(r.cams);
+  };
+  inp.onkeydown = e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { sent = true; renderPlayerLinksModalList(); } };
+  inp.onblur = save;
 }
 function editManualPlayerLink(name) {
   document.getElementById('pl-modal-name').value = name;
@@ -3454,7 +3630,7 @@ async function adjScore(team,delta) { const id=team===0?'lp-sb':'lp-so'; const v
 async function resetAll() { if(!confirm('Réinitialiser tout ?')) return; await post('/api/reset',{}); }
 async function setOverlayVisible(v) { await post('/api/overlay-visible',{visible:v}); fb('fb-visible',v?'✓ Overlay affiché':'✓ Overlay masqué'); }
 async function setBoostVisible(v)   { await post('/api/boost-visible',  {visible:v}); fb('fb-visible',v?'✓ Boost affiché':'✓ Boost masqué'); }
-async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); }
+async function setPlayerVideoEnabled(v) { await post('/api/player-video-toggle', {enabled:v}); fb('fb-visible', v?'✓ Flux vidéo activé':'✓ Flux vidéo désactivé'); if (typeof camRender === 'function') camRender(); }
 async function setPlayerVideoHideEmpty(v) { await post('/api/player-video-hide-empty', {hide:v}); fb('fb-visible', v?'✓ Joueurs sans caméra masqués':'✓ Image de remplacement affichée'); }
 async function setKeepPlayerLinks(v) { await post('/api/keep-player-links', {enabled:v}); fb('fb-pl-modal', v?'✓ Les liens seront conservés au redémarrage':'✓ Les liens seront réinitialisés au redémarrage'); }
 const ANIM_LABELS = { goal: 'Animation GOAL', replay: 'Animation REPLAY', live: 'Animation LIVE', endScreen: 'Écran de fin' };

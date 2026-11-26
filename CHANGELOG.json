@@ -345,5 +345,16 @@
       "New in the Studio: a different stat bar depending on the spectated player's team. On the Stat bar, \"Settings for\": both teams, the blue team or the orange team — each team's own colors, sizes, offset and direction (e.g. orange stat bar on the right of the screen, mirrored). The preview can show a blue or an orange player (also on the Boost meter)",
       "New in the Studio: every layer (shape, text, image…) and every folder can be shown to everyone, or only when the spectated player is blue or orange (\"Spectated player\" in Display) — to build your own stat bar per team. Blue / Orange badge in the layer list"
     ]
+  },
+  "2.0.3": {
+    "date": "2026-11-26",
+    "notes": [
+      "Nouveau : salle caméras (Diffusion). Ouvre une salle et donne le lien aux joueurs : depuis leur navigateur (PC ou téléphone), ils branchent leur caméra et entrent leur pseudo Rocket League, et leur caméra apparaît dans le flux vidéo joueur de l'overlay, liée au bon joueur. Rien à installer, ni VDO.Ninja ni lien à copier : la vidéo va directement des joueurs à ton overlay. Seule l'image est envoyée, jamais le micro. Les caméras apparaissent aussi dans « Configurer les liens joueurs » (un lien déjà saisi pour le même pseudo est remis quand la caméra part). Le pseudo lié se corrige depuis le panneau (la caméra passe tout de suite sur le bon joueur), tu peux retirer une caméra, et fermer la salle coupe toutes les caméras",
+      "Salle de contrôle à distance : la personne qui ouvre le lien doit être connectée à son compte RL Overlay. Le panneau affiche son pseudo (« X est connecté à la salle », « X a modifié les équipes », code faux saisi par X) au lieu de « ton ami »"
+    ],
+    "notes_en": [
+      "New: camera room (Broadcast). Open a room and give the link to the players: from their browser (PC or phone), they plug in their camera and enter their Rocket League name, and their camera shows up in the overlay's player video feed, linked to the right player. Nothing to install, no VDO.Ninja, no link to copy: the video goes straight from the players to your overlay. Only the picture is sent, never the microphone. Cameras also show up in \"Set up player links\" (a link already entered for the same name comes back when the camera leaves). The linked name can be fixed from the panel (the camera moves to the right player straight away), you can remove a camera, and closing the room cuts off every camera",
+      "Remote control room: whoever opens the link must be logged in to their RL Overlay account. The panel shows their name (\"X is in the room\", \"X changed the teams\", wrong code entered by X) instead of \"your friend\""
+    ]
   }
 }

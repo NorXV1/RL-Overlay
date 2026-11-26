@@ -483,7 +483,7 @@ function handleStatsApiUpdate(data) {
       const ep = gameState.game.players[id];
       ep.name     = name     || ep.name;
       ep.team     = team;
-      ep.link     = settings.playerLinks[ep.name] || '';
+      ep.link     = playerLinkFor(ep.name);   // caméra de la salle caméras, sinon lien du panneau
       ep.score    = p.Score    ?? ep.score;
       ep.goals    = p.Goals    ?? ep.goals;
       ep.assists  = p.Assists  ?? ep.assists;
@@ -496,7 +496,7 @@ function handleStatsApiUpdate(data) {
     } else {
       gameState.game.players[id] = {
         id, name: name || id, team,
-        link: settings.playerLinks[name || id] || '',
+        link: playerLinkFor(name || id),
         score: p.Score ?? 0, goals: p.Goals ?? 0, assists: p.Assists ?? 0,
         saves: p.Saves ?? 0, shots: p.Shots ?? 0, demos: p.Demos ?? 0,
         boost: p.Boost ?? 0, speed: p.Speed ?? 0,
@@ -540,6 +540,7 @@ overlayWss.on('connection', (ws, req) => {
   ws.send(JSON.stringify({ type: 'timeouts', data: timeoutsState() }));
   ws.send(JSON.stringify({ type: 'goal_clips', data: gcState() }));
   ws.send(JSON.stringify({ type: 'remote_room', data: remotePayload() }));
+  ws.send(JSON.stringify({ type: 'cam_room', data: camPayload() }));
   ws.send(JSON.stringify({ type: 'review_status', data: { submitted: settings.reviewSubmitted } }));
   ws.send(JSON.stringify({ type: 'season', data: { season: currentSeason } }));
   ws.send(JSON.stringify({ type: 'streamdeck', data: streamDeckPayload() }));
@@ -836,7 +837,7 @@ app.post('/api/player-link', (req, res) => {
   else delete settings.playerLinks[name];
   saveSettings();
   const p = Object.values(gameState.game.players).find(p => p.name === name);
-  if (p) p.link = url || '';
+  if (p) p.link = playerLinkFor(name);   // une caméra de la salle reste prioritaire
   broadcast('update_state', gameState);
   res.json({ ok: true });
 });
@@ -1012,7 +1013,7 @@ app.post('/api/spectate', (req, res) => {
   const { name, team, goals, assists, shots, saves, demos, boost, speed } = req.body;
   const id = '__manual_spec__';
   Object.keys(gameState.game.players).forEach(k => { if (gameState.game.players[k].isPrimary) gameState.game.players[k].isPrimary = false; });
-  gameState.game.players[id] = { id, name: name || 'PLAYER', team: team ?? 0, link: settings.playerLinks[name || 'PLAYER'] || '', score: 0, goals: goals ?? 0, assists: assists ?? 0, shots: shots ?? 0, saves: saves ?? 0, demos: demos ?? 0, boost: boost ?? 0, speed: speed ?? 0, isPrimary: true };
+  gameState.game.players[id] = { id, name: name || 'PLAYER', team: team ?? 0, link: playerLinkFor(name || 'PLAYER'), score: 0, goals: goals ?? 0, assists: assists ?? 0, shots: shots ?? 0, saves: saves ?? 0, demos: demos ?? 0, boost: boost ?? 0, speed: speed ?? 0, isPrimary: true };
   broadcast('update_state', gameState);
   res.json({ ok: true });
 });
@@ -2488,6 +2489,9 @@ exports.setSession = (s) => {
   /* salle de contrôle ouverte au dernier lancement : rouverte (même lien pour l'ami) ; déconnexion : fermée */
   if (s && s.license && settings.remoteOpen && !remote.open) remoteOpen(false).catch(e => { remote.error = e.message; remoteBroadcast(); });
   if (!s && remote.open) remoteClose();
+  /* salle caméras : pareil */
+  if (s && s.license && settings.camOpen && !cam.open) camOpen(false).catch(e => { cam.error = e.message; broadcast('cam_room', camPayload()); });
+  if (!s && cam.open) camClose();
 };
 
 app.get('/api/session', (req, res) => {
@@ -2896,7 +2900,7 @@ if (settings.twitch.channel) twitchConnect(settings.twitch.channel);
    site) affiché dans le panneau. Chaque code faux saisi sur la page de la salle est signalé dans le panneau.
 ═══════════════════════════════════════════════════════════ */
 const ROOM_SITE = process.env.ROOM_SITE || 'https://overlay.rscast.fr';   // ROOM_SITE : tests
-const remote = { open: false, id: '', ownerKey: '', url: '', code: '', bad: 0, guestOnline: false, error: '', after: 0, log: [] };
+const remote = { open: false, id: '', ownerKey: '', url: '', code: '', bad: 0, guestOnline: false, guests: [], error: '', after: 0, log: [] };
 let remoteAbort = null, remotePushT = null, remoteTick = null, remoteLastState = '', remoteResults = [], remoteLogoSig = {}, remoteLooping = false;
 const LOGO_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif' };
 const REMOTE_LABELS = {
@@ -2905,10 +2909,15 @@ const REMOTE_LABELS = {
   video: 'a changé le flux vidéo joueur', videoHideEmpty: 'a changé le flux vidéo joueur', playerLink: 'a modifié un lien vidéo', theme: 'a changé le thème',
   timeout: 'a lancé un timeout', timeoutCancel: 'a annulé un timeout',
 };
-const remotePayload = () => ({ open: remote.open, url: remote.url, code: remote.code, guestOnline: remote.guestOnline, error: remote.error, log: remote.log.slice(-6) });
+const remotePayload = () => ({ open: remote.open, url: remote.url, code: remote.code, guestOnline: remote.guestOnline, guests: remote.guests, error: remote.error, log: remote.log.slice(-6) });
 function remoteLog(entry) { remote.log.push({ at: Date.now(), ...entry }); if (remote.log.length > 20) remote.log.shift(); }
 const remoteBroadcast = () => broadcast('remote_room', remotePayload());
-function remoteSetGuest(on) { on = !!on; if (on !== remote.guestOnline) { remote.guestOnline = on; remoteBroadcast(); } }
+/* présence dans la salle + pseudos des comptes connectés (la salle est réservée aux comptes du site) */
+function remoteSetGuest(on, guests) {
+  on = !!on;
+  const g = !on ? [] : Array.isArray(guests) ? guests.map(n => String(n).slice(0, 40)).slice(0, 5) : remote.guests;
+  if (on !== remote.guestOnline || g.join('\n') !== remote.guests.join('\n')) { remote.guestOnline = on; remote.guests = g; remoteBroadcast(); }
+}
 async function remoteFetch(p, opts = {}) {
   const r = await fetch(ROOM_SITE + p, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
   const j = await r.json().catch(() => ({}));
@@ -2932,7 +2941,8 @@ function remoteState() {
     overlayVisible, boostVisible,
     playerVideo: { enabled: !!settings.playerVideoEnabled, hideEmpty: !!settings.playerVideoHideEmpty },
     players: Object.values(gameState.game.players || {}).filter(p => p.id !== '__manual_spec__').map(p => ({ name: p.name, team: p.team })),
-    links: settings.playerLinks || {},
+    /* liens saisis à la main seulement (les caméras de la salle caméras se gèrent depuis l'app) */
+    links: Object.fromEntries(Object.entries(settings.playerLinks || {}).filter(([, l]) => !isCamLink(l))),
     theme: currentTheme,
     themes: listThemes().map(id => ({ id, name: names[id] || (id === 'rlcs' ? 'Default' : id) })),
     timeouts: timeoutsState(),
@@ -2946,7 +2956,7 @@ async function remotePush(force) {
   try {
     if (force || json !== remoteLastState || results.length) {
       const j = await remoteFetch(`/api/room/${remote.id}/state`, { method: 'POST', body: JSON.stringify({ ownerKey: remote.ownerKey, state: st, results }) });
-      remoteLastState = json; remoteSetGuest(j.guestOnline);
+      remoteLastState = json; remoteSetGuest(j.guestOnline, j.guests);
     }
     for (const side of ['bleu', 'orange']) {
       const url = findLogo(side), file = url ? path.join(LOGOS_DIR, side, path.basename(url)) : '';
@@ -3102,12 +3112,15 @@ async function remoteLoop() {
     try {
       const j = await remoteFetch(`/api/room/${remote.id}/poll?ownerKey=${encodeURIComponent(remote.ownerKey)}&after=${remote.after}`, { signal: ctrl.signal });
       clearTimeout(timeout);
-      remoteSetGuest(j.guestOnline);
+      remoteSetGuest(j.guestOnline, j.guests);
       if (remote.error) { remote.error = ''; remoteBroadcast(); }
-      /* code de sécurité faux saisi sur la page de la salle (l'ami qui se trompe… ou quelqu'un d'autre) */
+      /* code de sécurité faux saisi sur la page de la salle : le site dit quel compte l'a tapé */
       if (Number(j.bad) > remote.bad) {
         remote.bad = Number(j.bad);
-        remoteLog({ type: 'badCode', ok: false, text: j.locked ? '5 codes incorrects : accès bloqué 15 min. Si ce n\'est pas ton ami, crée un nouveau lien.' : 'Code de sécurité incorrect saisi sur la page de la salle' });
+        const who = j.badBy ? String(j.badBy).slice(0, 40) : '';
+        remoteLog({ type: 'badCode', ok: false, text: j.locked
+          ? (who ? `5 codes incorrects (dernier essai : ${who}) : accès bloqué 15 min. Si ce n'est pas la bonne personne, crée un nouveau lien.` : '5 codes incorrects : accès bloqué 15 min. Si ce n\'est pas la bonne personne, crée un nouveau lien.')
+          : (who ? `Code de sécurité incorrect saisi par ${who}` : 'Code de sécurité incorrect saisi sur la page de la salle') });
         remoteBroadcast();
       }
       for (const c of j.cmds || []) {
@@ -3117,7 +3130,7 @@ async function remoteLoop() {
         try { await runRemoteCmd(c); } catch (e) { ok = false; error = e.message; }
         remoteResults.push({ seq: c.seq, type: c.type, ok, error });
         const label = c.type === 'timeout' && c.args && c.args.used === false ? REMOTE_LABELS.timeoutCancel : REMOTE_LABELS[c.type];
-        remoteLog({ type: c.type, ok, text: label || c.type, error });
+        remoteLog({ type: c.type, ok, text: label || c.type, error, by: c.by ? String(c.by).slice(0, 40) : '' });
         broadcast('remote_change', { type: c.type, ok, error });
         remoteBroadcast();
       }
@@ -3140,7 +3153,7 @@ async function remoteOpen(rotate) {
   Object.assign(remote, { open: true, id: j.id, ownerKey: j.ownerKey, url: j.url, code: String(j.code || ''), error: '' });
   if (!same) { remote.after = Number(j.seq) || 0; remote.log = []; }
   remote.bad = Number(j.bad) || 0;   // codes faux d'avant : pas re-signalés
-  remoteSetGuest(j.guestOnline);
+  remoteSetGuest(j.guestOnline, j.guests);
   remoteLastState = ''; remoteLogoSig = {};
   settings.remoteOpen = true; saveSettings();
   await remotePush(true);
@@ -3154,13 +3167,14 @@ async function remoteNewCode() {
   if (!remote.open) throw new Error('La salle est fermée');
   try {
     const j = await remoteFetch(`/api/room/${remote.id}/code`, { method: 'POST', body: JSON.stringify({ ownerKey: remote.ownerKey }) });
-    remote.code = String(j.code || ''); remote.bad = Math.max(remote.bad, Number(j.bad) || 0); remote.guestOnline = !!j.guestOnline;
+    remote.code = String(j.code || ''); remote.bad = Math.max(remote.bad, Number(j.bad) || 0);
+    remote.guestOnline = !!j.guestOnline; remote.guests = remote.guestOnline && Array.isArray(j.guests) ? j.guests.map(String) : [];
     remoteBroadcast();
   } catch (e) { if (e.closed) remoteLost(); throw e; }
 }
 async function remoteClose() {
   const { id, ownerKey, open } = remote;
-  remoteStop(); remote.error = ''; remote.guestOnline = false;
+  remoteStop(); remote.error = ''; remote.guestOnline = false; remote.guests = [];
   settings.remoteOpen = false; saveSettings();
   remoteBroadcast();
   if (open) { try { await remoteFetch(`/api/room/${id}/close`, { method: 'POST', body: JSON.stringify({ ownerKey }) }); } catch {} }
@@ -3179,6 +3193,205 @@ app.post('/api/remote', async (req, res) => {
     remote.error = e.message; remoteBroadcast();
     res.status(400).json({ error: e.message, remote: remotePayload() });
   }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   SALLE CAMÉRAS (overlay.rscast.fr/cam/…)
+   L'app ouvre une salle sur le site et reçoit un lien pour les joueurs. Sur cette page, chaque joueur branche
+   sa caméra et entre son pseudo Rocket League : sa caméra devient le lien vidéo du joueur du même nom
+   (/camview.html?id=…, une page de l'app que l'overlay affiche comme n'importe quel lien joueur).
+   La vidéo va du navigateur du joueur à l'overlay en WebRTC (pair à pair, ou par le relais TURN du site).
+   Le site ne relaie que la mise en relation, que l'app vient chercher (requête en attente) : aucune connexion
+   entrante vers le PC. Fermer la salle coupe toutes les caméras. Le pseudo lié se corrige depuis le panneau.
+═══════════════════════════════════════════════════════════ */
+const cam = { open: false, id: '', ownerKey: '', url: '', ice: [], error: '', after: 0, ver: 0, pubs: [] };
+let camAbort = null, camLooping = false, camOutT = null;
+const camViewers = new Set();   // pages camview.html ouvertes (une par caméra affichée dans un overlay)
+const camOut = new Map();       // messages en attente d'envoi au site, par caméra
+const CAM_VIEWER_MSGS = new Set(['want', 'answer', 'ice', 'bye']);
+const camNorm = s => String(s || '').normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
+/* caméra liée à un pseudo : la première en ligne dont le pseudo correspond (majuscules et espaces ignorés) */
+function camPubFor(name) {
+  const n = camNorm(name);
+  return cam.open && n ? cam.pubs.find(p => p.online && camNorm(p.name) === n) || null : null;
+}
+const camLink = p => `/camview.html?id=${p.id}`;
+const isCamLink = l => typeof l === 'string' && l.startsWith('/camview.html?id=');
+/* lien vidéo d'un joueur : sa caméra de la salle si elle est là, sinon le lien saisi dans le panneau
+   (une caméra de la salle hors ligne ne laisse pas de cadre vide) */
+function playerLinkFor(name) {
+  const p = camPubFor(name);
+  if (p) return camLink(p);
+  const l = (settings.playerLinks || {})[name] || '';
+  return isCamLink(l) ? '' : l;
+}
+/* caméras de la salle → liens joueurs : listées dans « Configurer les liens joueurs » et enregistrées comme les
+   autres. Un lien saisi avant sous le même pseudo est mis de côté, puis remis quand la caméra part (pseudo
+   corrigé, caméra retirée, salle fermée). */
+function camSyncLinks() {
+  const links = settings.playerLinks || (settings.playerLinks = {});
+  const prev = settings.camPrevLinks || (settings.camPrevLinks = {});
+  const want = {};
+  if (cam.open) for (const p of cam.pubs) { const n = p.name.trim(); if (n && !(n in want)) want[n] = camLink(p); }
+  let changed = false;
+  for (const [name, l] of Object.entries(links)) {
+    if (!isCamLink(l) || want[name] === l) continue;
+    if (prev[name]) { links[name] = prev[name]; delete prev[name]; } else delete links[name];
+    changed = true;
+  }
+  for (const [name, l] of Object.entries(want)) {
+    if (links[name] === l) continue;
+    if (links[name] && !isCamLink(links[name])) prev[name] = links[name];
+    links[name] = l; changed = true;
+  }
+  if (changed) { saveSettings(); broadcast('player_links', { links }); }
+}
+function camRelink() {
+  camSyncLinks();
+  let changed = false;
+  for (const p of Object.values(gameState.game.players || {})) {
+    const l = playerLinkFor(p.name);
+    if (p.link !== l) { p.link = l; changed = true; }
+  }
+  if (changed) broadcast('update_state', gameState);
+}
+const camPayload = () => ({ open: cam.open, url: cam.url, error: cam.error, pubs: cam.pubs.map(p => ({ id: p.id, name: p.name, online: p.online })) });
+function camSse(c, data) { try { c.res.write('data: ' + JSON.stringify(data) + '\n\n'); } catch {} }
+function camViewerState(c) { const p = cam.open && cam.pubs.find(x => x.id === c.pubId); camSse(c, { type: 'state', online: !!(p && p.online), ice: cam.ice }); }
+function camBroadcast() { broadcast('cam_room', camPayload()); camViewers.forEach(camViewerState); camRelink(); }
+async function camFetch(p, opts = {}) {
+  const r = await fetch(ROOM_SITE + p, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || 'HTTP ' + r.status); e.closed = !!j.closed || r.status === 404 || r.status === 403; throw e; }
+  return j;
+}
+/* liste des caméras et serveurs ICE reçus du site ; true si la liste a changé */
+function camApply(j) {
+  if (Array.isArray(j.ice)) cam.ice = j.ice;
+  if (typeof j.ver === 'number') cam.ver = j.ver;
+  if (!Array.isArray(j.pubs)) return false;
+  const pubs = j.pubs.slice(0, 20).map(p => ({ id: String(p.id || '').replace(/[^a-f0-9]/g, '').slice(0, 24), name: String(p.name || '').slice(0, 32), online: !!p.online })).filter(p => p.id);
+  const sig = l => JSON.stringify(l.map(p => [p.id, p.name, p.online]));
+  if (sig(pubs) === sig(cam.pubs)) return false;
+  cam.pubs = pubs;
+  return true;
+}
+/* overlay → joueur : envoyés au site par paquets (les candidats ICE arrivent groupés) */
+function camToPub(pubId, msg) {
+  if (!cam.open || !pubId) return;
+  if (!camOut.has(pubId)) camOut.set(pubId, []);
+  camOut.get(pubId).push(msg);
+  if (!camOutT) camOutT = setTimeout(camFlush, 40);
+}
+async function camFlush() {
+  camOutT = null;
+  const batches = [...camOut]; camOut.clear();
+  for (const [pubId, msgs] of batches) {
+    for (let i = 0; i < msgs.length; i += 50) {
+      try { await camFetch(`/api/cam/${cam.id}/to-pub`, { method: 'POST', body: JSON.stringify({ ownerKey: cam.ownerKey, pubId, msgs: msgs.slice(i, i + 50) }) }); } catch {}
+    }
+  }
+}
+async function camLoop() {
+  if (camLooping) return;
+  camLooping = true;
+  while (cam.open) {
+    const ctrl = new AbortController(); camAbort = ctrl;
+    const timeout = setTimeout(() => ctrl.abort(), 40000);
+    try {
+      const j = await camFetch(`/api/cam/${cam.id}/poll?ownerKey=${encodeURIComponent(cam.ownerKey)}&v=${cam.ver}&after=${cam.after}`, { signal: ctrl.signal });
+      clearTimeout(timeout);
+      if (!cam.open) break;
+      let changed = camApply(j);
+      if (cam.error) { cam.error = ''; changed = true; }
+      /* joueur → overlay : remis à la page camview.html qui attend ce message */
+      for (const s of j.signals || []) {
+        if (s.seq <= cam.after) continue;
+        cam.after = s.seq;
+        const m = s.msg || {};
+        camViewers.forEach(c => { if (c.pubId === s.pubId && c.viewerId === m.viewerId) camSse(c, { type: 'signal', msg: m }); });
+      }
+      if (changed) camBroadcast();
+    } catch (e) {
+      clearTimeout(timeout);
+      if (!cam.open) break;
+      if (e.closed) { camLost(); break; }
+      if (e.name !== 'AbortError') {
+        if (cam.error !== 'Site injoignable, nouvel essai…') { cam.error = 'Site injoignable, nouvel essai…'; broadcast('cam_room', camPayload()); }
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    }
+  }
+  camLooping = false;
+}
+function camStop() { cam.open = false; clearTimeout(camOutT); camOutT = null; camOut.clear(); if (camAbort) try { camAbort.abort(); } catch {} }
+function camLost() { camStop(); cam.pubs = []; cam.error = 'La salle caméras a expiré : ouvre-en une nouvelle'; settings.camOpen = false; saveSettings(); camBroadcast(); }
+async function camOpen(rotate) {
+  if (!_session || !_session.license) throw new Error("Connecte-toi à ton compte RL Overlay dans l'app");
+  const j = await camFetch('/api/cam/open', { method: 'POST', body: JSON.stringify({ key: _session.license, rotate: !!rotate }) });
+  const same = cam.open && cam.id === j.id;
+  Object.assign(cam, { open: true, id: String(j.id), ownerKey: j.ownerKey, url: j.url, error: '' });
+  if (!same) { cam.after = Number(j.seq) || 0; cam.pubs = []; }
+  camApply(j);
+  settings.camOpen = true; saveSettings();
+  camBroadcast();
+  camLoop();
+}
+async function camClose() {
+  const { id, ownerKey, open } = cam;
+  camStop(); cam.pubs = []; cam.error = '';
+  settings.camOpen = false; saveSettings();
+  camBroadcast();   // caméras retirées des joueurs tout de suite ; les pages camview.html coupent leur connexion
+  if (open) { try { await camFetch(`/api/cam/${id}/close`, { method: 'POST', body: JSON.stringify({ ownerKey }) }); } catch {} }
+}
+/* au démarrage : liens de caméras d'une salle précédente retirés (la salle les remet en se rouvrant) */
+camSyncLinks();
+app.get('/api/cams', (req, res) => res.json(camPayload()));
+app.post('/api/cams', async (req, res) => {
+  const { action } = req.body || {};
+  const pubId = String((req.body && req.body.pubId) || '').replace(/[^a-f0-9]/g, '').slice(0, 24);
+  try {
+    if (action === 'open') await camOpen(false);
+    else if (action === 'rotate') await camOpen(true);
+    else if (action === 'close') await camClose();
+    else if (action === 'rename' || action === 'kick') {
+      if (!cam.open) throw new Error('La salle est fermée');
+      const body = { ownerKey: cam.ownerKey, pubId };
+      if (action === 'rename') {
+        body.name = String(req.body.name || '').replace(/\s+/g, ' ').trim().slice(0, 32);
+        if (!body.name) throw new Error('Pseudo requis');
+      }
+      if (camApply(await camFetch(`/api/cam/${cam.id}/${action}`, { method: 'POST', body: JSON.stringify(body) }))) camBroadcast();
+    }
+    else return res.status(400).json({ error: 'Action inconnue' });
+    res.json({ ok: true, cams: camPayload() });
+  } catch (e) {
+    if (e.closed && cam.open && action !== 'open' && action !== 'rotate') camLost();
+    else if (action === 'open' || action === 'rotate') { cam.error = e.message; broadcast('cam_room', camPayload()); }
+    res.status(400).json({ error: e.message, cams: camPayload() });
+  }
+});
+/* page camview.html (une caméra dans l'overlay) : état de la caméra + messages du joueur qui lui sont destinés */
+app.get('/api/cams/events', (req, res) => {
+  const c = { res, pubId: String(req.query.id || '').replace(/[^a-f0-9]/g, '').slice(0, 24), viewerId: String(req.query.viewer || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40) };
+  if (!c.pubId || c.viewerId.length < 6) return res.status(400).end();
+  res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  res.flushHeaders();
+  res.write('retry: 2000\n\n');
+  camViewers.add(c);
+  camViewerState(c);
+  const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 20000);
+  req.on('close', () => { clearInterval(hb); camViewers.delete(c); camToPub(c.pubId, { type: 'bye', viewerId: c.viewerId }); });
+});
+/* camview.html → joueur : demande du flux (want), réponse, candidats ICE, fin */
+app.post('/api/cams/signal', (req, res) => {
+  const b = req.body || {}, msg = b.msg;
+  const pubId = String(b.pubId || '').replace(/[^a-f0-9]/g, '').slice(0, 24);
+  if (!cam.open) return res.status(409).json({ error: 'La salle est fermée' });
+  if (!pubId || !msg || typeof msg !== 'object' || !CAM_VIEWER_MSGS.has(msg.type) || !/^[A-Za-z0-9_-]{6,40}$/.test(String(msg.viewerId || ''))) return res.status(400).json({ error: 'Envoi invalide' });
+  if (JSON.stringify(msg).length > 24000) return res.status(400).json({ error: 'Envoi invalide' });
+  camToPub(pubId, msg.type === 'want' ? { type: 'viewer', viewerId: msg.viewerId } : msg);
+  res.json({ ok: true });
 });
 
 server.listen(PORT, () => {
