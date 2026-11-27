@@ -3204,7 +3204,7 @@ app.post('/api/remote', async (req, res) => {
    Le site ne relaie que la mise en relation, que l'app vient chercher (requête en attente) : aucune connexion
    entrante vers le PC. Fermer la salle coupe toutes les caméras. Le pseudo lié se corrige depuis le panneau.
 ═══════════════════════════════════════════════════════════ */
-const cam = { open: false, id: '', ownerKey: '', url: '', ice: [], error: '', after: 0, ver: 0, pubs: [] };
+const cam = { open: false, id: '', ownerKey: '', url: '', viewUrl: '', ice: [], error: '', after: 0, ver: 0, pubs: [] };
 let camAbort = null, camLooping = false, camOutT = null;
 const camViewers = new Set();   // pages camview.html ouvertes (une par caméra affichée dans un overlay)
 const camOut = new Map();       // messages en attente d'envoi au site, par caméra
@@ -3255,7 +3255,8 @@ function camRelink() {
   }
   if (changed) broadcast('update_state', gameState);
 }
-const camPayload = () => ({ open: cam.open, url: cam.url, error: cam.error, pubs: cam.pubs.map(p => ({ id: p.id, name: p.name, online: p.online })) });
+/* viewUrl : régie du site (toutes les caméras dans le navigateur du streamer, sans envoyer la sienne) */
+const camPayload = () => ({ open: cam.open, url: cam.url, viewUrl: cam.open ? cam.viewUrl : '', error: cam.error, pubs: cam.pubs.map(p => ({ id: p.id, name: p.name, online: p.online })) });
 function camSse(c, data) { try { c.res.write('data: ' + JSON.stringify(data) + '\n\n'); } catch {} }
 function camViewerState(c) { const p = cam.open && cam.pubs.find(x => x.id === c.pubId); camSse(c, { type: 'state', online: !!(p && p.online), ice: cam.ice }); }
 function camBroadcast() { broadcast('cam_room', camPayload()); camViewers.forEach(camViewerState); camRelink(); }
@@ -3330,7 +3331,7 @@ async function camOpen(rotate) {
   if (!_session || !_session.license) throw new Error("Connecte-toi à ton compte RL Overlay dans l'app");
   const j = await camFetch('/api/cam/open', { method: 'POST', body: JSON.stringify({ key: _session.license, rotate: !!rotate }) });
   const same = cam.open && cam.id === j.id;
-  Object.assign(cam, { open: true, id: String(j.id), ownerKey: j.ownerKey, url: j.url, error: '' });
+  Object.assign(cam, { open: true, id: String(j.id), ownerKey: j.ownerKey, url: j.url, viewUrl: /^https:\/\/overlay\.rscast\.fr\/cam\//.test(j.viewUrl || '') || ROOM_SITE !== 'https://overlay.rscast.fr' ? String(j.viewUrl || '') : '', error: '' });
   if (!same) { cam.after = Number(j.seq) || 0; cam.pubs = []; }
   camApply(j);
   settings.camOpen = true; saveSettings();

@@ -1215,6 +1215,7 @@ html[data-ui="modern"] :is([data-card], .modal-box) [style*="font-size:11px"] { 
       <div id="cr-closed"><button class="btn btn-blue" onclick="camAction('open')">📷 Ouvrir une salle caméras</button></div>
       <div id="cr-open" style="display:none">
         <div class="url-link"><span id="cr-url"></span><button class="copy-btn" onclick="copy('cr-url')">Copier</button></div>
+        <button class="btn btn-gray" id="cr-watch" style="display:none;margin:0 0 8px" onclick="camWatch()" title="Ouvre la régie dans ton navigateur : toutes les caméras des joueurs, sans envoyer la tienne">👁 Voir les caméras</button>
         <div class="cr-warn" id="cr-video-off" style="display:none"><span>Le flux vidéo joueur est désactivé : les caméras ne s'affichent pas dans l'overlay.</span><button class="copy-btn" onclick="camEnableVideo()">Activer</button></div>
         <div class="tw-status" id="cr-status"><span class="tw-dot"></span><span id="cr-status-txt"></span></div>
         <div id="cr-list" class="cr-list"></div>
@@ -3065,6 +3066,7 @@ function camRender(r) {
   document.getElementById('cr-closed').style.display = r.open ? 'none' : '';
   document.getElementById('cr-open').style.display = r.open ? '' : 'none';
   document.getElementById('cr-url').textContent = r.url || '';
+  document.getElementById('cr-watch').style.display = r.open && r.viewUrl ? '' : 'none';
   const pubs = r.pubs || [], on = pubs.filter(p => p.online).length;
   const st = document.getElementById('cr-status');
   st.classList.toggle('on', on > 0);
@@ -3135,6 +3137,13 @@ async function camAction(action) {
   if (r.cams) camRender(r.cams);
   if (r.error) fb('fb-cam', '⚠ ' + r.error, true);
   else fb('fb-cam', action === 'close' ? '✓ Salle fermée : caméras coupées' : action === 'rotate' ? '✓ Nouveau lien créé' : '✓ Salle ouverte : envoie le lien aux joueurs');
+}
+/* régie du site dans le navigateur : toutes les caméras, sans envoyer la sienne */
+function camWatch() {
+  const url = _cam && _cam.viewUrl;
+  if (!url) return;
+  if (window.electronAPI && window.electronAPI.openUrl) window.electronAPI.openUrl(url);
+  else window.open(url, '_blank', 'noopener');
 }
 async function camEnableVideo() {
   document.getElementById('player-video-toggle').checked = true;

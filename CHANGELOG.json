@@ -356,5 +356,14 @@
       "New: camera room (Broadcast). Open a room and give the link to the players: from their browser (PC or phone), they plug in their camera and enter their Rocket League name, and their camera shows up in the overlay's player video feed, linked to the right player. Nothing to install, no VDO.Ninja, no link to copy: the video goes straight from the players to your overlay. Only the picture is sent, never the microphone. Cameras also show up in \"Set up player links\" (a link already entered for the same name comes back when the camera leaves). The linked name can be fixed from the panel (the camera moves to the right player straight away), you can remove a camera, and closing the room cuts off every camera",
       "Remote control room: whoever opens the link must be logged in to their RL Overlay account. The panel shows their name (\"X is in the room\", \"X changed the teams\", wrong code entered by X) instead of \"your friend\""
     ]
+  },
+  "2.0.4": {
+    "date": "2026-11-26",
+    "notes": [
+      "Salle caméras : nouveau bouton « 👁 Voir les caméras » — la régie s'ouvre dans ton navigateur et montre toutes les caméras des joueurs en direct, sans envoyer la tienne. Connecté au site avec ton compte, tu peux aussi le faire depuis le lien des joueurs (« Regarder les caméras sans la mienne »). La régie n'est accessible qu'à toi"
+    ],
+    "notes_en": [
+      "Camera room: new \"👁 Watch the cameras\" button — the control view opens in your browser and shows every player camera live, without sending yours. Logged in to the website with your account, you can also do it from the players' link (\"Watch the cameras without mine\"). Only you can access the control view"
+    ]
   }
 }
